@@ -1,0 +1,20 @@
+# Core scientific stack
+numpy>=1.23
+pandas>=1.5
+matplotlib>=3.5
+scipy>=1.8
+
+# Image processing / metrics
+scikit-image>=0.19
+
+# Utilities
+tqdm>=4.60
+
+# Notebook / interactive
+ipython>=8.0
+jupyter>=1.0
+
+# Optional / tools (useful during development)
+black
+flake8
+mypy
