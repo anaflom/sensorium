@@ -1,0 +1,43 @@
+{
+    "label": "RandomDots",
+    "ID": "v465514",
+    "sampling_freq": 30,
+    "valid_frames": 240,
+    "duplicates": {
+        "dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "716",
+                "534",
+                "297",
+                "540",
+                "622",
+                "587",
+                "318",
+                "289",
+                "628",
+                "52"
+            ],
+            "n": 10
+        }
+    },
+    "segments": {
+        "frame_start": [
+            0,
+            60,
+            120,
+            180
+        ],
+        "frame_end": [
+            60,
+            120,
+            180,
+            240
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}

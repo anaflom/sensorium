@@ -1,0 +1,67 @@
+{
+    "label": "PinkNoise",
+    "ID": "v262991",
+    "sampling_freq": 30,
+    "valid_frames": 324,
+    "duplicates": {
+        "dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "121",
+                "165",
+                "209",
+                "214",
+                "615",
+                "327",
+                "197",
+                "63",
+                "657",
+                "455"
+            ],
+            "n": 10
+        }
+    },
+    "segments": {
+        "frame_start": [
+            0,
+            27,
+            54,
+            81,
+            108,
+            135,
+            162,
+            189,
+            216,
+            243,
+            270,
+            297
+        ],
+        "frame_end": [
+            27,
+            54,
+            81,
+            108,
+            135,
+            162,
+            189,
+            216,
+            243,
+            270,
+            297,
+            324
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}

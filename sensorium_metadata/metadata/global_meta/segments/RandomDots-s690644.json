@@ -1,0 +1,14 @@
+{
+    "ID": "s690644",
+    "label": "RandomDots",
+    "sampling_freq": 30,
+    "valid_frames": 60,
+    "duplicates": {
+        "v722519": {
+            "segment_index": [
+                2
+            ],
+            "n": 1
+        }
+    }
+}

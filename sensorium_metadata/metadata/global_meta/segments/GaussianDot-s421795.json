@@ -1,0 +1,26 @@
+{
+    "ID": "s421795",
+    "label": "GaussianDot",
+    "sampling_freq": 30,
+    "valid_frames": 9,
+    "duplicates": {
+        "v664518": {
+            "segment_index": [
+                18
+            ],
+            "n": 1
+        },
+        "v269120": {
+            "segment_index": [
+                17
+            ],
+            "n": 1
+        },
+        "v247654": {
+            "segment_index": [
+                6
+            ],
+            "n": 1
+        }
+    }
+}

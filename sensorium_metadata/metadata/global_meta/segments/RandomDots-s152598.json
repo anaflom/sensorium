@@ -1,0 +1,14 @@
+{
+    "ID": "s152598",
+    "label": "RandomDots",
+    "sampling_freq": 30,
+    "valid_frames": 60,
+    "duplicates": {
+        "v531041": {
+            "segment_index": [
+                2
+            ],
+            "n": 1
+        }
+    }
+}

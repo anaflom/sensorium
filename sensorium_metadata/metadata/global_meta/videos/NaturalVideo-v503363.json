@@ -1,0 +1,37 @@
+{
+    "label": "NaturalVideo",
+    "ID": "v503363",
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "duplicates": {
+        "dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "238"
+            ],
+            "n": 1
+        }
+    },
+    "segments": {
+        "frame_start": [
+            0,
+            20,
+            70,
+            121,
+            155
+        ],
+        "frame_end": [
+            20,
+            70,
+            121,
+            155,
+            300
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}

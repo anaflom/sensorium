@@ -1,0 +1,14 @@
+{
+    "ID": "s176409",
+    "label": "NaturalImages",
+    "sampling_freq": 30,
+    "valid_frames": 16,
+    "duplicates": {
+        "v683710": {
+            "segment_index": [
+                1
+            ],
+            "n": 1
+        }
+    }
+}

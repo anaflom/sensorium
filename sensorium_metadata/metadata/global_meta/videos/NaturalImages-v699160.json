@@ -1,0 +1,91 @@
+{
+    "label": "NaturalImages",
+    "ID": "v699160",
+    "sampling_freq": 30,
+    "valid_frames": 325,
+    "duplicates": {
+        "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "731",
+                "718",
+                "700",
+                "683",
+                "733",
+                "715",
+                "717",
+                "695",
+                "709",
+                "736"
+            ],
+            "n": 10
+        }
+    },
+    "segments": {
+        "frame_start": [
+            0,
+            16,
+            32,
+            51,
+            66,
+            85,
+            100,
+            117,
+            132,
+            149,
+            165,
+            179,
+            194,
+            213,
+            229,
+            248,
+            263,
+            280,
+            295,
+            310
+        ],
+        "frame_end": [
+            16,
+            32,
+            51,
+            66,
+            85,
+            100,
+            117,
+            132,
+            149,
+            165,
+            179,
+            194,
+            213,
+            229,
+            248,
+            263,
+            280,
+            295,
+            310,
+            325
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}
