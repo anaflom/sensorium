@@ -415,7 +415,7 @@ class VideoSegmentID(VideoSegment):
         # load metadata
         metasegment = load_metadata_from_id(segment_id, segment_metadata_folder)
 
-        # pick and examplar video 
+        # pick and exemplar video 
         duplicates = metasegment.get("duplicates", {})
         if not duplicates:
             raise ValueError("No duplicates found in metadata")
@@ -1216,10 +1216,10 @@ class Video:
     
     def save_metadata(self, folder_metadata, main_fields=None, segments_fields=None, save_duplicates=None, file_name=None, metadata_for=None):
 
-        if not metadata_for in [None, 'examplar', 'videoID']:
-            raise ValueError("metadata_for can be examplar or videoID or None")
+        if not metadata_for in [None, 'exemplar', 'videoID']:
+            raise ValueError("metadata_for can be 'exemplar' or 'videoID' or None")
         
-        if metadata_for=='examplar':
+        if metadata_for=='exemplar':
             if main_fields is None:
                 main_fields = ['recording','trial','label','ID','sampling_freq','valid_frames']
             if segments_fields is None:
@@ -1326,7 +1326,7 @@ class VideoID(Video):
         # load metadata
         metavideo = load_metadata_from_id(video_id, videos_metadata_folder)
 
-        # pick and examplar video
+        # pick and exemplar video
         duplicates = metavideo.get("duplicates", {})
         if not duplicates:
             raise ValueError("No duplicates found in metadata")
@@ -1334,7 +1334,7 @@ class VideoID(Video):
 
         self.trial = str(random.choice(list(metavideo["duplicates"][self.recording]['trials'])))
     
-        # load an examplar video
+        # load an exemplar video
         recording_folder = os.path.join(data_folder, self.recording)
         self.data = np.load(os.path.join(recording_folder, 'data', 'videos', self.trial+'.npy'))
         
