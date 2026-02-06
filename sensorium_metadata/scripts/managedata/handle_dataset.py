@@ -9,7 +9,7 @@ import json
 from managedata.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from managedata.responses import Responses
 from managedata.behavioral import (Gaze, Pupil, Locomotion)
-from managedata.extras import (load_metadata_from_id,
+from managedata.data_loading import (load_metadata_from_id,
                                load_trials_descriptor)
 
 from managedata.videos_duplicates import (same_segments_edges, compute_dissimilarity_video_list)
@@ -252,9 +252,14 @@ class DataSet():
         video = Video(recording_folder, trial)
 
         # lookup trial metadata
-        trials_meta = self.filter_trials(recording=recording, trial=trial)
-        if len(trials_meta) != 1:
-            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+        try:
+            trials_meta = self.filter_trials(recording=recording, trial=trial)
+            if len(trials_meta) != 1:
+                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+        except Exception as e:
+            if verbose:
+                print(f"Could not load metadata for recording {recording}, trial {trial}: {e}")
+            return video
 
         video.ID = trials_meta["ID"].iloc[0]
         video.label = trials_meta["label"].iloc[0]
