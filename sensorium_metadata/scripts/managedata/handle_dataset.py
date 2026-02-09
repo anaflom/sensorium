@@ -5,6 +5,14 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 import json
+import warnings
+
+
+from managedata.metadata import ( validate_global_trials_metadata, 
+                                 validate_global_neurons_metadata, 
+                                 validate_metadata_video_json, 
+                                 validate_metadata_per_trial_json, 
+                                 validate_metadata_segment_json)
 
 from managedata.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from managedata.responses import Responses
@@ -47,30 +55,322 @@ def combine_data(behavioral_list, weights=None):
 
     return combined_data
 
+
 class DataSet():
 
     def __init__(self, folder_data, folder_metadata=None, 
-                 folder_intermediateresults=None, recording=None):
+                 folder_metadata_per_trial=None, recording=None, verbose=True):
         
+        # set data folders and check they exist
         self.folder_data = folder_data
-        self.folder_metadata = folder_metadata
-        self.folder_intermediateresults = folder_intermediateresults
-        if self.folder_metadata is not None:
-            self.folder_globalmetadata_videos = os.path.join(self.folder_metadata,'global_meta','videos')
-            self.folder_globalmetadata_segments = os.path.join(self.folder_metadata,'global_meta','segments')
-            if not os.path.exists(self.folder_globalmetadata_videos):
-                os.makedirs(self.folder_globalmetadata_videos)
-            if not os.path.exists(self.folder_globalmetadata_segments):
-                os.makedirs(self.folder_globalmetadata_segments)
-        else:
-            self.folder_globalmetadata_videos = None
-            self.folder_globalmetadata_segments = None
-
+        if not os.path.exists(folder_data):
+            raise ValueError(f"Path does not exist: {folder_data}")
         if recording is None :
             recording = [p.name for p in Path(folder_data).iterdir() if p.is_dir()]
         self.recording = recording
 
-        # check metadata exists for all recordings
+        # Check the data and store some info about it
+        self.check_data(verbose=verbose)
+
+        # set metadata folders and check they exist (if not None)
+        self.folder_metadata = folder_metadata
+        if folder_metadata is not None and not os.path.exists(folder_metadata):
+            raise ValueError(f"Path does not exist: {folder_metadata}")
+        
+        self.folder_metadata_per_trial = folder_metadata_per_trial
+        if folder_metadata_per_trial is not None and not os.path.exists(folder_metadata_per_trial):
+            raise ValueError(f"Path does not exist: {folder_metadata_per_trial}")
+        
+        # check the metadata folders and files and their consistency with the data files
+        self.check_metadata(verbose=verbose)
+        self.check_metadata_per_trial(verbose=verbose)
+
+
+    def __str__(self):
+        s = ''
+        s= s + f"The dataset contains {len(self.recording)} recordings:\n"
+        for rec in self.recording:
+            s = s + f"  - {rec} with {self.info[rec]['n_neurons']} neurons recorded, {self.info[rec]['n_trials']} trials, and {self.info[rec]['samples_per_trial']} samples per trial\n"
+        if hasattr(self, 'good_metadata') and self.good_metadata:
+            s = s + "The recoding has consistent metadata\n"
+        if hasattr(self, 'good_metadata_per_trial') and self.good_metadata_per_trial:
+            s = s + "The recoding has consistent metadata per trial\n"
+        
+        return s
+        
+
+        
+
+
+    def check_data(self, verbose=True):
+
+        print("Checking data per trial...") if verbose else None
+        
+        info = {}
+        is_valid = True
+        for rec in self.recording:
+
+            all_fine = True
+
+            path_to_data = os.path.join(self.folder_data, rec, "data")
+            if not os.path.exists(path_to_data):
+                warnings.warn(f"Warning: Path does not exist: {path_to_data}")
+                all_fine = False
+                continue
+
+            n_trials = {}
+            data_shape = {}
+            samples_per_trial = {}
+            the_trials = {}
+            n_neurons = []
+            for what_data in ['responses', 'videos', 'behavior','pupil_center']:
+                path_to_whatdata = os.path.join(path_to_data, what_data)
+                if not os.path.exists(path_to_whatdata):
+                    warnings.warn(f"Warning: Path does not exist: {path_to_whatdata}")
+                    all_fine = False
+                    samples_per_trial[what_data] = None
+                    n_trials[what_data] = 0
+                    continue
+                files = list(Path(path_to_whatdata).glob("*.npy"))
+                if len(files) == 0:
+                    warnings.warn(f"Warning: No .npy files found in {path_to_whatdata}")
+                    all_fine = False
+                    samples_per_trial[what_data] = None
+                    n_trials[what_data] = 0
+                    continue
+
+                n_trials[what_data] = len(files)
+                the_trials[what_data] = set([Path(f).stem for f in files])
+                for fff in files:
+                    try:
+                        data = np.load(fff, mmap_mode='r')
+                        if what_data not in data_shape:
+                            data_shape[what_data] = data.shape
+                            samples_per_trial[what_data] = data.shape[-1]
+                        else:
+                            if data.shape != data_shape[what_data]:
+                                warnings.warn(f"Warning: Different data shapes across {what_data} files in {rec}: {data.shape} vs {data_shape[what_data]}")
+                                all_fine = False
+                            if data.shape[-1] != samples_per_trial[what_data]:
+                                warnings.warn(f"Warning: Different number of samples per trial across {what_data} files in {rec}: {data.shape[-1]} vs {samples_per_trial[what_data]}")
+                                all_fine = False
+                        if what_data=='responses':
+                            n_neurons.append(data.shape[0])
+                    except Exception as e:
+                        warnings.warn(f"Warning: Could not load {fff}: {e}")
+                        all_fine = False
+
+            if len(set(n_trials.values()))>1:
+                warnings.warn(f"Warning: Different number of trials across data types in {rec}: {n_trials}")
+                all_fine = False
+                n_trials = None
+            else:
+                n_trials = set(n_trials.values()).pop()
+            
+            if not all(s == the_trials['responses'] for s in the_trials.values()):
+                warnings.warn(f"Warning: Different trial files across data types in {rec}")
+                all_fine = False
+            else:
+                the_trials = the_trials['responses']
+
+            if len(set(samples_per_trial.values()))>1:
+                warnings.warn(f"Warning: Different number of samples per trial across data types in {rec}: {samples_per_trial}")
+                all_fine = False
+                samples_per_trial = None
+            else:
+                samples_per_trial = set(samples_per_trial.values()).pop()
+
+            unique_n_neurons = set(n_neurons)
+            if len(unique_n_neurons)==0:
+                all_fine = False
+                n_neurons = None
+            elif len(unique_n_neurons)>1:
+                    warnings.warn(f"Warning: Different number of neurons across response files in {rec}: {unique_n_neurons}")
+                    all_fine = False
+                    n_neurons = None
+            else:
+                n_neurons = unique_n_neurons.pop()
+            
+
+            if all_fine:
+                print(f"- All data files seem consistent across trials and data types for recording {rec}.") if verbose else None
+
+            is_valid = is_valid and all_fine
+
+            info[rec] = {
+                'n_trials': n_trials,
+                'trials': the_trials,
+                'samples_per_trial': samples_per_trial,
+                'n_neurons': n_neurons,
+            }
+
+        self.info = info
+        self.good_data = is_valid
+
+
+    def check_metadata(self, verbose=True):
+        # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
+        
+        print("Checking metadata...") if verbose else None
+
+        if not hasattr(self, 'info'):
+            raise ValueError("Data must be checked with check_data() before checking metadata")
+
+        if self.folder_metadata is not None:
+
+            is_valid = True
+
+            self.folder_globalmetadata_videos = os.path.join(self.folder_metadata,'global_meta','videos')
+            self.folder_globalmetadata_segments = os.path.join(self.folder_metadata,'global_meta','segments')
+            if not os.path.exists(self.folder_globalmetadata_videos):
+                os.makedirs(self.folder_globalmetadata_videos)
+                warnings.warn(f"Warning: folder_globalmetadata_videos did not exist, created it: {self.folder_globalmetadata_videos}")
+            if not os.path.exists(self.folder_globalmetadata_segments):
+                os.makedirs(self.folder_globalmetadata_segments)
+                warnings.warn(f"Warning: folder_globalmetadata_segments did not exist, created it: {self.folder_globalmetadata_segments}")
+
+            # check all the video metadata files
+            files = list(Path(self.folder_globalmetadata_videos).glob(f"*.json"))
+            good_files = np.full(len(files), False)
+            for i, fff in enumerate(files):
+                try:
+                    _, good_files[i] = validate_metadata_video_json(fff)
+                except Exception as e:
+                    warnings.warn(f"Warning: Could not validate metadata video json file {fff}: {e}")
+            print(f"{good_files.sum()} out of {len(files)} metadata video json files are valid in {self.folder_globalmetadata_videos}") if verbose else None
+            is_valid = is_valid and good_files.sum()==len(files)
+
+            # check all the segment metadata files
+            files = list(Path(self.folder_globalmetadata_segments).glob(f"*.json"))
+            good_files = np.full(len(files), False)
+            for i, fff in enumerate(files):
+                try:
+                    _, good_files[i] = validate_metadata_segment_json(fff)
+                except Exception as e:
+                    warnings.warn(f"Warning: Could not validate metadata segment json file {fff}: {e}")
+            print(f"{good_files.sum()} out of {len(files)} metadata segment json files are valid in {self.folder_globalmetadata_segments}") if verbose else None
+            is_valid = is_valid and good_files.sum()==len(files)
+
+            # check the metadata for each recording and its consistency with the data files
+            for rec in self.recording:
+                all_fine = True
+
+                # check if a folder for the recording exists in the metadata folder
+                path_to_table = os.path.join(self.folder_metadata, rec)
+                if not os.path.exists(path_to_table):
+                    warnings.warn(f"Warning: Path does not exist: {path_to_table}")
+                    all_fine = False
+                    continue
+                
+                # check the trials metadata file
+                file = os.path.join(path_to_table,f"meta-trials_{rec}.csv")
+                if not os.path.exists(file):
+                    warnings.warn(f"Warning: File does not exist: {file}")
+                    all_fine = False
+                    continue
+                try:
+                    df, is_ok = validate_global_trials_metadata(file)
+                    all_fine = all_fine and is_ok
+
+                    # check that the trials in the metadata file are consistent with the trials in the data files
+                    if 'trial' in df.columns:
+                        if not df['trial'].isin(self.info[rec]['trials']).all():
+                            triasl_diff = set(df['trial'].values) - self.info[rec]['trials']
+                            all_fine = False
+                            warnings.warn(f"Warning: {len(triasl_diff)} trials in {file} are not found in data files for recording {rec}: {triasl_diff}")
+
+                    # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
+                    if 'ID' in df.columns:
+                        the_ids = set(df['ID'].values)
+                        for id in the_ids:
+                            files = list(Path(self.folder_globalmetadata_videos).glob(f"*{id}.json"))
+                            if len(files)==0:
+                                all_fine = False
+                                warnings.warn(f"Warning: No metadata file found for ID {id} in folder_globalmetadata_videos")
+                            elif len(files)>1:
+                                all_fine = False
+                                warnings.warn(f"Warning: Multiple metadata files found for ID {id} in folder_globalmetadata_videos: {[f.name for f in files]}")
+
+                except Exception as e:
+                    warnings.warn(f"Warning: Could not load {file}: {e}")
+                    all_fine = False
+                    continue
+
+                # check the neurons metadata file
+                file = os.path.join(path_to_table,f"meta-neurons_{rec}.csv")
+                df, is_ok = validate_global_neurons_metadata(file)
+                all_fine = all_fine and is_ok
+                if len(df)!=self.info[rec]['n_neurons']:
+                    all_fine = False
+                    warnings.warn(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {self.info[rec]['n_neurons']}")
+
+                # print if all fine for the recording
+                if all_fine:
+                    print(f"- Metadata seems ok for recording {rec}.") if verbose else None
+
+                is_valid = is_valid and all_fine
+            
+            
+        else:
+            self.folder_globalmetadata_videos = None
+            self.folder_globalmetadata_segments = None
+            is_valid = False
+
+        self.good_metadata = is_valid
+    
+
+    def check_metadata_per_trial(self, verbose=True):
+        # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
+        
+        print("Checking metadata per trial...") if verbose else None
+
+        if not hasattr(self, 'info'):
+            raise ValueError("Data must be checked with check_data() before checking metadata")
+
+        if self.folder_metadata_per_trial is not None:
+            is_valid = True
+
+            # check the metadata for each recording and its consistency with the data files
+            for rec in self.recording:
+                all_fine = True
+
+                # check if a folder for the recording exists in the metadata folder
+                path_to_table = os.path.join(self.folder_metadata_per_trial, rec, 'videos')
+                if not os.path.exists(path_to_table):
+                    warnings.warn(f"Warning: Path does not exist: {path_to_table}")
+                    all_fine = False
+                    continue
+
+                # check all the video metadata files
+                files = list(Path(self.folder_globalmetadata_videos).glob(f"*.json"))
+                good_files = np.full(len(files), False)
+                trials = []
+                for i, fff in enumerate(files):
+                    try:
+                        metadata, good_files[i] = validate_metadata_per_trial_json(fff)
+                        trials.append(metadata['trial'])
+                    except Exception as e:
+                        all_fine = False
+                        warnings.warn(f"Warning: Could not validate metadata per trial json file {fff}: {e}")
+                print(f"- Found {len(files)} trial metadata files for recording {rec}, {good_files.sum()} are valid")
+
+                if set(trials) != self.info[rec]['trials']:
+                    trials_diff = set(trials) - self.info[rec]['trials']
+                    all_fine = False
+                    warnings.warn(f"Warning: Trials in metadata per trial json files do not match the trials in the data files for recording {rec}: {trials_diff}")
+                
+                # print if all fine for the recording
+                if all_fine:
+                    print(f"- Metadata per trials seems ok for recording {rec}.") if verbose else None
+
+                is_valid = is_valid and all_fine
+
+        else:
+            is_valid = False
+
+        self.good_metadata_per_trial = is_valid
+                
+                
 
     def load_trials_descriptor(self, recording, verbose=False):        
         return load_trials_descriptor(os.path.join(self.folder_data, recording), verbose=verbose)
@@ -81,30 +381,30 @@ class DataSet():
         return list(Path(path_to_data).glob("*.npy"))
     
 
-    def create_folder_intermediate_results(self, recording, what_data='videos'):
-        if self.folder_intermediateresults is None:
-            raise ValueError("folder_intermediateresults is None, cannot create folder for intermediate results")
+    def create_folder_metadata_per_trial(self, recording, what_data='videos'):
+        if self.folder_metadata_per_trial is None:
+            raise ValueError("create_folder_metadata_per_trial is None, cannot create folder for metadata per trial")
         
-        path_to_results = os.path.join(self.folder_intermediateresults, recording)
-        if not os.path.exists(path_to_results):
-            os.makedirs(path_to_results)
-        path_to_results_whatdata = os.path.join(path_to_results, what_data)
-        if not os.path.exists(path_to_results_whatdata):
-            os.makedirs(path_to_results_whatdata)
+        path_to_meta = os.path.join(self.folder_metadata_per_trial, recording)
+        if not os.path.exists(path_to_meta):
+            os.makedirs(path_to_meta)
+        path_to_meta_whatdata = os.path.join(path_to_meta, what_data)
+        if not os.path.exists(path_to_meta_whatdata):
+            os.makedirs(path_to_meta_whatdata)
 
-        return path_to_results_whatdata
+        return path_to_meta_whatdata
     
 
-    def get_trials_intermediate_meta(self, what_data='videos', set_trials_df=False):
+    def get_trials_metadata_per_trials(self, what_data='videos', set_trials_df=False):
 
-        if self.folder_intermediateresults is None:
-            raise ValueError("folder_intermediateresults is None, cannot load trials metadata")
+        if self.folder_metadata_per_trial is None:
+            raise ValueError("folder_metadata_per_trial is None, cannot load trials metadata")
 
-        print("Loading trials intermediate metadata...")
+        print(f"Loading trials from metadata {self.folder_metadata_per_trial} for {what_data}...")
         all_rows = []
 
         for rec in self.recording:
-            path_to_results = os.path.join(self.folder_intermediateresults, rec, what_data)
+            path_to_results = os.path.join(self.folder_metadata_per_trial, rec, what_data)
 
             if not os.path.exists(path_to_results):
                 print(f"Warning: Path does not exist: {path_to_results}")
@@ -145,7 +445,7 @@ class DataSet():
             
 
 
-    def get_trials_meta(self, reload=False, set_trials_df=True):
+    def get_trials_metadata(self, reload=False, set_trials_df=True):
 
         if self.folder_metadata is None:
             raise ValueError("folder_metadata is None, cannot load trials metadata")
@@ -173,9 +473,6 @@ class DataSet():
             else:
                 self.trials_df = trials_df.reset_index(drop=True)
         
-        if set_trials_df:
-            self.trials_df = trials_df.reset_index(drop=True)
-
         return self.trials_df.reset_index(drop=True)
           
 
@@ -186,7 +483,7 @@ class DataSet():
         
         # get a table with trials metadata if not loaded yet
         if not hasattr(self, 'trials_df'):
-            raise ValueError("trials_df is not loaded, please run get_trials_meta() or get_trials_intermediate_meta() first")
+            raise ValueError("trials_df is not loaded, please run get_trials_metadata() or get_trials_metadata_per_trials() first")
         all_trials_df = self.trials_df.copy()
         
         # find trials agreeing on that conditions
@@ -210,7 +507,7 @@ class DataSet():
 
         # get a table with trials metadata if not loaded yet
         if not hasattr(self, 'trials_df'):
-            raise ValueError("trials_df is not loaded, please run get_trials_meta() or get_trials_intermediate_meta() first")
+            raise ValueError("trials_df is not loaded, please run get_trials_metadata() or get_trials_metadata_per_trials() first")
         all_trials_df = self.trials_df.copy()
         
         # count
@@ -275,17 +572,17 @@ class DataSet():
                 if verbose:
                     print(f"load_metadata_from_id failed: {e}")
 
-        # fallback: try loading metadata from intermediate results (if configured)
-        if self.folder_intermediateresults is not None:
-            path_to_metadata_file = os.path.join(self.folder_intermediateresults, recording, "videos", f"{trial}.json")
+        # fallback: try loading metadata from metadata per trials (if configured)
+        if self.folder_metadata_per_trial is not None:
+            path_to_metadata_file = os.path.join(self.folder_metadata_per_trial, recording, "videos", f"{trial}.json")
             if os.path.exists(path_to_metadata_file):
                 try:
                     video.load_metadata(path_to_metadata_file)
                     if verbose:
-                        print("Metadata loaded from intermediate results")
+                        print("Metadata loaded from metadata per trial")
                 except Exception as e:
                     if verbose:
-                        print(f"Could not load metadata from intermediate results: {e}")
+                        print(f"Could not load metadata from metadata per trial: {e}")
             else:
                 if verbose:
                     print(f"Metadata file not found: {path_to_metadata_file}")
