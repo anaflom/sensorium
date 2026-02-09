@@ -17,8 +17,9 @@ from managedata.metadata import ( validate_global_trials_metadata,
 from managedata.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from managedata.responses import Responses
 from managedata.behavioral import (Gaze, Pupil, Locomotion)
-from managedata.data_loading import (load_metadata_from_id,
-                               load_trials_descriptor)
+from managedata.data_loading import (load_all_data, 
+                                     load_metadata_from_id,
+                                     load_trials_descriptor)
 
 from managedata.videos_duplicates import (same_segments_edges, compute_dissimilarity_video_list)
 
@@ -61,6 +62,8 @@ class DataSet():
     def __init__(self, folder_data, folder_metadata=None, 
                  folder_metadata_per_trial=None, recording=None, verbose=True):
         
+        print("Initializing DataSet...") if verbose else None
+
         # set data folders and check they exist
         self.folder_data = folder_data
         if not os.path.exists(folder_data):
@@ -104,7 +107,8 @@ class DataSet():
 
     def check_data(self, verbose=True):
 
-        print("Checking data per trial...") if verbose else None
+
+        print("Checking data per trial ------------------------------------------") if verbose else None
         
         info = {}
         is_valid = True
@@ -211,7 +215,7 @@ class DataSet():
     def check_metadata(self, verbose=True):
         # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
         
-        print("Checking metadata...") if verbose else None
+        print("Checking metadata ------------------------------------------") if verbose else None
 
         if not hasattr(self, 'info'):
             raise ValueError("Data must be checked with check_data() before checking metadata")
@@ -322,7 +326,7 @@ class DataSet():
     def check_metadata_per_trial(self, verbose=True):
         # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
         
-        print("Checking metadata per trial...") if verbose else None
+        print("Checking metadata per trial ------------------------------------------") if verbose else None
 
         if not hasattr(self, 'info'):
             raise ValueError("Data must be checked with check_data() before checking metadata")
@@ -802,7 +806,7 @@ class DataSet():
 
         return counts_df
     
-    def load_all_data(self, recording, what_data):
+    def load_all_data(self, recording, what_data, data_slice=None):
         """
         Load all data files from a recording directory.
         
@@ -813,31 +817,8 @@ class DataSet():
         Returns:
             np.ndarray: Stacked array of all loaded data files
         """
-
-        path_to_data = os.path.join(self.folder_data, recording, "data", what_data)
-        if not os.path.exists(path_to_data):
-            raise ValueError(f"Path does not exist: {path_to_data}")
-        
-        # Get sorted list of .npy files only
-        data_files = sorted([f for f in os.listdir(path_to_data) if f.endswith('.npy')])
-        
-        if len(data_files) == 0:
-            raise ValueError(f"No .npy files found in {path_to_data}")
-        
-        data_all = []
-        for file in data_files:
-            try:
-                filepath = os.path.join(path_to_data, file)
-                data = np.load(filepath)
-                data_all.append(data)
-            except Exception as e:
-                print(f"Warning: Could not load {file}: {e}")
-                continue
-        
-        if len(data_all) == 0:
-            raise ValueError(f"No data successfully loaded from {path_to_data}")
                     
-        return np.array(data_all)
+        return load_all_data(os.path.join(self.folder_data, recording), what_data, data_slice=data_slice)
     
 
     def compute_neurons_stats(self, recording, trials_to_include=None):
@@ -853,21 +834,18 @@ class DataSet():
         Returns:
             pd.DataFrame: Statistics (mean, std, median, min, max) for each neuron
         '''
-        # load all responses
-        print("Loading all responses...")
-        resp_all = self.load_all_data(recording, what_data='responses')
-        
-        # Validate response array shape
-        if resp_all.ndim != 3:
-            raise ValueError(f"Expected 3D response array (trials, neurons, timepoints), got shape {resp_all.shape}")
-        
-        # compute responses statistics per neuron
+
+        # get the number of neurons
+        n_neurons = self.info[recording]['n_neurons']
+        n_trials = self.info[recording]['n_trials']
+
+        # initialize
         stats = {}
-        stats['mean'] = np.full(resp_all.shape[1], np.nan)
-        stats['std'] = np.full(resp_all.shape[1], np.nan)
-        stats['median'] = np.full(resp_all.shape[1], np.nan)
-        stats['min'] = np.full(resp_all.shape[1], np.nan)
-        stats['max'] = np.full(resp_all.shape[1], np.nan)
+        stats['mean_activation'] = np.full(n_neurons, np.nan)
+        stats['std_activation'] = np.full(n_neurons, np.nan)
+        stats['median_activation'] = np.full(n_neurons, np.nan)
+        stats['min_activation'] = np.full(n_neurons, np.nan)
+        stats['max_activation'] = np.full(n_neurons, np.nan)
 
         if trials_to_include!=None:
 
@@ -881,7 +859,7 @@ class DataSet():
                 print(f"Warning: trial types {invalid_trials} not found in descriptor")
             
             # select the trials
-            idx_trials_stats = np.zeros(resp_all.shape[0], dtype=bool)
+            idx_trials_stats = np.zeros(n_trials, dtype=bool)
             for c in trials_to_include:
                 idx_trials_stats = np.logical_or(np.array(trials_list) == c, idx_trials_stats)
 
@@ -892,21 +870,25 @@ class DataSet():
                 print("Excluded trial types: " + ", ".join(f'"{x}"' for x in excluded))
 
         else:
-            idx_trials_stats = np.ones(resp_all.shape[0], dtype=bool)
+            idx_trials_stats = np.ones(n_trials, dtype=bool)
 
         n_included = np.sum(idx_trials_stats)
         if n_included == 0:
             raise ValueError("No trials match the specified criteria")
         
-        print(f"Computing neurons stats over {np.sum(idx_trials_stats)} out of {resp_all.shape[0]} total trials")
-        print(f"Computing for {resp_all.shape[1]} neurons...")
+        print(f"Computing neurons stats for {n_neurons} neurons over {np.sum(idx_trials_stats)} out of {n_trials} total trials")
 
-        for ni in tqdm(range(resp_all.shape[1]), total=resp_all.shape[1], desc="Computing neuron stats", disable=False):
-            stats['mean'][ni] = np.nanmean(resp_all[idx_trials_stats,ni,:])
-            stats['std'][ni] = np.nanstd(resp_all[idx_trials_stats,ni,:])
-            stats['median'][ni] = np.nanmedian(resp_all[idx_trials_stats,ni,:])
-            stats['min'][ni] = np.nanmin(resp_all[idx_trials_stats,ni,:])
-            stats['max'][ni] = np.nanmax(resp_all[idx_trials_stats,ni,:])
+        for ni in tqdm(range(n_neurons), total=n_neurons, desc="Computing neuron stats", disable=False):
+            
+            # load all responses
+            resp_all = self.load_all_data(recording, what_data='responses', data_slice=(ni, slice(None)))
+        
+            # compute
+            stats['mean_activation'][ni] = np.nanmean(resp_all[idx_trials_stats,:])
+            stats['std_activation'][ni] = np.nanstd(resp_all[idx_trials_stats,:])
+            stats['median_activation'][ni] = np.nanmedian(resp_all[idx_trials_stats,:])
+            stats['min_activation'][ni] = np.nanmin(resp_all[idx_trials_stats,:])
+            stats['max_activation'][ni] = np.nanmax(resp_all[idx_trials_stats,:])
 
         return pd.DataFrame.from_dict(stats)
     

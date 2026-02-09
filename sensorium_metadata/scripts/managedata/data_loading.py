@@ -17,15 +17,36 @@ def to_json_safe(obj):
         return obj
 
 
-def load_all_data(recording_folder, what):
+def load_all_data(recording_folder, what_data, data_slice=None):
 
-    data_files_list = os.listdir(os.path.join(recording_folder, "data", what))
+    path_to_data = os.path.join(recording_folder, "data", what_data)
+    if not os.path.exists(path_to_data):
+            raise ValueError(f"Path does not exist: {path_to_data}")
+
+    # Get sorted list of .npy files only
+    data_files_list = sorted([f for f in os.listdir(path_to_data) if f.endswith('.npy')])
+
+    if len(data_files_list) == 0:
+        raise ValueError(f"No .npy files found in {path_to_data}")
+        
+       
     data_all = []
     for file in data_files_list:
-        data = np.load(os.path.join(recording_folder, "data", what, file))
-        data_all.append(data)
-        
-    return np.array(data_all)
+        try:
+            data = np.load(os.path.join(recording_folder, "data", what_data, file), mmap_mode="r")
+            if data_slice is None:
+                d = data
+            else:
+                d = data[data_slice]
+            data_all.append(d)
+        except Exception as e:
+            print(f"Warning: Could not load {file}: {e}")
+            continue
+
+    if len(data_all) == 0:
+            raise ValueError(f"No data successfully loaded from {path_to_data}")
+              
+    return np.stack(data_all, axis=0)
 
 
 def load_trials_descriptor(recording_folder, verbose=False):

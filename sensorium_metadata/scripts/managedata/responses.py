@@ -13,7 +13,7 @@ class Neurons():
         df_neurons = pd.read_csv(file)
         self.coord_xyz = df_neurons[['coord_x', 'coord_y','coord_z']].copy().to_numpy()
         self.IDs = df_neurons['ID'].copy().to_numpy()
-        self.stats_activity = {k:df_neurons[k].copy().to_numpy() for k in ['mean','std','median','min','max']}
+        self.stats_activity = {k:df_neurons[k].copy().to_numpy() for k in ['mean_activation', 'std_activation', 'median_activation', 'min_activation', 'max_activation'] if k in df_neurons.columns}
 
 
     def plot_coordinates(self):
@@ -101,11 +101,17 @@ class Responses():
         if normalization is None:
             data = self.data[:,:self.valid_frames].copy()
         elif normalization=='by_std':
-            std = self.neurons.stats_activity['std']
-            data = np.divide(self.data[:,:self.valid_frames], std[:,None])
+            if 'std_activation' in self.neurons.stats_activity.keys():
+                std = self.neurons.stats_activity['std_activation']
+                data = np.divide(self.data[:,:self.valid_frames], std[:,None])
+            else:
+                raise ValueError("'std_activation' was not found in neurons.stats_activity")
         elif normalization=='by_mean':
-            mu = self.neurons.stats_activity['mean']
-            data = np.divide(self.data[:,:self.valid_frames]-mu[:,None], mu[:,None])
+            if 'mean_activation' in self.neurons.stats_activity.keys():
+                mu = self.neurons.stats_activity['mean_activation']
+                data = np.divide(self.data[:,:self.valid_frames]-mu[:,None], mu[:,None])
+            else:
+                raise ValueError("'mean_activation' was not found in neurons.stats_activity")
         else:
             raise ValueError("Normalization can have values: None, by_std, or by_mean")
 

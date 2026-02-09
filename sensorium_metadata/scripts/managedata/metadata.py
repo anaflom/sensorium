@@ -89,8 +89,7 @@ def validate_global_neurons_metadata(filepath):
     
     """
     mandatory_columns={ 'ID', 'coord_x', 'coord_y', 'coord_z'}
-    # optional_columns={'mean_activation', 'std_activation', 'median_activation', 'min_activation', 'max_activation'}
-    optional_columns={'mean', 'std', 'median', 'min', 'max'}
+    optional_columns={'mean_activation', 'std_activation', 'median_activation', 'min_activation', 'max_activation'}
     return _validate_csv_metadata(filepath, mandatory_columns=mandatory_columns, optional_columns=optional_columns)
         
 
