@@ -1,7 +1,7 @@
 # Sensorium metadata creation and data handling tool
 
-This is a library to create FAIR metadata for the [Sensorium](https://www.sensorium-competition.net/) dataset.
-It also alows to handle and visualize the data 
+This library creates FAIR metadata for the [Sensorium](https://www.sensorium-competition.net/) dataset.
+It also allows handling and visualizing the data
 
 ## Authors
 - **Ana Fló**
