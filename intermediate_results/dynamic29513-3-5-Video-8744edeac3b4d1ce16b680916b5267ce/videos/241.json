@@ -1,0 +1,96 @@
+{
+    "recording": "dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "241",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            234,
+            285
+        ],
+        "frame_end": [
+            234,
+            285,
+            300
+        ],
+        "duration": [
+            234,
+            51,
+            15
+        ],
+        "transition_start": [
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            1531.4527353590856,
+            492.35083115057984,
+            298.1254883589507
+        ],
+        "is_static": [
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            215.9449005126953,
+            209.5821990966797,
+            215.6123046875
+        ],
+        "margin_left": [
+            5,
+            5,
+            5
+        ],
+        "margin_right": [
+            6,
+            6,
+            6
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            0.501960813999176,
+            0.501960813999176,
+            0.501960813999176
+        ],
+        "background_proportion": [
+            0.17118512741579323,
+            0.17128837420177687,
+            0.17120360315644295
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

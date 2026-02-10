@@ -1,0 +1,112 @@
+{
+    "recording": "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "619",
+    "trial_type": "final_test_bonus",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 3,
+    "segments_n_peaks": 4,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 75.0,
+    "segments": {
+        "frame_start": [
+            0,
+            85,
+            165,
+            280
+        ],
+        "frame_end": [
+            85,
+            165,
+            280,
+            300
+        ],
+        "duration": [
+            85,
+            80,
+            115,
+            20
+        ],
+        "transition_start": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            641.1755456279583,
+            570.0852806444177,
+            56.90449351371756,
+            103.49649056784396
+        ],
+        "is_static": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            214.9430694580078,
+            155.625,
+            101.54900360107422,
+            151.375
+        ],
+        "margin_left": [
+            0,
+            0,
+            0,
+            5
+        ],
+        "margin_right": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            34.63529586791992,
+            2.5098040103912354,
+            6.5254902839660645,
+            2.5098040103912354
+        ],
+        "background_proportion": [
+            0.023076376700980072,
+            0.028112413174653836,
+            0.0407783422035632,
+            0.04839961022533636
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}

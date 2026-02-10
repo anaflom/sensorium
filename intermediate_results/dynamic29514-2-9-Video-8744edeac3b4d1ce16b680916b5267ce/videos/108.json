@@ -1,0 +1,96 @@
+{
+    "recording": "dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "108",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            139,
+            207
+        ],
+        "frame_end": [
+            139,
+            207,
+            300
+        ],
+        "duration": [
+            139,
+            68,
+            93
+        ],
+        "transition_start": [
+            0,
+            0,
+            1
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            179.0093590463041,
+            227.14326537574232,
+            5.610154362825091
+        ],
+        "is_static": [
+            false,
+            false,
+            true
+        ],
+        "intensity_range": [
+            232.25,
+            252.794921875,
+            225.88577270507812
+        ],
+        "margin_left": [
+            0,
+            0,
+            0
+        ],
+        "margin_right": [
+            0,
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            9.53725528717041,
+            4.5176472663879395,
+            189.23922729492188
+        ],
+        "background_proportion": [
+            0.038894362904034835,
+            0.06215413781925864,
+            0.02039481021981473
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

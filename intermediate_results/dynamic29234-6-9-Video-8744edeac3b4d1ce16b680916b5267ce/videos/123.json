@@ -1,0 +1,96 @@
+{
+    "recording": "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "123",
+    "trial_type": "final_test_bonus",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            148,
+            295
+        ],
+        "frame_end": [
+            148,
+            295,
+            300
+        ],
+        "duration": [
+            148,
+            147,
+            5
+        ],
+        "transition_start": [
+            0,
+            1,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            16.03900909766778,
+            1.1815722710593757,
+            412.92111083216355
+        ],
+        "is_static": [
+            true,
+            true,
+            false
+        ],
+        "intensity_range": [
+            201.54586791992188,
+            228.59674072265625,
+            198.25
+        ],
+        "margin_left": [
+            0,
+            4,
+            0
+        ],
+        "margin_right": [
+            0,
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            1.5058825016021729,
+            0.501960813999176,
+            1.5058825016021729
+        ],
+        "background_proportion": [
+            0.045649036079131414,
+            0.11759143290690302,
+            0.04418436424896078
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

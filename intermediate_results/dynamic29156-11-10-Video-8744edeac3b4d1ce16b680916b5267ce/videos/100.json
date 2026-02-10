@@ -1,0 +1,96 @@
+{
+    "recording": "dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "100",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            33,
+            129
+        ],
+        "frame_end": [
+            33,
+            129,
+            300
+        ],
+        "duration": [
+            33,
+            96,
+            171
+        ],
+        "transition_start": [
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            433.4247555699937,
+            290.6153307582533,
+            962.8984379123854
+        ],
+        "is_static": [
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            208.94459533691406,
+            216.36439514160156,
+            215.8705596923828
+        ],
+        "margin_left": [
+            6,
+            5,
+            5
+        ],
+        "margin_right": [
+            6,
+            6,
+            6
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            0.501960813999176,
+            0.501960813999176,
+            0.501960813999176
+        ],
+        "background_proportion": [
+            0.1711905021767095,
+            0.17119009277109284,
+            0.1711682075269877
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

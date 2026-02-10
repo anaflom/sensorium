@@ -1,0 +1,96 @@
+{
+    "recording": "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "294",
+    "trial_type": "oracle",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            100,
+            276
+        ],
+        "frame_end": [
+            100,
+            276,
+            300
+        ],
+        "duration": [
+            100,
+            176,
+            24
+        ],
+        "transition_start": [
+            0,
+            0,
+            1
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            105.30725136906793,
+            176.38597506219767,
+            41.254675399043855
+        ],
+        "is_static": [
+            false,
+            false,
+            true
+        ],
+        "intensity_range": [
+            198.71841430664062,
+            206.6875,
+            201.96759033203125
+        ],
+        "margin_left": [
+            0,
+            0,
+            0
+        ],
+        "margin_right": [
+            0,
+            2,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            194.25881958007812,
+            196.26666259765625,
+            193.25491333007812
+        ],
+        "background_proportion": [
+            0.07439575638745764,
+            0.09219979344460671,
+            0.08281984684654718
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}
