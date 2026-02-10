@@ -19,7 +19,7 @@ if __name__ == "__main__":
     # base folder
     folder_data = '/home/anaflo/MDMC/thesis/sensorium/data/'
     # results folder
-    folder_results = os.path.join('..','intermediate_results')
+    folder_results = '/home/anaflo/MDMC/thesis/sensorium/sensorium_metadata/intermediate_results/'
 
     try:
         main(folder_data, folder_results)

@@ -21,9 +21,9 @@ if __name__ == "__main__":
     # data folder
     folder_data = '/home/anaflo/MDMC/thesis/sensorium/data/'
     # metadata folder
-    folder_meta = os.path.join('..','metadata')
+    folder_meta = '/home/anaflo/MDMC/thesis/sensorium/sensorium_metadata/metadata/'
     # results folder
-    folder_results = os.path.join('..','intermediate_results')
+    folder_results = '/home/anaflo/MDMC/thesis/sensorium/sensorium_metadata/intermediate_results/'
 
     try:
         main(folder_data, folder_meta, folder_results)

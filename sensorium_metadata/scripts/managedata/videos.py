@@ -673,7 +673,7 @@ class VideoSegment():
         
     def load_metadata_from_id(self, folder_metadata):
 
-        metadata = load_metadata_from_id(self.ID, folder_metadata)
+        metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
         for k, v in metadata.items():
             setattr(self, k, metadata[k])
         
@@ -732,7 +732,7 @@ class VideoSegmentID(VideoSegment):
                  segment_id: str): 
         
         # load metadata
-        metasegment = load_metadata_from_id(segment_id, segment_metadata_folder)
+        metasegment, _ = load_metadata_from_id(segment_id, segment_metadata_folder)
 
         # pick and exemplar video 
         duplicates = metasegment.get("duplicates", {})
@@ -1590,7 +1590,7 @@ class Video:
     def load_metadata_from_id(self, folder_metadata):
 
         # load metadata
-        metadata = load_metadata_from_id(self.ID, folder_metadata)
+        metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
 
         # check it is compatible
         if metadata['label']!=self.label:
@@ -1643,7 +1643,7 @@ class VideoID(Video):
                  video_id: str): 
         
         # load metadata
-        metavideo = load_metadata_from_id(video_id, videos_metadata_folder)
+        metavideo, _ = load_metadata_from_id(video_id, videos_metadata_folder)
 
         # pick and exemplar video
         duplicates = metavideo.get("duplicates", {})

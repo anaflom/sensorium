@@ -12,14 +12,16 @@ from managedata.metadata import ( validate_global_trials_metadata,
                                  validate_global_neurons_metadata, 
                                  validate_metadata_video_json, 
                                  validate_metadata_per_trial_json, 
-                                 validate_metadata_segment_json)
+                                 validate_metadata_segment_json,
+                                 validate_metadata_video_dict)
 
 from managedata.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from managedata.responses import Responses
 from managedata.behavioral import (Gaze, Pupil, Locomotion)
 from managedata.data_loading import (load_all_data, 
                                      load_metadata_from_id,
-                                     load_trials_descriptor)
+                                     load_trials_descriptor,
+                                     save_json)
 
 from managedata.videos_duplicates import (same_segments_edges, 
                                           compute_dissimilarity_video_list, 
@@ -797,7 +799,7 @@ class DataSet():
             raise ValueError("folder_metadata is None, cannot find segments by id")
         
         # load metadata
-        metadata_segment = load_metadata_from_id(segment_id, self.folder_globalmetadata_segments)
+        metadata_segment, _ = load_metadata_from_id(segment_id, self.folder_globalmetadata_segments)
 
         # get the duplicates of the segment
         duplicates_segment = metadata_segment.get("duplicates", {})
@@ -815,7 +817,7 @@ class DataSet():
         frame_end = []
         for v_id, s_duplicates_val in duplicates_segment.items():
             # load metadata video id
-            metadata_video = load_metadata_from_id(v_id, self.folder_globalmetadata_videos)
+            metadata_video, _ = load_metadata_from_id(v_id, self.folder_globalmetadata_videos)
             duplicates_video = metadata_video.get("duplicates", {})
             if not duplicates_video:
                 raise ValueError(f"No duplicates found in video metadata for {v_id}")
@@ -1111,8 +1113,6 @@ class DataSet():
                     print(f"Error processing video {os.path.basename(video_trial)} in {rec}: {e}")
                     continue
                 
-        
-
     
     def define_videos_id(self, recording=None, limit_dissimilarity=5, verbose=True):
 
@@ -1293,3 +1293,37 @@ class DataSet():
                 except Exception as e:
                     print(f"Error processing segment set: {e}") if verbose else None
                     continue
+
+
+    def add_segments_id_to_video_metadata(self, verbose=True):
+
+        segments_df = self.get_segments_meta()
+        segm = segments_df[['segment_ID','segment_label','video_ID', 'video_label','segment_index']].drop_duplicates()
+
+        print_title('Adding segments IDs info to the videos matadata ', verbose)
+        for index, row in segm.iterrows():
+
+            try: 
+
+                # load the video ID metadata
+                metadata_video, file_path = load_metadata_from_id(row['video_ID'], self.folder_globalmetadata_videos)
+                                    
+                # create the segment_ID key if not present
+                if not 'segment_ID' in metadata_video['segments']:
+                    metadata_video['segments']['segment_ID'] = ["" for _ in range(len(metadata_video['segments']['frame_start']))]
+
+                # add the segment ID
+                metadata_video['segments']['segment_ID'][row['segment_index']] = row['segment_ID']
+
+                # validate the video metadata and save
+                is_valid = validate_metadata_video_dict(metadata_video)
+
+                if is_valid:
+                    save_json(metadata_video, file_path)
+                else:
+                    warnings.warn(f"segment ID info could no be added to video {row['video_ID']} fro segment {row['segment_index']}")
+            
+            except Exception as e:
+                print(f"Error {e} processing segment: {row['segment_ID']} - video: {row['video_ID']} - segment index {row['segment_index']}") if verbose else None
+                continue
+            

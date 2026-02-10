@@ -82,6 +82,12 @@ def load_metadata_from_id(id, folder):
 
     with open(files[0], "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    return metadata
+    return metadata, files[0]
+
+def save_json(metadata, full_file_name):
+    metadata = to_json_safe(metadata)
+    with open(full_file_name, "w") as f:
+        json.dump(metadata, f, indent=4)
+
 
 

@@ -93,6 +93,47 @@ def validate_global_neurons_metadata(filepath):
     return _validate_csv_metadata(filepath, mandatory_columns=mandatory_columns, optional_columns=optional_columns)
         
 
+def validate_metadata_video_dict(metadata):
+    """
+    Check if a dictionary with metadata has all mandatory fields.
+    
+    Args:
+        metadata (dict): Dictionary with the metadata.
+        
+    Returns:
+        is_valid: if valid.
+        
+    """
+    is_valid = True
+    
+    # Check for mandatory fields
+    mandatory_fields = {'label', 'ID', 'valid_frames', 'sampling_freq'}
+    optional_fields = {'duplicates', 'segments'}
+    
+    missing_fields = mandatory_fields - set(metadata.keys())
+    if missing_fields:
+        is_valid = False
+        raise ValueError(f"Missing mandatory fields: {missing_fields}")
+    
+    # # Warn about unexpected fields
+    # all_allowed_fields = mandatory_fields | optional_fields
+    # unexpected_fields = set(metadata.keys()) - all_allowed_fields
+    # if unexpected_fields:
+    #     warnings.warn(f"Warning: Unexpected fields : {unexpected_fields}")
+
+    # Check the structure of 'segments' if it exists
+    if 'segments' in metadata:
+        valid_segment = _validate_metadata_videos_segment_field(metadata['segments'])
+        is_valid = is_valid and valid_segment
+
+    # Check the structure of 'duplicates' if it exists
+    if 'duplicates' in metadata:
+        valid_duplicates = _validate_metadata_videos_duplicates_field(metadata['duplicates'])
+        is_valid = is_valid and valid_duplicates
+            
+    return is_valid
+
+
 def validate_metadata_video_json(filepath):
     """
     Check if a JSON metadata file exists and has all mandatory fields.
@@ -118,41 +159,53 @@ def validate_metadata_video_json(filepath):
     try:
         with open(filepath, 'r') as f:
             metadata = json.load(f)
+        is_valid = validate_metadata_video_dict(metadata)
     except json.JSONDecodeError as e:
         is_valid = False
         raise ValueError(f"Invalid JSON in {filepath}: {e}")
     except Exception as e:
         is_valid = False
         raise ValueError(f"Error reading {filepath}: {e}")
+                
+    return metadata, is_valid
+
+
+def validate_metadata_per_trial_dict(metadata):
+    """
+    Check if a dictionary with metadata has all mandatory fields.
+    
+    Args:
+        metadata (dict): Dictionary with the metadata.
+        
+    Returns:
+        is_valid: if valid.
+        
+    """
+    is_valid = True
     
     # Check for mandatory fields
-    mandatory_fields = {'label', 'ID', 'valid_frames', 'sampling_freq'}
-    optional_fields = {'duplicates', 'segments'}
+    mandatory_fields = {'trial', 'label', 'ID', 'valid_frames', 'sampling_freq'}
+    optional_fields = {'recording', 'trial_type', 
+                       'first_label', 'n_peaks', 'segments_n_peaks', 'segments_bad_n', 'segments_avg_duration', 
+                       'duplicates', 'segments'}
     
     missing_fields = mandatory_fields - set(metadata.keys())
     if missing_fields:
         is_valid = False
-        raise ValueError(f"Missing mandatory fields in {filepath}: {missing_fields}")
+        raise ValueError(f"Missing mandatory fields: {missing_fields}")
     
     # # Warn about unexpected fields
     # all_allowed_fields = mandatory_fields | optional_fields
     # unexpected_fields = set(metadata.keys()) - all_allowed_fields
     # if unexpected_fields:
-    #     warnings.warn(f"Warning: Unexpected fields in {filepath}: {unexpected_fields}")
+    #     warnings.warn(f"Warning: Unexpected fields: {unexpected_fields}")
 
     # Check the structure of 'segments' if it exists
     if 'segments' in metadata:
-        valid_segment = _validate_metadata_videos_segment_field(metadata['segments'], from_filepath=filepath)
-        is_valid = is_valid and valid_segment
-
-    # Check the structure of 'duplicates' if it exists
-    if 'duplicates' in metadata:
-        valid_duplicates = _validate_metadata_videos_duplicates_field(metadata['duplicates'], from_filepath=filepath)
-        is_valid = is_valid and valid_duplicates
-            
-    return metadata, is_valid
-
-
+        valid_segments = _validate_metadata_videos_segment_field(metadata['segments'])
+        is_valid = is_valid and valid_segments
+                      
+    return is_valid
 
 
 def validate_metadata_per_trial_json(filepath):
@@ -181,36 +234,14 @@ def validate_metadata_per_trial_json(filepath):
     try:
         with open(filepath, 'r') as f:
             metadata = json.load(f)
+        is_valid = validate_metadata_per_trial_dict(metadata)
     except json.JSONDecodeError as e:
         is_valid = False
         raise ValueError(f"Invalid JSON in {filepath}: {e}")
     except Exception as e:
         is_valid = False
         raise ValueError(f"Error reading {filepath}: {e}")
-    
-    # Check for mandatory fields
-    mandatory_fields = {'trial', 'label', 'ID', 'valid_frames', 'sampling_freq'}
-    optional_fields = {'recording', 'trial_type', 
-                       'first_label', 'n_peaks', 'segments_n_peaks', 'segments_bad_n', 'segments_avg_duration', 
-                       'duplicates', 'segments'}
-    
-    missing_fields = mandatory_fields - set(metadata.keys())
-    if missing_fields:
-        is_valid = False
-        raise ValueError(f"Missing mandatory fields in {filepath}: {missing_fields}")
-    
-    # # Warn about unexpected fields
-    # all_allowed_fields = mandatory_fields | optional_fields
-    # unexpected_fields = set(metadata.keys()) - all_allowed_fields
-    # if unexpected_fields:
-    #     warnings.warn(f"Warning: Unexpected fields in {filepath}: {unexpected_fields}")
-
-    # Check the structure of 'segments' if it exists
-    if 'segments' in metadata:
-        valid_segments = _validate_metadata_videos_segment_field(metadata['segments'], from_filepath=filepath)
-        is_valid = is_valid and valid_segments
-        
-                      
+                          
     return metadata, is_valid
 
 
