@@ -1,9 +1,5 @@
-import os
-from pathlib import Path
 
-from managedata.videos import VideoSegment
-from managedata.videos_duplicates import (compute_dissimilarity_video_list, find_equal_sets_scipy, generate_new_id)
-from managedata.handle_dataset import DataSet
+from managedata.dataset import DataSet
 
 def main(folder_data, folder_meta):
 

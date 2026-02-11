@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from IPython.display import HTML
 from matplotlib import animation
 
-from managedata.data_loading import (load_metadata_from_id, 
+from managedata.data_handling import (load_metadata_from_id, 
                                to_json_safe,
                                )
 
@@ -1504,7 +1504,6 @@ class Video:
             for ff in main_fields:
                 if hasattr(self, ff):
                     meta_dict[ff] = getattr(self, ff)
-            meta_dict = {k: int(v) if isinstance(v, np.integer) else v for k, v in meta_dict.items()}
 
             # segments
             if not ((segments_fields==None) or (segments_fields=='all') or isinstance(segments_fields,list)):
@@ -1530,7 +1529,8 @@ class Video:
                     meta_dict['duplicates'][rec]['trials'] = list(self.duplicates[rec]['trials'])
                     meta_dict['duplicates'][rec]['n'] = self.duplicates[rec]['n']
             
-            return to_json_safe(meta_dict)
+            meta_dict = to_json_safe(meta_dict)
+            return meta_dict
     
     
     def save_metadata(self, folder_metadata, main_fields=None, segments_fields=None, save_duplicates=None, file_name=None, metadata_for=None):
@@ -1540,7 +1540,7 @@ class Video:
         
         if metadata_for=='exemplar':
             if main_fields is None:
-                main_fields = ['recording','trial','label','ID','sampling_freq','valid_frames']
+                main_fields = ['recording','trial','label','ID','sampling_freq','valid_frames','peaks']
             if segments_fields is None:
                 segments_fields = 'all'
             if save_duplicates is None:

@@ -1,8 +1,5 @@
-import os
-import numpy as np
-from tqdm import tqdm
 
-from managedata.handle_dataset import DataSet
+from managedata.dataset import DataSet
 
 def main(folder_data, folder_results):
 

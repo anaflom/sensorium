@@ -1,8 +1,5 @@
-import os
-import numpy as np
 
-from managedata.handle_dataset import DataSet
-from managedata.videos_duplicates import (compare_with_idvideos, find_equal_sets_scipy)
+from managedata.dataset import DataSet
 
 def main(folder_data, folder_meta, folder_results):
 
