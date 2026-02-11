@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from IPython.display import HTML
 from matplotlib import animation
 
-from managedata.data_handling import (load_metadata_from_id, 
+from utils.data_handling import (load_metadata_from_id, 
                                to_json_safe,
                                )
 

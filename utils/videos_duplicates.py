@@ -11,7 +11,7 @@ from skimage.metrics import mean_squared_error
 import scipy.sparse as sp
 from scipy.sparse.csgraph import connected_components
 
-from managedata.videos import (Video, VideoID)
+from utils.videos import (Video, VideoID)
 
 
 

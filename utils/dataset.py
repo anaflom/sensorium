@@ -8,7 +8,7 @@ import json
 import warnings
 
 
-from managedata.metadata import ( validate_global_trials_metadata, 
+from utils.metadata import ( validate_global_trials_metadata, 
                                  validate_global_neurons_metadata, 
                                  validate_metadata_video_json, 
                                  validate_metadata_per_trial_json, 
@@ -18,16 +18,16 @@ from managedata.metadata import ( validate_global_trials_metadata,
                                  check_metadata_per_trial_integrity,
                                  )
 
-from managedata.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
-from managedata.responses import Responses
-from managedata.behavioral import (Gaze, Pupil, Locomotion)
-from managedata.data_handling import (load_all_data, 
+from utils.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
+from utils.responses import Responses
+from utils.behavioral import (Gaze, Pupil, Locomotion)
+from utils.data_handling import (load_all_data, 
                                      load_metadata_from_id,
                                      load_trials_descriptor,
                                      save_json,
                                      check_data_integrity)
 
-from managedata.videos_duplicates import (same_segments_edges, 
+from utils.videos_duplicates import (same_segments_edges, 
                                           compute_dissimilarity_video_list, 
                                           compare_with_idvideos, 
                                           find_equal_sets_scipy,
