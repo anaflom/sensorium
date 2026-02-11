@@ -1,3 +1,9 @@
+from pathlib import Path
+import sys
+
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from managedata.dataset import DataSet
 
@@ -22,9 +28,9 @@ def main(folder_data, folder_meta):
 if __name__ == "__main__":
 
     # path to the folder with the data as downloaded
-    folder_data = '/home/anaflo/MDMC/thesis/sensorium/data/'
+    folder_data = repo_root / 'data'
     # path to the metadata folder
-    folder_meta = '/home/anaflo/MDMC/thesis/sensorium/metadata/'
+    folder_meta = repo_root / 'metadata'
 
 
     try:

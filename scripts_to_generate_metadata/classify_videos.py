@@ -1,3 +1,9 @@
+from pathlib import Path
+import sys
+
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from managedata.dataset import DataSet
 
@@ -14,9 +20,9 @@ def main(folder_data, folder_results):
 if __name__ == "__main__":
 
     # base folder
-    folder_data = '/home/anaflo/MDMC/thesis/sensorium/data/'
+    folder_data = repo_root / 'data'
     # results folder
-    folder_results = '/home/anaflo/MDMC/thesis/sensorium/intermediate_results/'
+    folder_results = repo_root / 'intermediate_results'
 
     try:
         main(folder_data, folder_results)
