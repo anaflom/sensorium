@@ -81,7 +81,7 @@ class Behavior():
         if metavideo['label']!=self.label:
             raise ValueError("The metadata file contains a label different from the video")
         if metavideo['ID']!=self.ID:
-            raise ValueError("The metadata file contains a ID different from the video")
+            raise ValueError("The metadata file contains an ID different from the video")
         
         self.valid_frames=metavideo['valid_frames']
 

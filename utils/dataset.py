@@ -106,9 +106,9 @@ class DataSet():
         for rec in self.recording:
             s = s + f"  - {rec} with {self.info[rec]['n_neurons']} neurons recorded, {self.info[rec]['n_trials']} trials, and {self.info[rec]['samples_per_trial']} samples per trial\n"
         if hasattr(self, 'good_metadata') and self.good_metadata:
-            s = s + "The recoding has consistent metadata\n"
+            s = s + "The recording has consistent metadata\n"
         if hasattr(self, 'good_metadata_per_trial') and self.good_metadata_per_trial:
-            s = s + "The recoding has consistent metadata per trial\n"
+            s = s + "The recording has consistent metadata per trial\n"
         
         return s
 
@@ -206,7 +206,7 @@ class DataSet():
 
 
     def check_metadata(self, verbose=True):
-        # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
+        # check that the metadata folder has the correct structure and that the files are consistent with the data files 
         
         print_title('Checking metadata ', verbose)
 
@@ -254,7 +254,7 @@ class DataSet():
     
 
     def check_metadata_per_trial(self, verbose=True):
-        # check that the metadata folder has the corrrect structure and that the files are consistent with the data files 
+        # check that the metadata folder has the correct structure and that the files are consistent with the data files 
         
         print_title('Checking metadata per trial ', verbose)
 
@@ -870,7 +870,7 @@ class DataSet():
                 # compute the stats
                 stats = self.compute_neurons_stats(rec, idx_trials_stats=idx_trials_stats)
 
-                # get neurons metadats
+                # get neurons metadata
                 neurons_coord = self.info[rec]['neurons']['coord_xyz']
                 if neurons_coord is not None and len(neurons_coord) > 0:
                     df_coord = pd.DataFrame(neurons_coord, columns=['coord_x','coord_y','coord_z'])
@@ -899,7 +899,7 @@ class DataSet():
                 continue
 
 
-    def clasiffy_videos(self, recording=None, verbose=True):
+    def classify_videos(self, recording=None, verbose=True):
 
         if recording is None:
             recording = self.recording
@@ -1002,19 +1002,19 @@ class DataSet():
                         dissimilarity_masked = dissimilarity<limit_dissimilarity
 
                         # find the groups of videos
-                        list_distint_videos = find_equal_sets_scipy(dissimilarity_masked, elements_names=trials_df['trial'].to_list())
+                        list_distinct_videos = find_equal_sets_scipy(dissimilarity_masked, elements_names=trials_df['trial'].to_list())
 
                         # compare each of them with the videos already identified for other recordings
-                        new_ids = compare_with_idvideos(thelabel, list_distint_videos, 
+                        new_ids = compare_with_idvideos(thelabel, list_distinct_videos, 
                                                         path_to_data, path_to_results_metavideos, self.folder_globalmetadata_videos, 
                                                         limit_dissimilarity=limit_dissimilarity)
                         
                         # Validate new_ids
-                        if len(new_ids) != len(list_distint_videos):
-                            raise ValueError(f"Expected {len(list_distint_videos)} IDs, got {len(new_ids)}")
+                        if len(new_ids) != len(list_distinct_videos):
+                            raise ValueError(f"Expected {len(list_distinct_videos)} IDs, got {len(new_ids)}")
 
                         # add the info to the trials table
-                        for i, duplicate_trials in enumerate(list_distint_videos):
+                        for i, duplicate_trials in enumerate(list_distinct_videos):
                             mask = (
                                 (videos_df["recording"] == rec) &
                                 (videos_df["label"] == thelabel) &
@@ -1061,7 +1061,7 @@ class DataSet():
         if self.folder_globalmetadata_videos is None or self.folder_globalmetadata_segments is None:
             raise ValueError("folder_globalmetadata_videos and folder_globalmetadata_segments must be set")
 
-        print_title('Finding idenitcal segments ', verbose)
+        print_title('Finding identical segments ', verbose)
         all_used_ids = []
 
         for lab in labels:
@@ -1071,7 +1071,7 @@ class DataSet():
             all_segments = []
             folder = Path(self.folder_globalmetadata_videos)
             json_files = list(folder.glob(f"{lab}*.json"))
-            print(f"- {len(json_files)} distint videos found") if verbose else None
+            print(f"- {len(json_files)} distinct videos found") if verbose else None
 
             if len(json_files) == 0:
                 print(f"Warning: No videos found for label {lab}") if verbose else None
@@ -1150,7 +1150,7 @@ class DataSet():
         segments_df = self.get_segments_meta()
         segm = segments_df[['segment_ID','segment_label','video_ID', 'video_label','segment_index']].drop_duplicates()
 
-        print_title('Adding segments IDs info to the videos matadata ', verbose)
+        print_title('Adding segments IDs info to the videos metadata ', verbose)
         for index, row in segm.iterrows():
 
             try: 
@@ -1171,7 +1171,7 @@ class DataSet():
                 if is_valid:
                     save_json(metadata_video, file_path)
                 else:
-                    print(f"Warning: segment ID info could no be added to video {row['video_ID']} from segment {row['segment_index']}") if verbose else None
+                    print(f"Warning: segment ID info could not be added to video {row['video_ID']} from segment {row['segment_index']}") if verbose else None
             
             except Exception as e:
                 print(f"Error {e} processing segment: {row['segment_ID']} - video: {row['video_ID']} - segment index {row['segment_index']}") if verbose else None

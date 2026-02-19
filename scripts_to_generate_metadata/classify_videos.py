@@ -13,7 +13,7 @@ def main(folder_data, folder_results):
     dataset = DataSet(folder_data, folder_metadata=None, folder_metadata_per_trial=folder_results)
     
     # clasiffy the videos for all recordings
-    dataset.clasiffy_videos()
+    dataset.classify_videos()
     
     
 

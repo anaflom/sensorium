@@ -108,7 +108,7 @@ def compute_dissimilarity_video_list(videos, dissimilarity_measure='mse', check_
             # load
             video_j = videos[j]
             
-            # check if the segments in which the video is splited are the same
+            # check if the segments in which the video is split are the same
             if check_edges_first:
                 do_comparison = same_segments_edges(video_i, video_j, frames_tolerance=frames_tolerance)
             else:
@@ -132,19 +132,19 @@ def find_equal_sets(mask, elements_names=None):
 
     # find the groups of videos
     n_elements = len(elements_names)
-    list_distint_videos = []
+    list_distinct_videos = []
     possible_idxs = set([i for i in range(n_elements)])
     while len(possible_idxs)>0:
         idx_ref = next(iter(possible_idxs))
         idx_same = list(np.where(mask[idx_ref,:])[0])
         if idx_same:
             group_same = set([elements_names[i] for i in idx_same])
-            list_distint_videos.append(group_same)
+            list_distinct_videos.append(group_same)
             possible_idxs = possible_idxs - set(idx_same)
         else:
             possible_idxs.remove(idx_ref)
     
-    return list_distint_videos
+    return list_distinct_videos
 
 
 
@@ -184,24 +184,24 @@ def create_table_all_video_ids(folder_globalmetavideos, label=None):
     return pd.DataFrame({'ID':ids, 'label':labels})
 
 
-def compare_with_idvideos(label, list_distint_videos, folder_videos, folder_metavideos, folder_globalmetavideos, limit_dissimilarity=5):
+def compare_with_idvideos(label, list_distinct_videos, folder_videos, folder_metavideos, folder_globalmetavideos, limit_dissimilarity=5):
 
     folder_data = os.path.dirname(folder_videos)
     
-    # find the IDs for videos of the same label already identify
+    # find the IDs for videos of the same label already identified
     df = create_table_all_video_ids(folder_globalmetavideos, label=label)
     same_label_ids = df['ID'].to_list()
 
     # initialize list holding the IDs
     list_new_ids = []
-    for i, duplicate_trials in enumerate(tqdm(list_distint_videos, total=len(list_distint_videos), desc="Comparing with existing ID videos", disable=False)):
+    for i, duplicate_trials in enumerate(tqdm(list_distinct_videos, total=len(list_distinct_videos), desc="Comparing with existing ID videos", disable=False)):
 
         # load a video representative from the group to test
         video_file_i = next(iter(duplicate_trials))
         video_i = Video(folder_videos, video_file_i)
         video_i.load_metadata(os.path.join(folder_metavideos, video_file_i+'.json'))
         
-        # compare with the uinque IDs previously identifid 
+        # compare with the unique IDs previously identified 
         equal_to = np.full(len(same_label_ids), False)
         already_included_flags = np.full(len(same_label_ids), False)
         for j, video_id in enumerate(same_label_ids):
@@ -218,7 +218,7 @@ def compare_with_idvideos(label, list_distint_videos, folder_videos, folder_meta
                 dissimilarity_ij = compute_dissimilarity_videos(video_j_id, video_i)
                 equal_to[j] = dissimilarity_ij<limit_dissimilarity
 
-        # assing a new ID or the one corresponding to the video found as equivalent
+        # assign a new ID or the one corresponding to the video found as equivalent
         if np.sum(equal_to)==0:
             
             # find all IDs already used

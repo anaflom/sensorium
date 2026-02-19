@@ -353,7 +353,7 @@ def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None)
                 raise ValueError(f"Each entry in 'duplicates' must contain 'segment_index' key in {from_filepath}, missing in {key}")
         if not isinstance(value['segment_index'], list):
                 is_valid = False
-                raise ValueError(f"'segment_index' in 'duplicates' {key} must be an list in {from_filepath}")
+                raise ValueError(f"'segment_index' in 'duplicates' {key} must be a list in {from_filepath}")
         
     return is_valid
 
@@ -420,9 +420,9 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
             # check that the trials in the metadata file are consistent with the trials in the data files
             if 'trial' in df.columns:
                 if not df['trial'].isin(trials).all():
-                    triasl_diff = set(df['trial'].values) - set(trials)
+                    trials_diff = set(df['trial'].values) - set(trials)
                     good_trials = False
-                    print(f"Warning: {len(triasl_diff)} trials in {file} are not found in data files for recording {rec}: {triasl_diff}") if verbose else None
+                    print(f"Warning: {len(trials_diff)} trials in {file} are not found in data files for recording {rec}: {trials_diff}") if verbose else None
 
             # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
             if Path(folder_globalmetadata_videos).exists():
@@ -540,7 +540,7 @@ def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, inf
             
             # print if all fine for the recording
             if all_fine:
-                print(f"---> Metadata per trials seems ok for recording {rec}.") if verbose else None
+                print(f"---> Metadata per trial seems ok for recording {rec}.") if verbose else None
 
             good_metadata_per_trial_per_recording[rec] = all_fine
 

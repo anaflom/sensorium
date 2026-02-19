@@ -272,7 +272,7 @@ def find_peaks(y, window, distance=None, threshold=3, relative_threshold=True, m
                 # compute thresholds pre and post
                 if relative_threshold:
                     
-                    # define the theshold based on previous samples  
+                    # define the threshold based on previous samples  
                     y_pre = y[idx_pre]
                     if threshold_outliers is not None:
                         y_pre = remove_outliers(y_pre, threshold=threshold_outliers)
@@ -284,7 +284,7 @@ def find_peaks(y, window, distance=None, threshold=3, relative_threshold=True, m
                     else:
                         threshold_pre = None
                     
-                    # define the theshold based on posterior samples
+                    # define the threshold based on posterior samples
                     y_post = y[idx_post]
                     if threshold_outliers is not None:
                         y_post = remove_outliers(y_post, threshold=threshold_outliers)
@@ -318,7 +318,7 @@ def find_peaks(y, window, distance=None, threshold=3, relative_threshold=True, m
                 if is_pre and is_post:
                     peaks.append(i)
 
-    # conver to array
+    # convert to array
     peaks = np.array(peaks)    
     
     # remove close peaks
@@ -369,13 +369,13 @@ class VideoSegment():
     """
     This class handles video segments 
     """
-    # Parameter limitating the maxium accepted change to define that segments are static
+    # Parameter limiting the maximum accepted change to define that segments are static
     thresh_no_change = 50
 
-    # Parameter limitating the maxium number of transition frames accepted when defining static segments
+    # Parameter limiting the maximum number of transition frames accepted when defining static segments
     max_transition_frames = 3
 
-    # Parameter for the limit for the intensity range to define something is spacially uniform 
+    # Parameter for the limit for the intensity range to define something is spatially uniform 
     thresh_intensity_range = 35
 
 

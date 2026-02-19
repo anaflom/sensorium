@@ -202,7 +202,7 @@ def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=T
     # check information in meta folder for the neurons coordinates
     neurons_coord_path = Path(path_to_meta_neurons) / 'cell_motor_coordinates.npy'
     if not neurons_coord_path.exists():
-        print(f"Warning: No neurons coordinate file was founs in {neurons_coord_path}, coordinates are set to None") if verbose else None
+        print(f"Warning: No neurons coordinate file was found in {neurons_coord_path}, coordinates are set to None") if verbose else None
         neurons_coord =  None
     else:
         try:
@@ -218,7 +218,7 @@ def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=T
     # check information in meta folder for the neurons IDs
     neurons_ids_path = Path(path_to_meta_neurons) / 'unit_ids.npy'
     if not neurons_ids_path.exists():
-        print(f"Warning: No neurons IDs file was founs in {neurons_ids_path}, IDs are set to None") if verbose else None
+        print(f"Warning: No neurons IDs file was found in {neurons_ids_path}, IDs are set to None") if verbose else None
         neurons_ids = None
     else:
         try:
@@ -239,7 +239,7 @@ def check_meta_trials_integrity(path_to_meta_trials, n_trials=None, verbose=True
 
     file_path = Path(path_to_meta_trials) / 'tiers.npy'
     if not file_path.exists():
-        print(f"Warning: No trial description file was founs in {file_path}, description will be set to None") if verbose else None
+        print(f"Warning: No trial description file was found in {file_path}, description will be set to None") if verbose else None
         return None
 
     try:

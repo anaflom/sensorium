@@ -52,7 +52,7 @@ class Responses():
         if metavideo['label']!=self.label:
             raise ValueError("The metadata file contains a label different from the video")
         if metavideo['ID']!=self.ID:
-            raise ValueError("The metadata file contains a ID different from the video")
+            raise ValueError("The metadata file contains an ID different from the video")
         
         self.valid_frames=metavideo['valid_frames']
 
@@ -104,7 +104,7 @@ class Responses():
             vmin = -1
         vmax = np.percentile(data.flatten(),99)
 
-        # plot some neurons (rester plot)
+        # plot some neurons (raster plot)
         n = len(neurons_idx)
         fig, ax = plt.subplots(1, 1, figsize=(8, 0.05 * n))
         ax.imshow(data[neurons_idx,:], cmap='gray_r', vmin=vmin, vmax=vmax)
@@ -127,7 +127,7 @@ class Responses():
         data = self.get_data(normalization=normalization)
         data_act = data>thresh
 
-        # plot some neurons (rester plot)
+        # plot some neurons (raster plot)
         n = len(neurons_idx)
         fig, ax = plt.subplots(1, 1, figsize=(8, 0.05 * n))
         ax.imshow(data_act[neurons_idx,:], cmap='gray_r', vmin=0, vmax=1)
@@ -150,7 +150,7 @@ class Responses():
         # get the data
         data = self.get_data(normalization=normalization)
 
-        # plot some neurons (rester plot)
+        # plot some neurons (raster plot)
         n = len(neurons_idx)
         time = np.arange(data.shape[1])/self.sampling_freq
         
