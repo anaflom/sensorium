@@ -6,19 +6,23 @@ import numpy as np
 
 
 def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=None, verbose=True):
-    """
-    Validate the structure of global metadata for a trial.
-    
-    Args:
-        filepath (str or Path): Path to the CSV metadata file.
+    """Validate CSV metadata file structure.
 
-    Returns:
-        dataframe: The loaded metadata dataframe if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid CSV or is missing mandatory columns.
-    
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to CSV metadata file.
+    mandatory_columns : set or None, optional
+        Required columns.
+    optional_columns : set or None, optional
+        Allowed optional columns.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, bool]
+        Loaded dataframe and validity flag.
     """
     filepath = Path(filepath)
     is_valid = True
@@ -56,37 +60,33 @@ def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=No
 
 
 def validate_global_trials_metadata(filepath):
-    """
-    Validate the structure of global metadata for a trial.
-    
-    Args:
-        filepath (str or Path): Path to the CSV metadata file.
+    """Validate global trial-level metadata CSV.
 
-    Returns:
-        dataframe: The loaded metadata dataframe if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid CSV or is missing mandatory columns.
-    
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to metadata CSV.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, bool]
+        Loaded dataframe and validity flag.
     """
     return _validate_csv_metadata(filepath, mandatory_columns={'trial', 'ID', 'label', 'trial_type', 'valid_trial'}, optional_columns={'valid_frames'})
         
 
 def validate_global_neurons_metadata(filepath):
-    """
-    Validate the structure of global metadata for a trial.
-    
-    Args:
-        filepath (str or Path): Path to the CSV metadata file.
+    """Validate global neuron-level metadata CSV.
 
-    Returns:
-        dataframe: The loaded metadata dataframe if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid CSV or is missing mandatory columns.
-    
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to metadata CSV.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, bool]
+        Loaded dataframe and validity flag.
     """
     mandatory_columns={ 'ID', 'coord_x', 'coord_y', 'coord_z'}
     optional_columns={'mean_activation', 'std_activation', 'median_activation', 'min_activation', 'max_activation'}
@@ -94,15 +94,17 @@ def validate_global_neurons_metadata(filepath):
         
 
 def validate_metadata_video_dict(metadata):
-    """
-    Check if a dictionary with metadata has all mandatory fields.
-    
-    Args:
-        metadata (dict): Dictionary with the metadata.
-        
-    Returns:
-        is_valid: if valid.
-        
+    """Validate one video metadata dictionary.
+
+    Parameters
+    ----------
+    metadata : dict
+        Video metadata dictionary.
+
+    Returns
+    -------
+    bool
+        ``True`` when dictionary passes all checks.
     """
     is_valid = True
     
@@ -135,18 +137,17 @@ def validate_metadata_video_dict(metadata):
 
 
 def validate_metadata_video_json(filepath):
-    """
-    Check if a JSON metadata file exists and has all mandatory fields.
-    
-    Args:
-        filepath (str or Path): Path to the JSON metadata file.
-        
-    Returns:
-        dict: The loaded metadata dictionary if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid JSON or is missing mandatory fields.
+    """Load and validate one video metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
     """
     filepath = Path(filepath)
     is_valid = True
@@ -171,15 +172,17 @@ def validate_metadata_video_json(filepath):
 
 
 def validate_metadata_per_trial_dict(metadata):
-    """
-    Check if a dictionary with metadata has all mandatory fields.
-    
-    Args:
-        metadata (dict): Dictionary with the metadata.
-        
-    Returns:
-        is_valid: if valid.
-        
+    """Validate one per-trial metadata dictionary.
+
+    Parameters
+    ----------
+    metadata : dict
+        Per-trial metadata dictionary.
+
+    Returns
+    -------
+    bool
+        ``True`` when dictionary passes all checks.
     """
     is_valid = True
     
@@ -209,18 +212,17 @@ def validate_metadata_per_trial_dict(metadata):
 
 
 def validate_metadata_per_trial_json(filepath):
-    """
-    Check if a JSON metadata file exists and has all mandatory fields.
-    
-    Args:
-        filepath (str or Path): Path to the JSON metadata file.
-        
-    Returns:
-        dict: The loaded metadata dictionary if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid JSON or is missing mandatory fields.
+    """Load and validate one per-trial metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
     """
     filepath = Path(filepath)
     is_valid = True
@@ -246,6 +248,22 @@ def validate_metadata_per_trial_json(filepath):
 
 
 def _validate_metadata_videos_segment_field(segments, from_filepath=None, verbose=True):
+    """Validate ``segments`` field structure in video metadata.
+
+    Parameters
+    ----------
+    segments : dict
+        Segment field dictionary.
+    from_filepath : str or pathlib.Path or None, optional
+        Optional file path used for error messages.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    bool
+        ``True`` when field is structurally valid.
+    """
     is_valid = True
     if not isinstance(segments, dict):
         is_valid = False
@@ -266,6 +284,20 @@ def _validate_metadata_videos_segment_field(segments, from_filepath=None, verbos
 
 
 def _validate_metadata_videos_duplicates_field(duplicates, from_filepath=None):
+    """Validate ``duplicates`` field structure for video metadata.
+
+    Parameters
+    ----------
+    duplicates : dict
+        Duplicates mapping from recording to trials.
+    from_filepath : str or pathlib.Path or None, optional
+        Optional file path used for error messages.
+
+    Returns
+    -------
+    bool
+        ``True`` when field is structurally valid.
+    """
     is_valid = True
     if not isinstance(duplicates, dict):
         is_valid = False
@@ -285,18 +317,19 @@ def _validate_metadata_videos_duplicates_field(duplicates, from_filepath=None):
 
 
 def validate_metadata_segment_json(filepath, verbose=True):
-    """
-    Check if a JSON metadata file exists and has all mandatory fields.
-    
-    Args:
-        filepath (str or Path): Path to the JSON metadata file.
-        
-    Returns:
-        dict: The loaded metadata dictionary if valid.
-        
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        ValueError: If the file is not valid JSON or is missing mandatory fields.
+    """Load and validate one segment metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
     """
     filepath = Path(filepath)
     is_valid = True
@@ -340,6 +373,20 @@ def validate_metadata_segment_json(filepath, verbose=True):
     return metadata, is_valid
                 
 def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None):
+    """Validate ``duplicates`` field structure for segment metadata.
+
+    Parameters
+    ----------
+    duplicates : dict
+        Duplicates mapping from video IDs to segment indices.
+    from_filepath : str or pathlib.Path or None, optional
+        Optional file path used for error messages.
+
+    Returns
+    -------
+    bool
+        ``True`` when field is structurally valid.
+    """
     is_valid = True
     if not isinstance(duplicates, dict):
         is_valid = False
@@ -359,6 +406,20 @@ def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None)
 
 
 def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
+    """Validate all video metadata JSON files in a folder.
+
+    Parameters
+    ----------
+    folder_globalmetadata_videos : str or pathlib.Path
+        Folder with global video metadata JSON files.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    bool
+        ``True`` when all files are valid.
+    """
     
     if not Path(folder_globalmetadata_videos).exists():
         print(f"Warning: folder_globalmetadata_videos does not exist") if verbose else None
@@ -379,6 +440,20 @@ def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
 
 
 def validate_metadata_segment_folder(folder_globalmetadata_segments, verbose=True):               
+    """Validate all segment metadata JSON files in a folder.
+
+    Parameters
+    ----------
+    folder_globalmetadata_segments : str or pathlib.Path
+        Folder with global segment metadata JSON files.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    bool
+        ``True`` when all files are valid.
+    """
     
     if not Path(folder_globalmetadata_segments).exists():
         print(f"Warning: folder_globalmetadata_segments does not exist") if verbose else None
@@ -399,6 +474,26 @@ def validate_metadata_segment_folder(folder_globalmetadata_segments, verbose=Tru
 
 
 def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_videos, trials, n_neurons, verbose=True):
+    """Validate recording-level metadata and consistency with data inventory.
+
+    Parameters
+    ----------
+    folder_metadata_rec : str or pathlib.Path
+        Recording metadata folder.
+    folder_globalmetadata_videos : str or pathlib.Path
+        Folder with global video metadata.
+    trials : list[str]
+        Trial names detected in data files.
+    n_neurons : int
+        Expected neuron count from response data.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    bool
+        ``True`` when trial and neuron metadata are valid.
+    """
 
     folder_metadata_rec = Path(folder_metadata_rec)
     rec = folder_metadata_rec.name
@@ -464,6 +559,28 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
 
 
 def check_metadata_integrity(folder_metadata, recording, folder_globalmetadata_videos, folder_globalmetadata_segments, info, verbose=True):
+    """Run full metadata integrity checks for a dataset.
+
+    Parameters
+    ----------
+    folder_metadata : str or pathlib.Path or None
+        Root metadata folder.
+    recording : list[str]
+        Recordings to validate.
+    folder_globalmetadata_videos : str or pathlib.Path
+        Global video metadata folder.
+    folder_globalmetadata_segments : str or pathlib.Path
+        Global segment metadata folder.
+    info : dict
+        Per-recording data summary from integrity checks.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[bool, dict or None]
+        Global validity flag and detailed result dictionary.
+    """
     
     if folder_metadata is None:
         return False, None
@@ -495,6 +612,24 @@ def check_metadata_integrity(folder_metadata, recording, folder_globalmetadata_v
 
 
 def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, info, verbose=True):
+    """Validate per-trial metadata folders and files.
+
+    Parameters
+    ----------
+    folder_metadata_per_trial : str or pathlib.Path or None
+        Root per-trial metadata folder.
+    recording : list[str]
+        Recordings to validate.
+    info : dict
+        Per-recording data summary from integrity checks.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[bool, dict or None]
+        Global validity flag and per-recording validity dictionary.
+    """
 
     if folder_metadata_per_trial is None:
         return False, None

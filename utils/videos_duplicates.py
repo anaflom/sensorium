@@ -17,6 +17,25 @@ from utils.videos import (Video, VideoID)
 
 
 def generate_new_id(existing_ids, prefix='v'):
+    """Generate a new unique video identifier.
+
+    Parameters
+    ----------
+    existing_ids : iterable of str
+        IDs that are already in use.
+    prefix : str, default='v'
+        Prefix used when creating IDs.
+
+    Returns
+    -------
+    str
+        Randomly selected ID not present in ``existing_ids``.
+
+    Raises
+    ------
+    ValueError
+        If no IDs are available in the supported ID space.
+    """
     all_ids = {f"{prefix}{i:06d}" for i in range(1000000)}
     available_ids = all_ids - set(existing_ids)
 
@@ -29,6 +48,22 @@ def generate_new_id(existing_ids, prefix='v'):
 
 
 def same_segments_edges(video_i, video_j, frames_tolerance=2):
+    """Check whether two videos have matching segment boundaries.
+
+    Parameters
+    ----------
+    video_i : Video
+        First video object with ``segments`` metadata.
+    video_j : Video
+        Second video object with ``segments`` metadata.
+    frames_tolerance : int, default=2
+        Maximum allowed absolute frame difference for start/end boundaries.
+
+    Returns
+    -------
+    bool
+        ``True`` if all segment boundaries match within tolerance.
+    """
     
     n_segments_i = len(video_i.segments['frame_start'])
     n_segments_j = len(video_j.segments['frame_start'])
@@ -46,6 +81,22 @@ def same_segments_edges(video_i, video_j, frames_tolerance=2):
 
 
 def compute_dissimilarity_mse(data_i, data_j, key_frames):
+    """Compute mean MSE dissimilarity between two videos on key frames.
+
+    Parameters
+    ----------
+    data_i : numpy.ndarray
+        First video array with shape ``(height, width, n_frames)``.
+    data_j : numpy.ndarray
+        Second video array with shape ``(height, width, n_frames)``.
+    key_frames : array-like
+        Frame indices used for comparison.
+
+    Returns
+    -------
+    float
+        Average MSE across valid compared key frames.
+    """
 
     # mse per frame
     dissimilarity = np.full(len(key_frames), np.nan)
@@ -59,6 +110,24 @@ def compute_dissimilarity_mse(data_i, data_j, key_frames):
 
 
 def compute_dissimilarity_ssim(data_i, data_j, key_frames, data_range=255):
+    """Compute mean SSIM-based dissimilarity between two videos.
+
+    Parameters
+    ----------
+    data_i : numpy.ndarray
+        First video array with shape ``(height, width, n_frames)``.
+    data_j : numpy.ndarray
+        Second video array with shape ``(height, width, n_frames)``.
+    key_frames : array-like
+        Frame indices used for comparison.
+    data_range : float or int, default=255
+        Data range parameter passed to ``structural_similarity``.
+
+    Returns
+    -------
+    float
+        Average SSIM-based dissimilarity ``(1 - SSIM) / 2`` across frames.
+    """
 
     # ssim per frame
     dissimilarity = np.full(len(key_frames), np.nan)
@@ -73,6 +142,27 @@ def compute_dissimilarity_ssim(data_i, data_j, key_frames, data_range=255):
 
 
 def compute_dissimilarity_videos(video_i, video_j, dissimilarity_measure='mse'):
+    """Compute dissimilarity between two ``Video`` objects.
+
+    Parameters
+    ----------
+    video_i : Video
+        First video object.
+    video_j : Video
+        Second video object.
+    dissimilarity_measure : {'mse', 'ssim'}, default='mse'
+        Frame-level dissimilarity function.
+
+    Returns
+    -------
+    float
+        Aggregate dissimilarity over combined key frames.
+
+    Raises
+    ------
+    ValueError
+        If ``dissimilarity_measure`` is not supported.
+    """
     
     if dissimilarity_measure=='mse':
         dissimilarity_fun = compute_dissimilarity_mse
@@ -97,6 +187,24 @@ def compute_dissimilarity_videos(video_i, video_j, dissimilarity_measure='mse'):
 
 
 def compute_dissimilarity_video_list(videos, dissimilarity_measure='mse', check_edges_first=True, frames_tolerance=2):
+    """Compute pairwise dissimilarity matrix for a list of videos.
+
+    Parameters
+    ----------
+    videos : list[Video]
+        Sequence of videos to compare.
+    dissimilarity_measure : {'mse', 'ssim'}, default='mse'
+        Metric used for pairwise dissimilarity.
+    check_edges_first : bool, default=True
+        If ``True``, only compare videos with matching segment boundaries.
+    frames_tolerance : int, default=2
+        Segment-boundary tolerance used when ``check_edges_first`` is enabled.
+
+    Returns
+    -------
+    numpy.ndarray
+        Symmetric matrix of pairwise dissimilarity values.
+    """
 
     n_videos = len(videos)
     dissimilarity = np.full((n_videos,n_videos), np.nan)
@@ -126,6 +234,20 @@ def compute_dissimilarity_video_list(videos, dissimilarity_measure='mse', check_
 
 
 def find_equal_sets(mask, elements_names=None):
+    """Group connected elements from a boolean adjacency mask.
+
+    Parameters
+    ----------
+    mask : numpy.ndarray
+        Square boolean adjacency matrix.
+    elements_names : list or None, optional
+        Optional element names aligned with mask rows/columns.
+
+    Returns
+    -------
+    list[set]
+        List of groups, each containing mutually connected elements.
+    """
 
     if elements_names is None:
         elements_names = [i for i in range(mask.shape[0])]
@@ -149,6 +271,20 @@ def find_equal_sets(mask, elements_names=None):
 
 
 def find_equal_sets_scipy(mask, elements_names=None):
+    """Group connected elements using SciPy connected components.
+
+    Parameters
+    ----------
+    mask : numpy.ndarray
+        Square boolean adjacency matrix.
+    elements_names : list or None, optional
+        Optional element names aligned with mask rows/columns.
+
+    Returns
+    -------
+    list[list]
+        Connected-component groups in label order.
+    """
 
     if elements_names is None:
         elements_names = [i for i in range(mask.shape[0])]
@@ -168,6 +304,20 @@ def find_equal_sets_scipy(mask, elements_names=None):
 
 
 def create_table_all_video_ids(folder_globalmetavideos, label=None):
+    """Create a table of known unique-video IDs from metadata files.
+
+    Parameters
+    ----------
+    folder_globalmetavideos : str or pathlib.Path
+        Directory containing unique-video metadata JSON files.
+    label : str or None, optional
+        If provided, restrict to files with this label prefix.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with columns ``ID`` and ``label``.
+    """
     # create a table with the existing files
     if label is None:
         json_files = glob.glob(os.path.join(folder_globalmetavideos,"*.json"))
@@ -185,6 +335,33 @@ def create_table_all_video_ids(folder_globalmetavideos, label=None):
 
 
 def compare_with_idvideos(label, list_distinct_videos, folder_videos, folder_metavideos, folder_globalmetavideos, limit_dissimilarity=5):
+    """Match duplicate groups to existing IDs or create new unique IDs.
+
+    Parameters
+    ----------
+    label : str
+        Label of the videos being processed.
+    list_distinct_videos : list[set[str]]
+        Groups of trial names believed to represent the same video content.
+    folder_videos : str or pathlib.Path
+        Recording folder containing raw trial videos.
+    folder_metavideos : str or pathlib.Path
+        Directory with per-trial video metadata files.
+    folder_globalmetavideos : str or pathlib.Path
+        Directory storing unique-video metadata files.
+    limit_dissimilarity : float or int, default=5
+        Maximum dissimilarity accepted to consider two videos equivalent.
+
+    Returns
+    -------
+    list[str]
+        Assigned unique ID for each input duplicate group.
+
+    Raises
+    ------
+    Exception
+        If one group matches more than one existing unique ID.
+    """
 
     folder_data = os.path.dirname(folder_videos)
     

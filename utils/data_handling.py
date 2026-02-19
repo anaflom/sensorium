@@ -7,6 +7,18 @@ from pathlib import Path
 
 
 def to_json_safe(obj):
+    """Recursively convert NumPy objects into JSON-serializable Python types.
+
+    Parameters
+    ----------
+    obj : Any
+        Input object potentially containing NumPy arrays/scalars.
+
+    Returns
+    -------
+    Any
+        JSON-serializable representation of ``obj``.
+    """
     if isinstance(obj, dict):
         return {k: to_json_safe(v) for k, v in obj.items()}
     elif isinstance(obj, np.ndarray):
@@ -20,12 +32,37 @@ def to_json_safe(obj):
 
 
 def save_json(metadata, full_file_name):
+    """Save metadata dictionary to JSON file.
+
+    Parameters
+    ----------
+    metadata : dict
+        Metadata content.
+    full_file_name : str or pathlib.Path
+        Output JSON path.
+    """
     metadata = to_json_safe(metadata)
     with open(full_file_name, "w") as f:
         json.dump(metadata, f, indent=4)
 
 
 def load_all_data(recording_folder, what_data, data_slice=None):
+    """Load and stack all ``.npy`` files for a data type.
+
+    Parameters
+    ----------
+    recording_folder : str or pathlib.Path
+        Recording root folder.
+    what_data : str
+        Data subfolder inside ``recording_folder/data``.
+    data_slice : slice or tuple or None, optional
+        Optional slice applied to each loaded array.
+
+    Returns
+    -------
+    numpy.ndarray
+        Stacked data array with trial dimension first.
+    """
 
     path_to_data = os.path.join(recording_folder, "data", what_data)
     if not os.path.exists(path_to_data):
@@ -58,6 +95,7 @@ def load_all_data(recording_folder, what_data, data_slice=None):
 
 
 def _is_valid_value(value):
+    """Return whether a trial descriptor value is valid."""
     if value is None:
         return False
     if isinstance(value, np.ndarray) and value.shape == ():
@@ -68,6 +106,20 @@ def _is_valid_value(value):
 
 
 def load_trials_descriptor(trials_descriptor_file, verbose=False):
+    """Load and clean trial descriptors from ``tiers.npy``.
+
+    Parameters
+    ----------
+    trials_descriptor_file : str or pathlib.Path
+        Path to descriptor ``.npy`` file.
+    verbose : bool, default=False
+        If ``True``, print summary of excluded values.
+
+    Returns
+    -------
+    list
+        Valid descriptor entries.
+    """
         
     arr_trials_descriptor = np.load(trials_descriptor_file)
     trials_descriptor = arr_trials_descriptor.tolist()
@@ -81,6 +133,20 @@ def load_trials_descriptor(trials_descriptor_file, verbose=False):
 
 
 def load_metadata_from_id(id, folder):
+    """Load one metadata JSON matching an ID pattern.
+
+    Parameters
+    ----------
+    id : str
+        Identifier suffix used in file pattern ``*-{id}.json``.
+    folder : str or pathlib.Path
+        Metadata folder.
+
+    Returns
+    -------
+    tuple[dict, pathlib.Path]
+        Loaded metadata dictionary and matching file path.
+    """
     file_pattern = f"*-{id}.json"
     files = list(Path(folder).glob(file_pattern))
     if len(files) == 0:
@@ -99,6 +165,20 @@ def load_metadata_from_id(id, folder):
 
 
 def check_data_integrity(path_to_data, verbose=True):
+    """Check integrity and consistency of trial data files.
+
+    Parameters
+    ----------
+    path_to_data : str or pathlib.Path
+        Path to recording ``data`` directory.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[bool, dict]
+        Global validity flag and summary information dictionary.
+    """
 
     info = {}
     data_ok = True
@@ -198,6 +278,22 @@ def check_data_integrity(path_to_data, verbose=True):
 
 
 def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=True):
+    """Check and load neuron coordinates/IDs metadata.
+
+    Parameters
+    ----------
+    path_to_meta_neurons : str or pathlib.Path
+        Path to neurons metadata folder.
+    n_neurons : int or None, optional
+        Expected neuron count for consistency checks.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[numpy.ndarray or None, numpy.ndarray or None]
+        Neuron coordinates and IDs, or ``None`` if unavailable/invalid.
+    """
 
     # check information in meta folder for the neurons coordinates
     neurons_coord_path = Path(path_to_meta_neurons) / 'cell_motor_coordinates.npy'
@@ -234,6 +330,22 @@ def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=T
     return neurons_coord, neurons_ids
 
 def check_meta_trials_integrity(path_to_meta_trials, n_trials=None, verbose=True):
+    """Check and load trial descriptor metadata.
+
+    Parameters
+    ----------
+    path_to_meta_trials : str or pathlib.Path
+        Path to trials metadata folder.
+    n_trials : int or None, optional
+        Expected trial count for consistency checks.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    list or None
+        Trial descriptor list if valid, otherwise ``None``.
+    """
 
     # check information in meta folder for the trials description
 

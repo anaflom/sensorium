@@ -10,6 +10,15 @@ from utils.neurons import Neurons
 class Responses():
 
     def __init__(self, recording_folder, trial):
+        """Load responses for one recording/trial.
+
+        Parameters
+        ----------
+        recording_folder : str or pathlib.Path
+            Path to recording folder.
+        trial : str
+            Trial name or filename.
+        """
         trial, ext = os.path.splitext(trial)
         trial = os.path.basename(trial)
         
@@ -26,12 +35,31 @@ class Responses():
         self.neurons = None
 
     def __copy__(self):
+        """Return a shallow copy of responses object.
+
+        Returns
+        -------
+        Responses
+            Shallow copy.
+        """
         new = self.__class__.__new__(self.__class__)
         new.__dict__.update(self.__dict__)
         return new
 
 
     def __deepcopy__(self, memo):
+        """Return a deep copy of responses object.
+
+        Parameters
+        ----------
+        memo : dict
+            Memo dictionary used by ``copy.deepcopy``.
+
+        Returns
+        -------
+        Responses
+            Deep copy.
+        """
         new = self.__class__.__new__(self.__class__)
         memo[id(self)] = new
         for k, v in self.__dict__.items():
@@ -39,10 +67,29 @@ class Responses():
         return new
     
     def copy(self, deep=False):
+        """Copy the responses object.
+
+        Parameters
+        ----------
+        deep : bool, default=False
+            If ``True``, return deep copy, otherwise shallow copy.
+
+        Returns
+        -------
+        Responses
+            Copied object.
+        """
         return copy.deepcopy(self) if deep else copy.copy(self)
 
 
     def load_metadata_videoid(self, folder_metadata):
+        """Load global video metadata for current ``label`` and ``ID``.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Folder containing global video metadata JSON files.
+        """
 
         file_metadata = self.label+'-'+self.ID+".json"
         path_metavideo = os.path.join(folder_metadata, file_metadata)
@@ -62,11 +109,30 @@ class Responses():
 
 
     def load_metadata_neurons(self, folder_metadata):
+        """Load neuron metadata for current recording.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Root metadata folder.
+        """
 
         self.neurons = Neurons(folder_metadata, self.recording)
 
 
     def get_data(self, normalization=None):
+        """Return response matrix with optional normalization.
+
+        Parameters
+        ----------
+        normalization : {None, 'by_std', 'by_mean'}, optional
+            Normalization strategy.
+
+        Returns
+        -------
+        numpy.ndarray
+            Response array of shape ``(n_neurons, valid_frames)``.
+        """
         if normalization is None:
             data = self.data[:,:self.valid_frames].copy()
         elif normalization=='by_std':
@@ -88,6 +154,22 @@ class Responses():
 
 
     def plot_responses_raster(self, neurons_idx, normalization=None, plot_segments=None):
+        """Plot responses as grayscale raster for selected neurons.
+
+        Parameters
+        ----------
+        neurons_idx : array-like
+            Neuron indices to display.
+        normalization : {None, 'by_std', 'by_mean'}, optional
+            Optional normalization mode.
+        plot_segments : bool or None, optional
+            Whether to overlay segment boundaries.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
 
         if plot_segments is None:
             if self.label=='NaturalVideo':
@@ -116,6 +198,24 @@ class Responses():
         return fig, ax
     
     def plot_active_raster(self, neurons_idx, thresh, normalization=None, plot_segments=None):
+        """Plot binary activity raster for selected neurons.
+
+        Parameters
+        ----------
+        neurons_idx : array-like
+            Neuron indices to display.
+        thresh : float
+            Activity threshold.
+        normalization : {None, 'by_std', 'by_mean'}, optional
+            Optional normalization mode.
+        plot_segments : bool or None, optional
+            Whether to overlay segment boundaries.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
 
         if plot_segments is None:
             if self.label=='NaturalVideo':
@@ -140,6 +240,22 @@ class Responses():
     
 
     def plot_responses(self, neurons_idx, normalization=None, plot_segments=None):
+        """Plot response traces for selected neurons.
+
+        Parameters
+        ----------
+        neurons_idx : array-like
+            Neuron indices to display.
+        normalization : {None, 'by_std', 'by_mean'}, optional
+            Optional normalization mode.
+        plot_segments : bool or None, optional
+            Whether to overlay segment boundaries.
+
+        Returns
+        -------
+        tuple
+            ``(fig, axs)`` matplotlib objects.
+        """
 
         if plot_segments is None:
             if self.label=='NaturalVideo':

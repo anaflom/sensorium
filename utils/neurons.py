@@ -6,6 +6,15 @@ import matplotlib.pyplot as plt
 class Neurons():
 
     def __init__(self, folder_metadata, recording):
+        """Load neurons metadata for one recording.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Root metadata folder.
+        recording : str
+            Recording name.
+        """
 
         file = os.path.join(folder_metadata, recording, f"meta-neurons_{recording}.csv")
         try:
@@ -18,6 +27,13 @@ class Neurons():
 
 
     def plot_coordinates(self):
+        """Plot neuron 3D coordinates.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
 
         # Plot the neural coordinates of the recorded neurons 
         fig = plt.figure()
@@ -43,6 +59,17 @@ class Neurons():
 class NeuronsData(Neurons):
 
     def __init__(self, coord_xyz, IDs, stats_activity=None):
+        """Initialize neurons object from in-memory arrays.
+
+        Parameters
+        ----------
+        coord_xyz : numpy.ndarray or None
+            Neuron coordinates.
+        IDs : numpy.ndarray or None
+            Neuron identifiers.
+        stats_activity : dict or None, optional
+            Optional per-neuron activity statistics.
+        """
 
         self.coord_xyz = coord_xyz
         self.IDs = IDs

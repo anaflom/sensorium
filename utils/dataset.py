@@ -30,14 +30,19 @@ from utils.videos_duplicates import (compute_dissimilarity_video_list,
 
 
 def combine_data(behavioral_list, weights=None):
-    """Combine multiple data objects into one by weighted average.
+    """Combine multiple behavior objects by weighted average.
 
-    Args:
-        behavioral_list (list of object belonging to class Behavioral): List of data objects to combine. 
-        weights (list of float, optional): Weights for each data array. If None, equal weights are used.
+    Parameters
+    ----------
+    behavioral_list : list
+        Objects with a ``data`` attribute of identical shape.
+    weights : array-like or None, optional
+        Optional weights. If ``None``, uniform weights are used.
 
-    Returns:
-        np.array: Combined data .
+    Returns
+    -------
+    numpy.ndarray
+        Weighted average array.
     """
     if len(behavioral_list) == 0:
         raise ValueError("behavioral_list must contain at least one object.")
@@ -64,6 +69,7 @@ def combine_data(behavioral_list, weights=None):
 
 
 def print_title(s, verbose):
+    """Print a section title when verbosity is enabled."""
     print(f"\n{s:-<100}") if verbose else None
 
 
@@ -71,6 +77,21 @@ class DataSet():
 
     def __init__(self, folder_data, folder_metadata=None, 
                  folder_metadata_per_trial=None, recording=None, verbose=True):
+        """Initialize dataset paths, integrity checks, and cached metadata.
+
+        Parameters
+        ----------
+        folder_data : str or pathlib.Path
+            Root data folder containing recording directories.
+        folder_metadata : str or pathlib.Path or None, optional
+            Root metadata folder.
+        folder_metadata_per_trial : str or pathlib.Path or None, optional
+            Root per-trial metadata folder.
+        recording : list[str] or str or None, optional
+            Recording names to include; if ``None``, all subfolders are used.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
         
         print_title('Initializing DataSet ', verbose)
 
@@ -101,6 +122,13 @@ class DataSet():
 
 
     def __str__(self):
+        """Return a human-readable summary of the dataset.
+
+        Returns
+        -------
+        str
+            Dataset summary string.
+        """
         s = ''
         s= s + f"The dataset contains {len(self.recording)} recordings:\n"
         for rec in self.recording:
@@ -114,6 +142,15 @@ class DataSet():
 
 
     def load_neurons(self, recording=None, verbose=True):  
+        """Load neuron metadata for selected recordings.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process. If ``None``, process all recordings.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
 
         print_title('Loading neurons metadata ', verbose)
 
@@ -147,6 +184,13 @@ class DataSet():
 
 
     def load_trial_types(self, recording=None):
+        """Load trial-type labels for selected recordings.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process. If ``None``, process all recordings.
+        """
         if recording is None:
             recording = self.recording
         elif isinstance(recording, str):
@@ -169,6 +213,13 @@ class DataSet():
 
 
     def check_data(self, verbose=True):
+        """Check consistency of raw data files across recordings.
+
+        Parameters
+        ----------
+        verbose : bool, default=True
+            If ``True``, print warnings and status messages.
+        """
 
         print_title('Checking the data ', verbose)
 
@@ -206,6 +257,13 @@ class DataSet():
 
 
     def check_metadata(self, verbose=True):
+        """Validate global metadata folders and files.
+
+        Parameters
+        ----------
+        verbose : bool, default=True
+            If ``True``, print warnings and status messages.
+        """
         # check that the metadata folder has the correct structure and that the files are consistent with the data files 
         
         print_title('Checking metadata ', verbose)
@@ -254,6 +312,13 @@ class DataSet():
     
 
     def check_metadata_per_trial(self, verbose=True):
+        """Validate per-trial metadata folders and files.
+
+        Parameters
+        ----------
+        verbose : bool, default=True
+            If ``True``, print warnings and status messages.
+        """
         # check that the metadata folder has the correct structure and that the files are consistent with the data files 
         
         print_title('Checking metadata per trial ', verbose)
@@ -273,11 +338,36 @@ class DataSet():
                
 
     def get_data_list(self, recording, what_data='videos'):
+        """Return list of data files for one recording/data type.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        what_data : str, default='videos'
+            Data subfolder name.
+
+        Returns
+        -------
+        list[pathlib.Path]
+            Matching ``.npy`` files.
+        """
         path_to_data = os.path.join(self.folder_data, recording,'data',what_data)        
         return list(Path(path_to_data).glob("*.npy"))
     
 
     def create_folders_metadata_per_trial(self, recording=None, what_data='videos', verbose=True):
+        """Create per-trial metadata folders when missing.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        what_data : str or list[str], default='videos'
+            Per-trial data categories.
+        verbose : bool, default=True
+            If ``True``, print created paths.
+        """
         if self.folder_metadata_per_trial is None:
             raise ValueError("folder_metadata_per_trial is None, cannot create folder for metadata per trial")
         
@@ -308,6 +398,17 @@ class DataSet():
             
 
     def create_folders_metadata(self, recording=None, what_global_data=['videos','segments'], verbose=True):
+        """Create global and per-recording metadata folders when missing.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        what_global_data : str or list[str], default=['videos', 'segments']
+            Global metadata categories to create.
+        verbose : bool, default=True
+            If ``True``, print created paths.
+        """
         
         if self.folder_metadata is None:
             raise ValueError("folder_metadata is None, cannot create folder for metadata")
@@ -343,6 +444,22 @@ class DataSet():
     
 
     def get_trials_metadata_per_trials(self, what_data='videos', set_trials_df=True, verbose=True):
+        """Load trial metadata from per-trial JSON files.
+
+        Parameters
+        ----------
+        what_data : str, default='videos'
+            Data category subfolder.
+        set_trials_df : bool, default=True
+            If ``True``, store result in ``self.trials_df``.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Combined trial metadata table.
+        """
 
         if self.folder_metadata_per_trial is None:
             raise ValueError("folder_metadata_per_trial is None, cannot load trials metadata")
@@ -397,6 +514,20 @@ class DataSet():
 
 
     def get_trials_metadata(self, set_trials_df=True, verbose=True):
+        """Load trial metadata from recording CSV tables.
+
+        Parameters
+        ----------
+        set_trials_df : bool, default=True
+            If ``True``, store result in ``self.trials_df``.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Combined trial metadata table.
+        """
 
         if self.folder_metadata is None:
             raise ValueError("folder_metadata is None, cannot load trials metadata")
@@ -431,6 +562,13 @@ class DataSet():
           
 
     def filter_trials(self, recording=None, label=None, trial_type=None, ID=None, trial=None, valid_trial=None):
+        """Filter the trials table by one or more conditions.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Filtered trial rows.
+        """
 
         conditions_val = [recording, label, trial_type, ID, trial, valid_trial]
         conditions_key = ['recording', 'label', 'trial_type','ID', 'trial', 'valid_trial']
@@ -454,6 +592,13 @@ class DataSet():
     
     
     def get_indexes_of_trials(self, recording, label=None, trial_type=None, ID=None, trial=None, valid_trial=None):
+        """Map filtered trial names to numeric trial indices.
+
+        Returns
+        -------
+        list[int]
+            Trial indices in recording order.
+        """
         
         if not isinstance(recording, str) or recording not in self.recording:
             raise ValueError(f"'recording' must be a string indicating a recording of the dataset, {recording} is not valid")
@@ -470,6 +615,18 @@ class DataSet():
 
 
     def count_videos_across(self, subset):
+        """Count trial rows grouped by selected columns.
+
+        Parameters
+        ----------
+        subset : list[str] or tuple[str]
+            Group-by columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Group counts.
+        """
 
         all_conditions = {'recording', 'label', 'trial_type','ID'}
         if not (set(subset)<=all_conditions):
@@ -492,6 +649,18 @@ class DataSet():
     
 
     def load_video_by_id(self, id):
+        """Load a ``VideoID`` object by unique video ID.
+
+        Parameters
+        ----------
+        id : str
+            Unique video identifier.
+
+        Returns
+        -------
+        VideoID
+            Loaded video object.
+        """
         
         if self.folder_globalmetadata_videos is None:
             raise ValueError("folder_metadata is None, cannot load video by id")
@@ -504,6 +673,18 @@ class DataSet():
 
 
     def load_segment_by_id(self, id):
+        """Load a ``VideoSegmentID`` object by unique segment ID.
+
+        Parameters
+        ----------
+        id : str
+            Unique segment identifier.
+
+        Returns
+        -------
+        VideoSegmentID
+            Loaded segment object.
+        """
         
         if self.folder_globalmetadata_segments is None or self.folder_globalmetadata_videos is None:
             raise ValueError("folder_metadata is None, cannot load segment by id")
@@ -516,6 +697,24 @@ class DataSet():
     
  
     def load_video_by_trial(self, recording, trial, verbose=True, try_global_first=True):
+        """Load one trial video and attach available metadata.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        trial : str
+            Trial name.
+        verbose : bool, default=True
+            If ``True``, print warnings.
+        try_global_first : bool, default=True
+            If ``True``, prioritize loading global-ID metadata.
+
+        Returns
+        -------
+        Video
+            Loaded video object.
+        """
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
@@ -564,6 +763,13 @@ class DataSet():
     
 
     def load_response_by_trial(self, recording, trial, verbose=True):
+        """Load one trial responses object and attach metadata.
+
+        Returns
+        -------
+        Responses
+            Loaded responses object.
+        """
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
@@ -592,6 +798,18 @@ class DataSet():
     
 
     def load_behavior_by_trial(self, recording, trial, behavior_type='pupil', verbose=True):
+        """Load one trial behavior object and attach metadata.
+
+        Parameters
+        ----------
+        behavior_type : {'pupil', 'gaze', 'locomotion'}, default='pupil'
+            Behavior modality.
+
+        Returns
+        -------
+        Behavior
+            Loaded behavior object.
+        """
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
@@ -623,6 +841,13 @@ class DataSet():
     
 
     def load_responses_by(self, recording=None, label=None, trial_type=None, ID=None, trial=None, valid_trial=None, verbose=True):
+        """Load responses for all trials matching filters.
+
+        Returns
+        -------
+        tuple[list[Responses], pandas.DataFrame]
+            Loaded objects and the filtered trial table.
+        """
 
         trials_df = self.filter_trials(recording=recording, label=label, trial_type=trial_type, ID=ID, trial=trial, valid_trial=valid_trial)
         responses = []
@@ -634,6 +859,13 @@ class DataSet():
         
 
     def load_videos_by(self, recording=None, label=None, trial_type=None, ID=None, trial=None, valid_trial=None, verbose=True):
+        """Load videos for all trials matching filters.
+
+        Returns
+        -------
+        tuple[list[Video], pandas.DataFrame]
+            Loaded objects and the filtered trial table.
+        """
 
         trials_df = self.filter_trials(recording=recording, label=label, trial_type=trial_type, ID=ID, trial=trial, valid_trial=valid_trial)
         videos = []
@@ -645,6 +877,13 @@ class DataSet():
     
 
     def load_behavior_by(self, behavior_type, recording=None, label=None, trial_type=None, ID=None, trial=None, valid_trial=None, verbose=True):
+        """Load behavior objects for all trials matching filters.
+
+        Returns
+        -------
+        tuple[list[Behavior], pandas.DataFrame]
+            Loaded objects and the filtered trial table.
+        """
 
         trials_df = self.filter_trials(recording=recording, label=label, trial_type=trial_type, ID=ID, trial=trial, valid_trial=valid_trial)
         behavior = []
@@ -656,12 +895,31 @@ class DataSet():
     
 
     def compute_dissimilarity_videos(self, recording=None, label=None, trial_type=None, ID=None, trial=None, valid_trial=None, dissimilarity_measure='mse', check_edges_first=True, verbose=True):
+        """Compute pairwise video dissimilarity for filtered trials.
+
+        Returns
+        -------
+        tuple[numpy.ndarray, pandas.DataFrame]
+            Dissimilarity matrix and filtered trial table.
+        """
         videos, trials_df = self.load_videos_by(recording=recording, label=label, trial_type=trial_type, ID=ID, trial=trial, valid_trial=valid_trial, verbose=verbose)
         dissimilarity = compute_dissimilarity_video_list(videos, dissimilarity_measure=dissimilarity_measure, check_edges_first=check_edges_first)
         return  dissimilarity, trials_df   
 
 
     def find_segment(self, segment_id):
+        """Build a table of trial occurrences for one segment ID.
+
+        Parameters
+        ----------
+        segment_id : str
+            Unique segment identifier.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Table with trial-level occurrences of the segment.
+        """
 
         if self.folder_globalmetadata_segments is None or self.folder_globalmetadata_videos is None:
             raise ValueError("folder_metadata is None, cannot find segments by id")
@@ -714,6 +972,13 @@ class DataSet():
         
         
     def get_segments_meta(self, set_segments_df=True, verbose=True):
+        """Load and aggregate all global segment metadata.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Segment occurrence table.
+        """
 
         if self.folder_globalmetadata_segments is None or self.folder_globalmetadata_videos is None:
             raise ValueError("folder_metadata is None, cannot load segment by id")
@@ -740,6 +1005,13 @@ class DataSet():
 
     
     def filter_segments(self, recording=None, video_label=None, segment_label=None, trial=None, video_ID=None, segment_ID=None ):
+        """Filter segment table by one or more conditions.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Filtered segment rows.
+        """
 
         conditions_val = [recording, video_label, segment_label, trial, video_ID, segment_ID]
         conditions_key = ['recording', 'video_label', 'segment_label', 'trial','video_ID', 'segment_ID']
@@ -763,6 +1035,18 @@ class DataSet():
          
 
     def count_segments_across(self, subset):
+        """Count segment rows grouped by selected columns.
+
+        Parameters
+        ----------
+        subset : list[str] or tuple[str]
+            Group-by columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Group counts.
+        """
 
         all_conditions = {'recording', 'video_label', 'segment_label', 'video_ID','segment_ID','segment_index'}
         if not (set(subset)<=all_conditions):
@@ -784,33 +1068,41 @@ class DataSet():
         return counts_df
     
     def load_all_data(self, recording, what_data, data_slice=None):
-        """
-        Load all data files from a recording directory.
-        
-        Args:
-            recording (str): Recording name (e.g., 'dynamic29156-11-10-Video-...')
-            what_data (str): Data type folder (e.g., 'responses', 'videos')
-            
-        Returns:
-            np.ndarray: Stacked array of all loaded data files
+        """Load all data arrays for one recording/data type.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        what_data : str
+            Data category (for example, ``'responses'`` or ``'videos'``).
+        data_slice : slice or tuple or None, optional
+            Optional slice applied to each loaded array.
+
+        Returns
+        -------
+        numpy.ndarray
+            Stacked trial array.
         """
                     
         return load_all_data(os.path.join(self.folder_data, recording), what_data, data_slice=data_slice)
     
 
     def compute_neurons_stats(self, recording, idx_trials_stats=None):
-        '''
-        Computes descriptive statistics for each neuron activation pattern across all
-        trials belonging to certain conditions.
+        """Compute per-neuron descriptive statistics across selected trials.
 
-        Args:
-            recording (str): Recording folder name
-            trials_to_include (list, optional): List of trial type values to include.
-                                              If None, all trials are included
-        
-        Returns:
-            pd.DataFrame: Statistics (mean, std, median, min, max) for each neuron
-        '''
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        idx_trials_stats : array-like of bool or None, optional
+            Boolean trial selector. If ``None``, use all trials.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns include mean, std, median, min, and max activation.
+        """
 
         # get the number of neurons
         n_neurons = self.info[recording]['n_neurons']
@@ -849,6 +1141,17 @@ class DataSet():
     
 
     def generates_neurons_metadata(self, recording=None, idx_trials_stats=None, verbose=True):
+        """Generate and save neuron metadata tables per recording.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        idx_trials_stats : array-like of bool or None, optional
+            Trial selector used for neuron statistics.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
 
         if recording is None:
             recording = self.recording
@@ -900,6 +1203,15 @@ class DataSet():
 
 
     def classify_videos(self, recording=None, verbose=True):
+        """Classify trial videos and save per-trial metadata.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
 
         if recording is None:
             recording = self.recording
@@ -961,6 +1273,17 @@ class DataSet():
                 
     
     def define_videos_id(self, recording=None, limit_dissimilarity=5, verbose=True):
+        """Assign unique video IDs by similarity grouping.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        limit_dissimilarity : float or int, default=5
+            Maximum dissimilarity to treat videos as duplicates.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
 
         if recording is None:
             recording = self.recording
@@ -1044,6 +1367,19 @@ class DataSet():
  
     
     def define_segments_id(self, labels, recording=None, limit_dissimilarity=20, verbose=True):
+        """Assign unique segment IDs by similarity grouping.
+
+        Parameters
+        ----------
+        labels : str or list[str]
+            Segment labels to process.
+        recording : str or list[str] or None, optional
+            Recordings to process.
+        limit_dissimilarity : float or int, default=20
+            Maximum dissimilarity to treat segments as duplicates.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+        """
 
         if recording is None:
             recording = self.recording
@@ -1146,6 +1482,13 @@ class DataSet():
 
 
     def add_segments_id_to_video_metadata(self, verbose=True):
+        """Inject segment IDs into each global video metadata file.
+
+        Parameters
+        ----------
+        verbose : bool, default=True
+            If ``True``, print warnings and progress messages.
+        """
 
         segments_df = self.get_segments_meta()
         segm = segments_df[['segment_ID','segment_label','video_ID', 'video_label','segment_index']].drop_duplicates()

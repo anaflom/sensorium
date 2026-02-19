@@ -20,12 +20,26 @@ from utils.data_handling import (load_metadata_from_id,
 
 
 def display_video_clip(video_tensor, interval_ms=33):
-    """Render a numpy video tensor (H, W, T) as an inline animation."""
+    """Render a video tensor as an inline HTML animation.
+
+    Parameters
+    ----------
+    video_tensor : numpy.ndarray
+        Video array with shape ``(height, width, n_frames)``.
+    interval_ms : int or float, default=33
+        Delay between displayed frames in milliseconds.
+
+    Returns
+    -------
+    IPython.display.HTML
+        HTML object containing a JavaScript animation.
+    """
     fig, ax = plt.subplots(figsize=(4, 3))
     img = ax.imshow(video_tensor[:, :, 0], cmap="gray", animated=True)
     ax.axis("off")
 
     def update(frame_idx):
+        """Update displayed frame for animation callback."""
         img.set_data(video_tensor[:, :, frame_idx])
         ax.set_title(f"Frame {frame_idx}")
         return (img,)
@@ -43,9 +57,29 @@ def display_video_clip(video_tensor, interval_ms=33):
 
 
 def pick_key_frames(segments_frame_start, segments_frame_end, frames_per_segment=None, distance_between_key_frames=None):
-    '''
-    This function picks some frames to compare the videos
-    '''
+    """Select representative frame indices within each segment.
+
+    Parameters
+    ----------
+    segments_frame_start : array-like
+        Start frame indices for segments.
+    segments_frame_end : array-like
+        End frame indices for segments.
+    frames_per_segment : int or None, optional
+        Number of uniformly spaced frames per segment.
+    distance_between_key_frames : int or None, optional
+        Step size between consecutive key frames.
+
+    Returns
+    -------
+    numpy.ndarray
+        One-dimensional array of selected frame indices.
+
+    Raises
+    ------
+    ValueError
+        If both frame-selection parameters are ``None`` or have invalid types.
+    """
     if (frames_per_segment is None or isinstance(frames_per_segment, int))==False:
         raise ValueError("frames_per_segment must be either None or an integer")
     if (distance_between_key_frames is None or isinstance(distance_between_key_frames, int))==False:
@@ -74,6 +108,20 @@ def pick_key_frames(segments_frame_start, segments_frame_end, frames_per_segment
 
 
 def set_parameter_value(val_default, val_optional):
+    """Return an optional parameter value with a fallback default.
+
+    Parameters
+    ----------
+    val_default : Any
+        Default value used when ``val_optional`` is ``None``.
+    val_optional : Any
+        Optional override value.
+
+    Returns
+    -------
+    Any
+        ``val_optional`` if provided; otherwise ``val_default``.
+    """
     if val_optional==None:
         val = val_default
     else:
@@ -82,16 +130,20 @@ def set_parameter_value(val_default, val_optional):
             
 
 def find_outliers(y, threshold=2):
-    '''
-    This function finds outliers in a 1-D array based on the number of standard
-    deviations from the mean.
+    """Return a boolean mask that flags outliers in a 1-D array.
 
-    y : 1-D array
-    threshold : number of standard deviations to define outliers
+    Parameters
+    ----------
+    y : numpy.ndarray
+        One-dimensional numeric array.
+    threshold : float or int, default=2
+        Number of standard deviations from the mean used as cutoff.
 
-    returns
-    idx_outlier : boolean indexes indicating the outliers
-    '''
+    Returns
+    -------
+    numpy.ndarray
+        Boolean mask with ``True`` where values are considered outliers.
+    """
     # remove nans
     y_ = y[np.isnan(y)==False]
     # define outliers 
@@ -103,35 +155,43 @@ def find_outliers(y, threshold=2):
 
 
 def remove_outliers(y, threshold=2):
-    '''
-    Remove outliers from a 1-D array based on standard-deviation thresholding.
+    """Return a 1-D array with outliers removed.
 
-    y : 1-D array
-    threshold : number of standard deviations to define outliers
+    Parameters
+    ----------
+    y : numpy.ndarray
+        One-dimensional numeric array.
+    threshold : float or int, default=2
+        Number of standard deviations used to define outliers.
 
-    returns
-    an array without the outliers
-    '''
+    Returns
+    -------
+    numpy.ndarray
+        Input array filtered to non-outlier elements.
+    """
     idx_outlier = find_outliers(y, threshold=threshold)
     return y[idx_outlier==False]
 
 
 def find_edges(x, max_transition_frames, limit, revert=False):
-    '''
-    Determine whether the first/last up to `max_transition_frames` elements of
-    array `x` are transition frames. If so, return how many edge frames can be
-    discarded so that the remaining values are below `limit`.
+    """Estimate how many transition samples can be trimmed from one edge.
 
-    x : 1-D array
-    max_transition_frames : maximum number of transition frames (2*max_transition_frames
-                            must be < len(x))
-    limit : threshold limit to consider
-    revert : False uses the array as-is; True flips the array before analysis
+    Parameters
+    ----------
+    x : numpy.ndarray
+        One-dimensional signal (for example, frame-to-frame changes).
+    max_transition_frames : int
+        Maximum number of edge samples to consider transition frames.
+    limit : float or int
+        Upper bound for accepted values after trimming.
+    revert : bool, default=False
+        If ``True``, evaluate the reversed signal (useful for trailing edge).
 
-    returns
-    n_first : the number of edge frames to discard from the beginning (or end
-              if `revert` is True) so that the remainder is < limit
-    '''
+    Returns
+    -------
+    int
+        Number of edge samples that can be discarded.
+    """
     
     if revert:
         x = np.flip(x)
@@ -233,24 +293,30 @@ def select_peaks(peaks, priority, distance):
 
 
 def find_peaks(y, window, distance=None, threshold=3, relative_threshold=True, min_thresh=4, threshold_outliers=2):
-    '''
-    Find peaks in a one-dimensional array where values are larger than their
-    neighboring samples by a threshold.
+    """Detect local peaks in a 1-D signal using windowed thresholding.
 
-    y : 1-D array
-    window : integer denoting the number of samples to take on both sides
-             around a sample to test whether it is a peak
-    distance : minimum peak distance
-    threshold : either the absolute threshold (if relative_threshold is False)
-                or the multiplier of the standard deviation used to determine
-                the threshold (if relative_threshold is True)
-    relative_threshold : whether to use relative thresholds
-    min_thresh : minimum threshold used when computing relative thresholds
-    threshold_outliers : threshold used to remove extreme values in the window
+    Parameters
+    ----------
+    y : numpy.ndarray
+        One-dimensional signal.
+    window : int
+        Number of neighbor samples inspected on each side.
+    distance : int or None, optional
+        Minimum separation between accepted peaks.
+    threshold : float or int, default=3
+        Absolute or relative threshold value.
+    relative_threshold : bool, default=True
+        If ``True``, derive thresholds from local standard deviation.
+    min_thresh : float or int, default=4
+        Lower bound for relative thresholds.
+    threshold_outliers : float or int or None, default=2
+        Outlier-removal cutoff for local windows.
 
-    returns
-    peaks : indexes indicating the positions of the peaks in y
-    '''
+    Returns
+    -------
+    numpy.ndarray
+        One-dimensional array with peak indices.
+    """
 
     if distance is not None and distance < 1:
         raise ValueError('`distance` must be greater or equal to 1')
@@ -331,17 +397,23 @@ def find_peaks(y, window, distance=None, threshold=3, relative_threshold=True, m
 
 
 def find_margin(data, limit=0, axis=0, revert=False):
+    """Return the largest edge width whose intensity range stays below ``limit``.
 
-    """
-    This function finds the number of pixels that can be taken from the
-    selected dimension that have an intensity range lower than `limit`.
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Video array with shape ``(height, width, n_frames)``.
+    limit : float or int, default=0
+        Maximum allowed intensity range in the selected edge region.
+    axis : int, default=0
+        Spatial axis to evaluate (``0`` for rows, ``1`` for columns).
+    revert : bool, default=False
+        If ``True``, evaluate the edge from the opposite side.
 
-    data : 3-D array (last dimension are the frames)
-    limit : upper limit to the intensity range within data[:m,:,:]
-    axis : the axis to consider
-    revert : whether to flip the data along the selected axis first
-
-    returns the number of pixels such that data[:m,:,:] has a range lower than limit
+    Returns
+    -------
+    int
+        Number of pixels that satisfy the edge-range criterion.
     """
     if axis==1:
         data = np.transpose(data,(1,0,2))
@@ -357,6 +429,20 @@ def find_margin(data, limit=0, axis=0, revert=False):
 
 
 def compute_videos_time_change(data, valid_frames):
+    """Compute frame-to-frame mean squared error over valid frames.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Video array with shape ``(height, width, n_frames)``.
+    valid_frames : int
+        Number of valid frames considered in ``data``.
+
+    Returns
+    -------
+    numpy.ndarray
+        One-dimensional array of MSE values between adjacent frames.
+    """
     change = np.zeros(valid_frames-1)
     for i in range(valid_frames-1):
         change[i] = mean_squared_error(data[:,:,i+1], data[:,:,i])
@@ -365,10 +451,7 @@ def compute_videos_time_change(data, valid_frames):
 
 
 class VideoSegment():
-
-    """
-    This class handles video segments 
-    """
+    """Represent and describe a single video segment."""
     # Parameter limiting the maximum accepted change to define that segments are static
     thresh_no_change = 50
 
@@ -380,11 +463,20 @@ class VideoSegment():
 
 
     def __init__(self, video, segment_index=None, sampling_freq=None, ID=None, label=None):
-        """
-        Initialize a video segment from a video object
-        
-        :param self: Description
-        :param video: Description
+        """Initialize a segment from a ``Video`` object or a raw array.
+
+        Parameters
+        ----------
+        video : Video or numpy.ndarray
+            Source video object or segment array.
+        segment_index : int or None, optional
+            Segment index to extract when ``video`` is a ``Video`` instance.
+        sampling_freq : float or int or None, optional
+            Sampling frequency in Hz for raw-array initialization.
+        ID : str or None, optional
+            Segment identifier.
+        label : str or None, optional
+            Segment class label.
         """
         if not isinstance(video, (Video, np.ndarray)):
             raise ValueError("video must be either a numpy array or an instance of Video")
@@ -427,12 +519,31 @@ class VideoSegment():
             
         
     def __copy__(self):
+        """Return a shallow copy of the segment object.
+
+        Returns
+        -------
+        VideoSegment
+            Shallow-copied segment instance.
+        """
         new = self.__class__.__new__(self.__class__)
         new.__dict__.update(self.__dict__)
         return new
 
 
     def __deepcopy__(self, memo):
+        """Return a deep copy of the segment object.
+
+        Parameters
+        ----------
+        memo : dict
+            Internal memoization dictionary used by ``copy.deepcopy``.
+
+        Returns
+        -------
+        VideoSegment
+            Deep-copied segment instance.
+        """
         new = self.__class__.__new__(self.__class__)
         memo[id(self)] = new
         for k, v in self.__dict__.items():
@@ -440,21 +551,42 @@ class VideoSegment():
         return new
     
     def copy(self, deep=False):
+        """Copy the segment object.
+
+        Parameters
+        ----------
+        deep : bool, default=False
+            If True, return a deep copy. Otherwise return a shallow copy.
+        """
         return copy.deepcopy(self) if deep else copy.copy(self)
     
 
     def compute_time_change(self):
-        """
-        It computes the differences between consecutive frames using mean squared error and stores it in self.changes
+        """Compute frame-to-frame changes for this segment.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of consecutive-frame MSE values.
         """
         return compute_videos_time_change(self.data, self.valid_frames)
     
     
     def is_static(self, limit=thresh_no_change, max_transition_frames=max_transition_frames):
-        '''
-        It finds the maximun change in each segments and defines segments as static if the maximun change is < limit
-        Since when static frames are present there might be transition frames. It tries to identity them 
-        '''
+        """Determine whether the segment is static under a change threshold.
+
+        Parameters
+        ----------
+        limit : float or int, default=thresh_no_change
+            Maximum allowed change for static classification.
+        max_transition_frames : int, default=max_transition_frames
+            Number of edge frames that may be ignored as transitions.
+
+        Notes
+        -----
+        Results are stored in ``self.properties`` as ``transition_start``,
+        ``transition_end``, ``max_change``, and ``is_static``.
+        """
         
         # compute change
         change = self.compute_time_change()
@@ -480,8 +612,11 @@ class VideoSegment():
                 
 
     def find_intensity_range(self):
-        """
-        It finds the range for the intensity in that video
+        """Compute intensity range on non-transition frames.
+
+        Notes
+        -----
+        Stores the result in ``self.properties['intensity_range']``.
         """
         if not 'is_static' in self.properties.keys():
             self.is_static()
@@ -492,8 +627,12 @@ class VideoSegment():
     
 
     def find_background(self):
-        """
-        It finds percentual of pixels in the video occupied by background
+        """Estimate dominant background color on non-transition frames and its proportion.
+
+        Notes
+        -----
+        Stores ``background_color`` and ``background_proportion`` in
+        ``self.properties``.
         """
         if not 'is_static' in self.properties.keys():
             self.is_static()
@@ -507,8 +646,18 @@ class VideoSegment():
 
 
     def is_uniform(self, thresh_background_proportion=0.8, thresh_intensity_range=thresh_intensity_range):
-        """
-        It finds defines if the semgnt is uniform (a repeated image of a single color)
+        """Flag whether the segment is a mostly uniform static image.
+
+        Parameters
+        ----------
+        thresh_background_proportion : float, default=0.8
+            Minimum dominant-background proportion.
+        thresh_intensity_range : float or int, default=thresh_intensity_range
+            Maximum accepted intensity range.
+
+        Notes
+        -----
+        Stores the boolean result in ``self.properties['is_uniform']``.
         """
         if not 'intensity_range' in self.properties.keys():
             self.find_intensity_range()
@@ -525,8 +674,16 @@ class VideoSegment():
 
 
     def find_margins(self, limit=thresh_intensity_range):
-        """
-        It finds the margin for the segment
+        """Estimate left/right/top/bottom uniform margins for the segment.
+
+        Parameters
+        ----------
+        limit : float or int, default=thresh_intensity_range
+            Maximum accepted intensity range for margin regions.
+
+        Notes
+        -----
+        Stores margin values in ``self.properties``.
         """
         if not 'intensity_range' in self.properties.keys():
             self.find_intensity_range()
@@ -550,8 +707,13 @@ class VideoSegment():
 
 
     def describe(self):
-        """
-        It runs all the methods describing the segments
+        """Compute all derived properties for this segment.
+
+        Notes
+        -----
+        This method populates ``self.properties`` by calling, in order:
+        ``is_static``, ``find_intensity_range``, ``find_margins``,
+        ``find_background``, and ``is_uniform``.
         """
         self.is_static()
         self.find_intensity_range()
@@ -561,6 +723,13 @@ class VideoSegment():
          
 
     def label_from_parentvideo(self, thresh_intensity_range=thresh_intensity_range):
+        """Assign a segment label using parent label and segment properties.
+
+        Parameters
+        ----------
+        thresh_intensity_range : float or int, default=thresh_intensity_range
+            Threshold used to split ``NaturalImages`` into image vs background.
+        """
         
         # check the parent video has a label key
         if not 'label' in self.parentvideo.keys():
@@ -587,10 +756,20 @@ class VideoSegment():
                 raise ValueError(f"{self.parentvideo['label']} is not a valid label")
 
     def pick_key_frames(self, frames_per_segment=None, distance_between_key_frames=None):
-        '''
-        This function picks some frames to compare the videos
-        If both, frames_per_segment and distance_between_key_frames are None, then it selects based on the label
-        '''
+        """Select representative frame indices for this segment.
+
+        Parameters
+        ----------
+        frames_per_segment : int or None, optional
+            Number of key frames sampled uniformly in the segment.
+        distance_between_key_frames : int or None, optional
+            Step size (in frames) between consecutive key frames.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of selected frame indices.
+        """
         
         # select the parameters to pick some representative frames for each video based on the label
         if distance_between_key_frames is None and frames_per_segment is None:
@@ -620,6 +799,22 @@ class VideoSegment():
 
     def convert_to_dict(self, main_fields, 
                         convert_duplicates=True, convert_parentvideo=False):
+        """Serialize segment metadata fields to a JSON-safe dictionary.
+
+        Parameters
+        ----------
+        main_fields : list[str]
+            Segment attributes to include at the top level.
+        convert_duplicates : bool, default=True
+            Whether to include duplicate mappings in the output.
+        convert_parentvideo : bool, default=False
+            Whether to include parent video information in the output.
+
+        Returns
+        -------
+        dict
+            JSON-serializable dictionary with selected metadata.
+        """
         meta_dict = {}
 
         # main attributes
@@ -647,6 +842,21 @@ class VideoSegment():
 
     def save_metadata(self, folder_metadata, file_name=None, 
                       main_fields=['ID','label','sampling_freq','valid_frames'], convert_parentvideo=False, convert_duplicates=True):
+        """Save segment metadata as a JSON file.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Output directory where the metadata file is written.
+        file_name : str or None, optional
+            Output filename. If ``None``, it is inferred from ``label`` and ``ID``.
+        main_fields : list[str], optional
+            Segment attributes to serialize.
+        convert_parentvideo : bool, default=False
+            Whether to include parent-video fields.
+        convert_duplicates : bool, default=True
+            Whether to include duplicate mappings.
+        """
 
         if file_name is None:
             if self.label and self.ID:
@@ -664,6 +874,13 @@ class VideoSegment():
 
     
     def load_metadata(self, path_to_metadata_file):
+        """Load segment metadata from a JSON file into object attributes.
+
+        Parameters
+        ----------
+        path_to_metadata_file : str or pathlib.Path
+            Path to the segment metadata JSON file.
+        """
 
         with open(path_to_metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
@@ -672,6 +889,13 @@ class VideoSegment():
 
         
     def load_metadata_from_id(self, folder_metadata):
+        """Load segment metadata by ``self.ID`` from a metadata directory.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Directory containing segment metadata files.
+        """
 
         metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
         for k, v in metadata.items():
@@ -679,6 +903,15 @@ class VideoSegment():
         
         
     def add_duplicates(self, video_id, segment_index):
+        """Register one duplicate occurrence for this segment.
+
+        Parameters
+        ----------
+        video_id : str
+            ID of a source video containing this segment.
+        segment_index : int
+            Segment index within the source video.
+        """
         
         if video_id in self.duplicates.keys():
             self.duplicates[video_id]['segment_index'].add(segment_index)
@@ -689,8 +922,17 @@ class VideoSegment():
 
 
     def plot_frame(self, frame):
-        """
-        It plots the frame indicated by frame
+        """Plot one frame from the segment.
+
+        Parameters
+        ----------
+        frame : int
+            Frame index to display.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         fig, ax =plt.subplots(1,1)
         ax.imshow(self.data[:,:,frame], cmap='gray')
@@ -698,8 +940,19 @@ class VideoSegment():
 
 
     def plot_frames(self, frames, ncol = 5):
-        """
-        It plots the frames indicated by frame
+        """Plot multiple segment frames in a grid.
+
+        Parameters
+        ----------
+        frames : array-like
+            Frame indices to display.
+        ncol : int, default=5
+            Number of columns in the subplot grid.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         n_frames = len(frames)
         nrow = int(n_frames//ncol)
@@ -714,27 +967,44 @@ class VideoSegment():
         return fig, ax
     
     def display_video_clip(self):
-        """Render the video segment as an inline animation."""
+        """Render the segment as an inline animation.
+
+        Returns
+        -------
+        IPython.display.HTML
+            HTML animation object.
+        """
         return display_video_clip(self.data[:,:,:self.valid_frames], interval_ms=1/self.sampling_freq*1000)
      
     
         
 class VideoSegmentID(VideoSegment):
 
-    """
-    This class serves to initialize a VideoSegment object from the the metadata 
-    """
+    """Initialize ``VideoSegment`` objects from segment metadata IDs."""
 
     def __init__(self, 
                  data_folder: str | Path, 
                  videos_metadata_folder: str | Path, 
                  segment_metadata_folder: str | Path, 
                  segment_id: str): 
+        """Initialize a ``VideoSegment`` object from a segment metadata ID.
+
+        Parameters
+        ----------
+        data_folder : str or pathlib.Path
+            Root directory with raw video files.
+        videos_metadata_folder : str or pathlib.Path
+            Directory with unique-video metadata files.
+        segment_metadata_folder : str or pathlib.Path
+            Directory with segment metadata files.
+        segment_id : str
+            Segment ID used to locate metadata.
+        """
         
         # load metadata
         metasegment, _ = load_metadata_from_id(segment_id, segment_metadata_folder)
 
-        # pick and exemplar video 
+        # pick an exemplar video 
         duplicates = metasegment.get("duplicates", {})
         if not duplicates:
             raise ValueError("No duplicates found in metadata")
@@ -758,12 +1028,25 @@ class VideoSegmentID(VideoSegment):
 
 class Video:
 
-    """
-    This class handles the videos. Loads, plot, find segments, classifies 
-    """
+    """Represent a full video and provide segmentation/classification helpers."""
     
     
     def __init__(self, recording_folder, trial, sampling_freq=30, label=None, ID=None):
+        """Initialize a ``Video`` from recording folder and trial file.
+
+        Parameters
+        ----------
+        recording_folder : str or pathlib.Path
+            Path to one recording directory containing ``data/videos``.
+        trial : str
+            Trial name or path to trial file (extension is ignored).
+        sampling_freq : float or int, default=30
+            Video sampling frequency in Hz.
+        label : str or None, optional
+            Optional video class label.
+        ID : str or None, optional
+            Optional unique video identifier.
+        """
         trial, ext = os.path.splitext(trial)
         trial = os.path.basename(trial)
         
@@ -781,12 +1064,31 @@ class Video:
         
         
     def __copy__(self):
+        """Return a shallow copy of the video object.
+
+        Returns
+        -------
+        Video
+            Shallow-copied video instance.
+        """
         new = self.__class__.__new__(self.__class__)
         new.__dict__.update(self.__dict__)
         return new
 
 
     def __deepcopy__(self, memo):
+        """Return a deep copy of the video object.
+
+        Parameters
+        ----------
+        memo : dict
+            Internal memoization dictionary used by ``copy.deepcopy``.
+
+        Returns
+        -------
+        Video
+            Deep-copied video instance.
+        """
         new = self.__class__.__new__(self.__class__)
         memo[id(self)] = new
         for k, v in self.__dict__.items():
@@ -794,22 +1096,50 @@ class Video:
         return new
     
     def copy(self, deep=False):
+        """Copy the video object.
+
+        Parameters
+        ----------
+        deep : bool, default=False
+            If True, return a deep copy. Otherwise return a shallow copy.
+        """
         return copy.deepcopy(self) if deep else copy.copy(self)
     
     def compute_time_change(self):
-        """
-        It computes the differences between consecutive frames using mean squared error and stores it in self.changes
+        """Compute frame-to-frame changes for the video.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of MSE values for adjacent frames.
         """
         return compute_videos_time_change(self.data, self.valid_frames)
     
 
     def find_peaks(self, label=None, window=None, distance=None, threshold=None, relative_threshold=None, min_thresh=None, threshold_outliers=None):
-        """
-        It finds the peaks in the changes and stores it in self.peaks
-        Parameters to find the peaks:
-        - If a label is provided, default parameters are set optimized for that class.
-        - If a label is not provided default values are used.
-        - if specific values for the parameters are provided, they overwrite the default parameters
+        """Detect change peaks and store them in ``self.peaks``.
+
+        Parameters
+        ----------
+        label : str or None, optional
+            Label-specific preset used to fill missing parameters.
+        window : int or None, optional
+            Number of samples inspected before and after each candidate peak.
+        distance : int or None, optional
+            Minimum accepted distance between detected peaks.
+        threshold : float or int or None, optional
+            Absolute or relative threshold used by peak detection.
+        relative_threshold : bool or None, optional
+            If True, compute threshold relative to local variability.
+        min_thresh : float or int or None, optional
+            Lower bound applied to relative thresholds.
+        threshold_outliers : float or int or None, optional
+            Outlier-removal threshold for local windows.
+
+        Notes
+        -----
+        Missing arguments are populated from class presets, optionally
+        conditioned on ``label``.
         """
 
         # compute the change
@@ -886,14 +1216,26 @@ class Video:
     
 
     def define_segments(self, frame_start=None, frame_end=None):
+        """Define segment boundaries from peaks or explicit frame ranges.
 
-        '''
-        It finds the video segments (start, end, duration).
-        The start and end frames can be manually set. 
-        If they are not set (default), the segments are defined based on the peaks of the change 
-        Segments are stores it in self.segments
-        self.segments is a dictionary
-        '''
+        Parameters
+        ----------
+        frame_start : list[int] or None, optional
+            Segment start frames. Must be provided together with ``frame_end``
+            to bypass peak-based segmentation.
+        frame_end : list[int] or None, optional
+            Segment end frames (exclusive).
+
+        Returns
+        -------
+        dict
+            Dictionary with ``frame_start``, ``frame_end``, and ``duration``.
+
+        Raises
+        ------
+        AttributeError
+            If peak-based segmentation is requested before calling ``find_peaks``.
+        """
 
         # Determine how to define the segments
         if frame_start==None and frame_end==None:
@@ -955,11 +1297,18 @@ class Video:
     
 
     def split_long_segments_by_label(self, label):
-        '''
-        This methods redefines segments in case of possible missing peaks
-        
-        :param label: video label
-        '''
+        """Split long segments when class-specific durations suggest missing peaks.
+
+        Parameters
+        ----------
+        label : str
+            Current video label used to select expected segment duration.
+
+        Returns
+        -------
+        dict or None
+            Updated segment dictionary, or ``None`` when ``label`` is ``'unknown'``.
+        """
 
         # check the segments have been defined before
         if not hasattr(self, 'segments'):
@@ -1027,6 +1376,13 @@ class Video:
         return segments_new
 
     def apply_method_to_segments(self, method):
+        """Run a ``VideoSegment`` method on each segment and store results.
+
+        Parameters
+        ----------
+        method : str
+            Name of a callable ``VideoSegment`` method (for example, ``'describe'``).
+        """
 
         # check the segments have been defined before
         if not hasattr(self, 'segments') or not self.segments:
@@ -1044,16 +1400,24 @@ class Video:
 
 
     def print_segments_table(self):
-        """
-        It prints a table describing the segments
+        """Return segment metadata as a pandas table.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Tabular representation of ``self.segments``.
         """
         df = pd.DataFrame(self.segments)
         return df
 
 
     def is_gaussiandot(self):
-        """
-        This methods detemrine whetehr the video satisfies the coditions to be a GaussianDot video
+        """Evaluate whether segments match the GaussianDot pattern.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
         
         # parameters
@@ -1092,8 +1456,12 @@ class Video:
     
     
     def is_naturalimages(self):
-        """
-        This methods detemrine whetehr the video satisfies the coditions to be a NaturalImage video
+        """Evaluate whether segments match the NaturalImages pattern.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
 
         # parameters
@@ -1150,8 +1518,12 @@ class Video:
     
 
     def is_gabor(self):
-        """
-        This methods detemrine whetehr the video satisfies the coditions to be a Gabor video
+        """Evaluate whether segments match the Gabor pattern.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
         
         # parameters
@@ -1195,8 +1567,12 @@ class Video:
     
 
     def is_pinknoise(self):
-        """
-        This methods detemrine whetehr the video satisfies the coditions to be a PinkNoise video
+        """Evaluate whether segments match the PinkNoise pattern.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
         
         # parameters
@@ -1235,8 +1611,12 @@ class Video:
     
 
     def is_randomdots(self):
-        """
-        This methods detemrine whetehr the video satisfies the coditions to be a RandomDots video
+        """Evaluate whether segments match the RandomDots pattern.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
         
         # parameters
@@ -1272,9 +1652,20 @@ class Video:
         
 
     def is_naturalvideo(self, lim_segments=3, min_var_duration=1):
+        """Evaluate whether segments match the NaturalVideo pattern.
+
+        Parameters
+        ----------
+        lim_segments : int, default=3
+            Maximum segment count accepted without duration-variance checks.
+        min_var_duration : float or int, default=1
+            Minimum standard deviation in durations when many segments exist.
+
+        Returns
+        -------
+        tuple[bool, numpy.ndarray]
+            Classification decision and per-segment boolean mask of failures.
         """
-        This methods detemrine whetehr the video satisfies the coditions to be a NaturalVideo video
-        """       
         max_segments_not_maching = 1 # maximun number of segments not matching the requierments
 
         is_uniform = self.segments['is_uniform']
@@ -1299,15 +1690,24 @@ class Video:
     
 
     def get_possible_labels(self):
+        """Return the list of supported video class labels.
+
+        Returns
+        -------
+        list[str]
+            Allowed class labels used by rule-based classification.
+        """
         return ['NaturalVideo','NaturalImages','GaussianDot','Gabor','PinkNoise','RandomDots']
     
 
     def classify(self):
-        """
-        This methods classities the video. It tries to see wheter it is any of the classes besides NaturalVideo. 
-        If only one satisfies the conditions, then, that is selected
-        If more then one satisfies the conditions, then the label is set as "unknonw"
-        If none satisfies the conditions, an it is NaturalVideo
+        """Assign the most plausible label from rule-based class checks.
+
+        Notes
+        -----
+        Candidate non-natural classes are evaluated first. If exactly one class
+        matches, it is assigned. Otherwise, ``NaturalVideo`` is tested; if that
+        also fails, label is set to ``'unknown'``.
         """
 
         # labels to check first, if noone of this check if it can be a Natural Video
@@ -1347,6 +1747,14 @@ class Video:
         
 
     def run_all(self):
+        """Execute the full segmentation and classification pipeline.
+
+        Returns
+        -------
+        tuple[list[str], list[dict]]
+            ``labels`` is the sequence of labels produced across passes.
+            ``segments`` contains snapshots of segment dictionaries for each pass.
+        """
         labels = []
         segments = []
         
@@ -1384,10 +1792,20 @@ class Video:
 
 
     def pick_key_frames(self, frames_per_segment=None, distance_between_key_frames=None):
-        '''
-        This function picks some frames to compare the videos
-        If both, frames_per_segment and distance_between_key_frames are None, then it selects based on the label
-        '''
+        """Select representative frame indices for this video.
+
+        Parameters
+        ----------
+        frames_per_segment : int or None, optional
+            Number of uniformly sampled frames in each segment.
+        distance_between_key_frames : int or None, optional
+            Step size (in frames) between selected key frames.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array with selected frame indices.
+        """
         
         # select the parameters to pick some representative frames for each video based on the label
         if distance_between_key_frames is None and frames_per_segment is None:
@@ -1423,8 +1841,12 @@ class Video:
 
 
     def plot_changes(self):
-        """
-        It plots the changes and the peaks for the video
+        """Plot frame-to-frame changes and detected peaks.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         # compute change
         change = self.compute_time_change()
@@ -1445,8 +1867,12 @@ class Video:
         
 
     def plot_intensity_hist_all(self):
-        """
-        It plots an histogram with the distribution of the intensities for all the video
+        """Plot intensity histogram over all video frames.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         img = self.data
         fig, ax = plt.subplots(1,1)
@@ -1455,8 +1881,17 @@ class Video:
 
 
     def plot_intensity_hist(self, segment):
-        """
-        It plots an histogram with the distribution of the intensities for the specified segment
+        """Plot intensity histogram for one segment.
+
+        Parameters
+        ----------
+        segment : int
+            Segment index.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         ki = self.segments['frame_start'][segment]+self.segments['transition_start'][segment]
         kf = self.segments['frame_end'][segment]-self.segments['transition_end'][segment]
@@ -1467,8 +1902,17 @@ class Video:
 
 
     def plot_frame(self, frame):
-        """
-        It plots the frame indicated by frame
+        """Plot one frame from the video.
+
+        Parameters
+        ----------
+        frame : int
+            Frame index to display.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         fig, ax =plt.subplots(1,1)
         ax.imshow(self.data[:,:,frame], cmap='gray')
@@ -1476,8 +1920,19 @@ class Video:
 
 
     def plot_frames(self, frames, ncol = 5):
-        """
-        It plots the frames indicated by frame
+        """Plot multiple video frames in a grid.
+
+        Parameters
+        ----------
+        frames : array-like
+            Frame indices to display.
+        ncol : int, default=5
+            Number of columns in the subplot grid.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
         """
         n_frames = len(frames)
         nrow = int(n_frames//ncol)
@@ -1493,11 +1948,33 @@ class Video:
     
 
     def display_video_clip(self):
-        """Render the video segment as an inline animation."""
+        """Render the video as an inline animation.
+
+        Returns
+        -------
+        IPython.display.HTML
+            HTML animation object.
+        """
         return display_video_clip(self.data[:,:,:self.valid_frames], interval_ms=1/self.sampling_freq*1000)
     
 
     def convert_to_dict(self, main_fields, segments_fields, convert_duplicates=True):
+            """Serialize selected video and segment metadata to a JSON-safe dict.
+
+            Parameters
+            ----------
+            main_fields : list[str]
+                Video-level attributes to include.
+            segments_fields : list[str] or 'all' or None
+                Segment fields to include. Use ``'all'`` for every available field.
+            convert_duplicates : bool, default=True
+                Whether to include duplicate recording/trial mappings.
+
+            Returns
+            -------
+            dict
+                JSON-serializable metadata dictionary.
+            """
             meta_dict = {}
             
             # main fields
@@ -1534,6 +2011,23 @@ class Video:
     
     
     def save_metadata(self, folder_metadata, main_fields=None, segments_fields=None, save_duplicates=None, file_name=None, metadata_for=None):
+        """Save video metadata as JSON using optional preset configurations.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Output directory for the metadata file.
+        main_fields : list[str] or None, optional
+            Video-level fields to serialize. Defaults depend on ``metadata_for``.
+        segments_fields : list[str] or 'all' or None, optional
+            Segment-level fields to serialize.
+        save_duplicates : bool or None, optional
+            Whether duplicate mappings are included.
+        file_name : str or None, optional
+            Output filename. If ``None``, inferred from metadata settings.
+        metadata_for : {'exemplar', 'videoID', None}, optional
+            Preset that selects default fields and naming convention.
+        """
 
         if not metadata_for in [None, 'exemplar', 'videoID']:
             raise ValueError("metadata_for can be 'exemplar' or 'videoID' or None")
@@ -1574,6 +2068,13 @@ class Video:
 
     
     def load_metadata(self, path_to_metadata_file):
+        """Load video metadata from a JSON file into object attributes.
+
+        Parameters
+        ----------
+        path_to_metadata_file : str or pathlib.Path
+            Path to a video metadata JSON file.
+        """
 
         # load metadata
         with open(path_to_metadata_file, "r", encoding="utf-8") as f:
@@ -1588,6 +2089,18 @@ class Video:
 
         
     def load_metadata_from_id(self, folder_metadata):
+        """Load metadata by ``self.ID`` and update core video attributes.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Directory containing video metadata files.
+
+        Raises
+        ------
+        ValueError
+            If loaded metadata label or ID does not match the current object.
+        """
 
         # load metadata
         metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
@@ -1606,6 +2119,15 @@ class Video:
 
     
     def add_duplicates(self, recording, trials):
+        """Register duplicate trials associated with one recording.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name used as duplicate key.
+        trials : iterable
+            Trial identifiers that map to the same unique video.
+        """
         
         if not hasattr(self, 'duplicates'):
             self.duplicates = {}
@@ -1617,11 +2139,26 @@ class Video:
     
 
 class VideoData(Video):
-    """
-    This class serves to inizialize a Video class object directly from data 
-    """
+    """Initialize ``Video`` objects directly from in-memory arrays."""
 
     def __init__(self, data, recording=None, trial=None, sampling_freq=None, label=None, ID=None):
+        """Initialize a ``Video`` object from an in-memory data array.
+
+        Parameters
+        ----------
+        data : numpy.ndarray
+            Video array with shape ``(height, width, n_frames)``.
+        recording : str or None, optional
+            Recording identifier.
+        trial : str or None, optional
+            Trial identifier.
+        sampling_freq : float or int or None, optional
+            Sampling frequency in Hz.
+        label : str or None, optional
+            Optional class label.
+        ID : str or None, optional
+            Optional unique identifier.
+        """
         self.recording = recording
         self.trial = trial
         self.data = data
@@ -1633,14 +2170,23 @@ class VideoData(Video):
 
 
 class VideoID(Video):
-    """
-    This class serves to inizialize a Video class object from the matadata of unique videos 
-    """
+    """Initialize ``Video`` objects from unique-video metadata IDs."""
 
     def __init__(self, 
                  data_folder: str | Path, 
                  videos_metadata_folder: str | Path, 
                  video_id: str): 
+        """Initialize ``Video`` from a unique-video metadata identifier.
+
+        Parameters
+        ----------
+        data_folder : str or pathlib.Path
+            Root directory with raw recording folders.
+        videos_metadata_folder : str or pathlib.Path
+            Directory with unique-video metadata files.
+        video_id : str
+            Unique video identifier used to load metadata.
+        """
         
         # load metadata
         metavideo, _ = load_metadata_from_id(video_id, videos_metadata_folder)

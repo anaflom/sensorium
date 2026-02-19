@@ -10,6 +10,20 @@ import matplotlib.pyplot as plt
 
 
 def compute_power_spectrum(data, sampling_freq):
+    """Compute power spectral density using Welch's method.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        One-dimensional time series.
+    sampling_freq : float or int
+        Sampling frequency in Hz.
+
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray]
+        Frequencies and corresponding power spectral density values.
+    """
     
     # Remove DC offset (important for pupil data)
     data = data - np.mean(data)
@@ -30,6 +44,19 @@ def compute_power_spectrum(data, sampling_freq):
 class Behavior():
 
     def __init__(self, recording_folder, trial, behavior_type, indexes=None):
+        """Initialize behavior data for one recording/trial.
+
+        Parameters
+        ----------
+        recording_folder : str or pathlib.Path
+            Path to recording folder.
+        trial : str
+            Trial name or filename.
+        behavior_type : {'pupil_center', 'behavior'}
+            Behavior data subfolder to load.
+        indexes : list[int] or numpy.ndarray or None, optional
+            Optional channel indices to select.
+        """
 
         if behavior_type not in ['pupil_center','behavior']:
             raise ValueError("behavior_type must be 'pupil_center' or 'behavior'")
@@ -55,12 +82,31 @@ class Behavior():
         self.ID = None
 
     def __copy__(self):
+        """Return a shallow copy of the object.
+
+        Returns
+        -------
+        Behavior
+            Shallow copy.
+        """
         new = self.__class__.__new__(self.__class__)
         new.__dict__.update(self.__dict__)
         return new
 
 
     def __deepcopy__(self, memo):
+        """Return a deep copy of the object.
+
+        Parameters
+        ----------
+        memo : dict
+            Memo dictionary used by ``copy.deepcopy``.
+
+        Returns
+        -------
+        Behavior
+            Deep copy.
+        """
         new = self.__class__.__new__(self.__class__)
         memo[id(self)] = new
         for k, v in self.__dict__.items():
@@ -68,10 +114,29 @@ class Behavior():
         return new
     
     def copy(self, deep=False):
+        """Copy the object.
+
+        Parameters
+        ----------
+        deep : bool, default=False
+            If ``True``, return deep copy, otherwise shallow copy.
+
+        Returns
+        -------
+        Behavior
+            Copied object.
+        """
         return copy.deepcopy(self) if deep else copy.copy(self)
 
 
     def load_metadata_videoid(self, folder_metadata):
+        """Load video-level metadata by current ``label`` and ``ID``.
+
+        Parameters
+        ----------
+        folder_metadata : str or pathlib.Path
+            Folder containing global video metadata JSON files.
+        """
 
         file_metadata = self.label+'-'+self.ID+".json"
         path_metavideo = os.path.join(folder_metadata, file_metadata)
@@ -97,9 +162,17 @@ class Behavior():
 class Gaze(Behavior):
 
     def __init__(self, recording_folder, trial):
+        """Initialize gaze traces for one trial."""
         super().__init__(recording_folder, trial, behavior_type='pupil_center', indexes=[0,1])
 
     def plot(self):
+        """Plot 2D gaze trajectory.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
         fig, ax = plt.subplots(ncols=1,nrows=1)
         ax.plot(self.data[0,:], self.data[1,:],'k')
         ax.set_xlabel('gaze x')
@@ -109,17 +182,46 @@ class Gaze(Behavior):
 class Pupil(Behavior):
 
     def __init__(self, recording_folder, trial):
+        """Initialize pupil-size trace for one trial."""
         super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[0])
 
     def detrend(self, type='linear', bp=0):
+        """Detrend pupil signal in place.
+
+        Parameters
+        ----------
+        type : str, default='linear'
+            Detrending type passed to ``scipy.signal.detrend``.
+        bp : int or array-like, default=0
+            Breakpoints for piecewise detrending.
+
+        Returns
+        -------
+        Pupil
+            Self instance after detrending.
+        """
         data_detrended = detrend(self.data[:self.valid_frames], axis=-1, type=type, bp=bp)
         self.data[:self.valid_frames] = data_detrended
         return self
     
     def compute_power_spectrum(self):
+        """Compute power spectrum of the valid pupil samples.
+
+        Returns
+        -------
+        tuple[numpy.ndarray, numpy.ndarray]
+            Frequencies and PSD values.
+        """
         return compute_power_spectrum(self.data[:self.valid_frames], self.sampling_freq)
 
     def plot_power_spectrum(self):
+        """Plot pupil power spectrum.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
         freqs, psd = compute_power_spectrum(self.data[:self.valid_frames], self.sampling_freq)
         fig, ax = plt.subplots(ncols=1,nrows=1)
         ax.semilogy(freqs, psd)
@@ -131,6 +233,13 @@ class Pupil(Behavior):
         return fig, ax
 
     def plot(self):
+        """Plot pupil trace over time.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
         fig, ax = plt.subplots(ncols=1,nrows=1)
         time = np.arange(len(self.data))/self.sampling_freq
         ax.plot(time, self.data,'k')
@@ -141,9 +250,17 @@ class Pupil(Behavior):
 class Locomotion(Behavior):
 
     def __init__(self, recording_folder, trial):
+        """Initialize locomotion trace for one trial."""
         super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[1])
 
     def plot(self):
+        """Plot locomotion speed over time.
+
+        Returns
+        -------
+        tuple
+            ``(fig, ax)`` matplotlib objects.
+        """
         fig, ax = plt.subplots(ncols=1,nrows=1)
         time = np.arange(len(self.data))/self.sampling_freq
         ax.plot(time, self.data,'k')
