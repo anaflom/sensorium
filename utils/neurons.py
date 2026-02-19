@@ -2,10 +2,12 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
+
 
 class Neurons():
 
-    def __init__(self, folder_metadata, recording):
+    def __init__(self, folder_metadata: str | Path, recording: str) -> None:
         """Load neurons metadata for one recording.
 
         Parameters
@@ -26,7 +28,7 @@ class Neurons():
             print(f"Error loading neurons for recording {recording}: {e}")
 
 
-    def plot_coordinates(self):
+    def plot_coordinates(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot neuron 3D coordinates.
 
         Returns
@@ -58,7 +60,7 @@ class Neurons():
 
 class NeuronsData(Neurons):
 
-    def __init__(self, coord_xyz, IDs, stats_activity=None):
+    def __init__(self, coord_xyz: np.ndarray | None, IDs: np.ndarray | None, stats_activity: dict[str, np.ndarray] | None = None) -> None:
         """Initialize neurons object from in-memory arrays.
 
         Parameters
@@ -67,7 +69,7 @@ class NeuronsData(Neurons):
             Neuron coordinates.
         IDs : numpy.ndarray or None
             Neuron identifiers.
-        stats_activity : dict or None, optional
+        stats_activity : dict[str, numpy.ndarray] or None, optional
             Optional per-neuron activity statistics.
         """
 

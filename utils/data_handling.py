@@ -3,10 +3,11 @@ import numpy as np
 import os
 import json
 from pathlib import Path
+from typing import Any
 
 
 
-def to_json_safe(obj):
+def to_json_safe(obj: Any) -> Any:
     """Recursively convert NumPy objects into JSON-serializable Python types.
 
     Parameters
@@ -31,7 +32,7 @@ def to_json_safe(obj):
         return obj
 
 
-def save_json(metadata, full_file_name):
+def save_json(metadata: dict, full_file_name: str | Path) -> None:
     """Save metadata dictionary to JSON file.
 
     Parameters
@@ -46,7 +47,7 @@ def save_json(metadata, full_file_name):
         json.dump(metadata, f, indent=4)
 
 
-def load_all_data(recording_folder, what_data, data_slice=None):
+def load_all_data(recording_folder: str | Path, what_data: str, data_slice: slice | tuple | None = None) -> np.ndarray:
     """Load and stack all ``.npy`` files for a data type.
 
     Parameters
@@ -94,7 +95,7 @@ def load_all_data(recording_folder, what_data, data_slice=None):
     return np.stack(data_all, axis=0)
 
 
-def _is_valid_value(value):
+def _is_valid_value(value: Any) -> bool:
     """Return whether a trial descriptor value is valid."""
     if value is None:
         return False
@@ -105,7 +106,7 @@ def _is_valid_value(value):
     return True
 
 
-def load_trials_descriptor(trials_descriptor_file, verbose=False):
+def load_trials_descriptor(trials_descriptor_file: str | Path, verbose: bool = False) -> list:
     """Load and clean trial descriptors from ``tiers.npy``.
 
     Parameters
@@ -132,7 +133,7 @@ def load_trials_descriptor(trials_descriptor_file, verbose=False):
     return valid_trials_descriptor
 
 
-def load_metadata_from_id(id, folder):
+def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
     """Load one metadata JSON matching an ID pattern.
 
     Parameters
@@ -164,7 +165,7 @@ def load_metadata_from_id(id, folder):
 
 
 
-def check_data_integrity(path_to_data, verbose=True):
+def check_data_integrity(path_to_data: str | Path, verbose: bool = True) -> tuple[bool, dict]:
     """Check integrity and consistency of trial data files.
 
     Parameters
@@ -277,7 +278,7 @@ def check_data_integrity(path_to_data, verbose=True):
     return data_ok, info
 
 
-def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=True):
+def check_meta_neurons_integrity(path_to_meta_neurons: str | Path, n_neurons: int | None = None, verbose: bool = True) -> tuple[np.ndarray | None, np.ndarray | None]:
     """Check and load neuron coordinates/IDs metadata.
 
     Parameters
@@ -329,7 +330,7 @@ def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=T
         
     return neurons_coord, neurons_ids
 
-def check_meta_trials_integrity(path_to_meta_trials, n_trials=None, verbose=True):
+def check_meta_trials_integrity(path_to_meta_trials: str | Path, n_trials: int | None = None, verbose: bool = True) -> list | None:
     """Check and load trial descriptor metadata.
 
     Parameters

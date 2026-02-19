@@ -4,6 +4,8 @@ import glob
 import pandas as pd
 from tqdm import tqdm
 import random
+from pathlib import Path
+
 
 from skimage.metrics import structural_similarity
 from skimage.metrics import mean_squared_error
@@ -16,7 +18,7 @@ from utils.videos import (Video, VideoID)
 
 
 
-def generate_new_id(existing_ids, prefix='v'):
+def generate_new_id(existing_ids: set[str] | list[str], prefix: str = 'v') -> str:
     """Generate a new unique video identifier.
 
     Parameters
@@ -47,7 +49,7 @@ def generate_new_id(existing_ids, prefix='v'):
 
 
 
-def same_segments_edges(video_i, video_j, frames_tolerance=2):
+def same_segments_edges(video_i: Video, video_j: Video, frames_tolerance: int = 2) -> bool:
     """Check whether two videos have matching segment boundaries.
 
     Parameters
@@ -80,7 +82,7 @@ def same_segments_edges(video_i, video_j, frames_tolerance=2):
     return same_edges
 
 
-def compute_dissimilarity_mse(data_i, data_j, key_frames):
+def compute_dissimilarity_mse(data_i: np.ndarray, data_j: np.ndarray, key_frames: np.ndarray) -> float:
     """Compute mean MSE dissimilarity between two videos on key frames.
 
     Parameters
@@ -109,7 +111,7 @@ def compute_dissimilarity_mse(data_i, data_j, key_frames):
     return np.nanmean(dissimilarity)
 
 
-def compute_dissimilarity_ssim(data_i, data_j, key_frames, data_range=255):
+def compute_dissimilarity_ssim(data_i: np.ndarray, data_j: np.ndarray, key_frames: np.ndarray, data_range: float | int = 255) -> float:
     """Compute mean SSIM-based dissimilarity between two videos.
 
     Parameters
@@ -141,7 +143,7 @@ def compute_dissimilarity_ssim(data_i, data_j, key_frames, data_range=255):
     return np.nanmean(dissimilarity)
 
 
-def compute_dissimilarity_videos(video_i, video_j, dissimilarity_measure='mse'):
+def compute_dissimilarity_videos(video_i: Video, video_j: Video, dissimilarity_measure: str = 'mse') -> float:
     """Compute dissimilarity between two ``Video`` objects.
 
     Parameters
@@ -186,7 +188,7 @@ def compute_dissimilarity_videos(video_i, video_j, dissimilarity_measure='mse'):
     return dissimilarity
 
 
-def compute_dissimilarity_video_list(videos, dissimilarity_measure='mse', check_edges_first=True, frames_tolerance=2):
+def compute_dissimilarity_video_list(videos: list[Video], dissimilarity_measure: str = 'mse', check_edges_first: bool = True, frames_tolerance: int = 2) -> np.ndarray:
     """Compute pairwise dissimilarity matrix for a list of videos.
 
     Parameters
@@ -233,7 +235,7 @@ def compute_dissimilarity_video_list(videos, dissimilarity_measure='mse', check_
     return  dissimilarity
 
 
-def find_equal_sets(mask, elements_names=None):
+def find_equal_sets(mask: np.ndarray, elements_names: list[str | int] | None = None) -> list[set[str | int]]:
     """Group connected elements from a boolean adjacency mask.
 
     Parameters
@@ -270,7 +272,7 @@ def find_equal_sets(mask, elements_names=None):
 
 
 
-def find_equal_sets_scipy(mask, elements_names=None):
+def find_equal_sets_scipy(mask: np.ndarray, elements_names: list[str | int] | None = None) -> list[list[str | int]]:
     """Group connected elements using SciPy connected components.
 
     Parameters
@@ -303,7 +305,7 @@ def find_equal_sets_scipy(mask, elements_names=None):
     return groups
 
 
-def create_table_all_video_ids(folder_globalmetavideos, label=None):
+def create_table_all_video_ids(folder_globalmetavideos: str | Path, label: str | None = None) -> pd.DataFrame:
     """Create a table of known unique-video IDs from metadata files.
 
     Parameters
@@ -334,7 +336,7 @@ def create_table_all_video_ids(folder_globalmetavideos, label=None):
     return pd.DataFrame({'ID':ids, 'label':labels})
 
 
-def compare_with_idvideos(label, list_distinct_videos, folder_videos, folder_metavideos, folder_globalmetavideos, limit_dissimilarity=5):
+def compare_with_idvideos(label: str, list_distinct_videos: list[set[str]], folder_videos: str | Path, folder_metavideos: str | Path, folder_globalmetavideos: str | Path, limit_dissimilarity: float | int = 5) -> list[str]:
     """Match duplicate groups to existing IDs or create new unique IDs.
 
     Parameters

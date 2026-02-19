@@ -4,12 +4,15 @@ import pandas as pd
 import json
 import copy
 import matplotlib.pyplot as plt
+from typing import Any, Self
+import pathlib
+
 
 from utils.neurons import Neurons
 
 class Responses():
 
-    def __init__(self, recording_folder, trial):
+    def __init__(self, recording_folder: str | pathlib.Path, trial: str) -> None:
         """Load responses for one recording/trial.
 
         Parameters
@@ -34,7 +37,7 @@ class Responses():
         self.ID = None
         self.neurons = None
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         """Return a shallow copy of responses object.
 
         Returns
@@ -47,7 +50,7 @@ class Responses():
         return new
 
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: dict[int, Any]) -> Self:
         """Return a deep copy of responses object.
 
         Parameters
@@ -66,7 +69,7 @@ class Responses():
             setattr(new, k, copy.deepcopy(v, memo))
         return new
     
-    def copy(self, deep=False):
+    def copy(self, deep: bool =False) -> Self:
         """Copy the responses object.
 
         Parameters
@@ -82,7 +85,7 @@ class Responses():
         return copy.deepcopy(self) if deep else copy.copy(self)
 
 
-    def load_metadata_videoid(self, folder_metadata):
+    def load_metadata_videoid(self, folder_metadata: str | pathlib.Path) -> None:
         """Load global video metadata for current ``label`` and ``ID``.
 
         Parameters
@@ -108,7 +111,7 @@ class Responses():
             self.segments[k] = np.asarray(metavideo['segments'][k])
 
 
-    def load_metadata_neurons(self, folder_metadata):
+    def load_metadata_neurons(self, folder_metadata: str | pathlib.Path) -> None:
         """Load neuron metadata for current recording.
 
         Parameters
@@ -120,7 +123,7 @@ class Responses():
         self.neurons = Neurons(folder_metadata, self.recording)
 
 
-    def get_data(self, normalization=None):
+    def get_data(self, normalization: str | None = None) -> np.ndarray:
         """Return response matrix with optional normalization.
 
         Parameters
@@ -153,7 +156,7 @@ class Responses():
         return data
 
 
-    def plot_responses_raster(self, neurons_idx, normalization=None, plot_segments=None):
+    def plot_responses_raster(self, neurons_idx: np.ndarray, normalization: str | None = None, plot_segments: bool | None = None) -> tuple[plt.Figure, plt.Axes]:
         """Plot responses as grayscale raster for selected neurons.
 
         Parameters
@@ -197,7 +200,7 @@ class Responses():
 
         return fig, ax
     
-    def plot_active_raster(self, neurons_idx, thresh, normalization=None, plot_segments=None):
+    def plot_active_raster(self, neurons_idx: np.ndarray, thresh: float, normalization: str | None = None, plot_segments: bool | None = None) -> tuple[plt.Figure, plt.Axes]:
         """Plot binary activity raster for selected neurons.
 
         Parameters
@@ -239,7 +242,7 @@ class Responses():
         return fig, ax    
     
 
-    def plot_responses(self, neurons_idx, normalization=None, plot_segments=None):
+    def plot_responses(self, neurons_idx: np.ndarray, normalization: str | None = None, plot_segments: bool | None = None) -> tuple[plt.Figure, list[plt.Axes]]:
         """Plot response traces for selected neurons.
 
         Parameters

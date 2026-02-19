@@ -3,13 +3,15 @@ import numpy as np
 import pandas as pd
 import json
 import copy
+from typing import Any, Self
 from scipy.signal import detrend
 from scipy.signal import welch
+import pathlib 
 
 import matplotlib.pyplot as plt
 
 
-def compute_power_spectrum(data, sampling_freq):
+def compute_power_spectrum(data: np.ndarray, sampling_freq: float | int) -> tuple[np.ndarray, np.ndarray]:
     """Compute power spectral density using Welch's method.
 
     Parameters
@@ -43,7 +45,7 @@ def compute_power_spectrum(data, sampling_freq):
 
 class Behavior():
 
-    def __init__(self, recording_folder, trial, behavior_type, indexes=None):
+    def __init__(self, recording_folder: str | pathlib.Path, trial: str, behavior_type: str, indexes: list[int] | np.ndarray | None = None): 
         """Initialize behavior data for one recording/trial.
 
         Parameters
@@ -81,7 +83,7 @@ class Behavior():
         self.label = None
         self.ID = None
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         """Return a shallow copy of the object.
 
         Returns
@@ -94,7 +96,7 @@ class Behavior():
         return new
 
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: dict[int, Any]) -> Self:
         """Return a deep copy of the object.
 
         Parameters
@@ -113,7 +115,7 @@ class Behavior():
             setattr(new, k, copy.deepcopy(v, memo))
         return new
     
-    def copy(self, deep=False):
+    def copy(self, deep: bool =False) -> Self: 
         """Copy the object.
 
         Parameters
@@ -129,7 +131,7 @@ class Behavior():
         return copy.deepcopy(self) if deep else copy.copy(self)
 
 
-    def load_metadata_videoid(self, folder_metadata):
+    def load_metadata_videoid(self, folder_metadata: str | pathlib.Path) -> None:
         """Load video-level metadata by current ``label`` and ``ID``.
 
         Parameters
@@ -161,11 +163,11 @@ class Behavior():
 
 class Gaze(Behavior):
 
-    def __init__(self, recording_folder, trial):
+    def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize gaze traces for one trial."""
         super().__init__(recording_folder, trial, behavior_type='pupil_center', indexes=[0,1])
 
-    def plot(self):
+    def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot 2D gaze trajectory.
 
         Returns
@@ -181,11 +183,11 @@ class Gaze(Behavior):
 
 class Pupil(Behavior):
 
-    def __init__(self, recording_folder, trial):
+    def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize pupil-size trace for one trial."""
         super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[0])
 
-    def detrend(self, type='linear', bp=0):
+    def detrend(self, type: str ='linear', bp: int | list[int] =0) -> 'Pupil':
         """Detrend pupil signal in place.
 
         Parameters
@@ -204,7 +206,7 @@ class Pupil(Behavior):
         self.data[:self.valid_frames] = data_detrended
         return self
     
-    def compute_power_spectrum(self):
+    def compute_power_spectrum(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute power spectrum of the valid pupil samples.
 
         Returns
@@ -214,7 +216,7 @@ class Pupil(Behavior):
         """
         return compute_power_spectrum(self.data[:self.valid_frames], self.sampling_freq)
 
-    def plot_power_spectrum(self):
+    def plot_power_spectrum(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot pupil power spectrum.
 
         Returns
@@ -232,7 +234,7 @@ class Pupil(Behavior):
         plt.show()
         return fig, ax
 
-    def plot(self):
+    def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot pupil trace over time.
 
         Returns
@@ -249,11 +251,11 @@ class Pupil(Behavior):
     
 class Locomotion(Behavior):
 
-    def __init__(self, recording_folder, trial):
+    def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize locomotion trace for one trial."""
         super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[1])
 
-    def plot(self):
+    def plot(self) -> tuple[plt.Figure, plt.Axes]: 
         """Plot locomotion speed over time.
 
         Returns

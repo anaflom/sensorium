@@ -3,16 +3,17 @@ import json
 import os
 import pandas as pd
 import numpy as np
+from typing import Any
 
 
-def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=None, verbose=True):
+def _validate_csv_metadata(filepath: str | Path, mandatory_columns: set[str] | list[str] | None = None, optional_columns: set[str] | list[str] | None = None, verbose: bool = True) -> tuple[pd.DataFrame, bool]:
     """Validate CSV metadata file structure.
 
     Parameters
     ----------
     filepath : str or pathlib.Path
         Path to CSV metadata file.
-    mandatory_columns : set or None, optional
+    mandatory_columns : set or list or None, optional
         Required columns.
     optional_columns : set or None, optional
         Allowed optional columns.
@@ -59,7 +60,7 @@ def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=No
     return df, is_valid
 
 
-def validate_global_trials_metadata(filepath):
+def validate_global_trials_metadata(filepath: str | Path) -> tuple[pd.DataFrame, bool]:
     """Validate global trial-level metadata CSV.
 
     Parameters
@@ -75,7 +76,7 @@ def validate_global_trials_metadata(filepath):
     return _validate_csv_metadata(filepath, mandatory_columns={'trial', 'ID', 'label', 'trial_type', 'valid_trial'}, optional_columns={'valid_frames'})
         
 
-def validate_global_neurons_metadata(filepath):
+def validate_global_neurons_metadata(filepath: str | Path) -> tuple[pd.DataFrame, bool]:
     """Validate global neuron-level metadata CSV.
 
     Parameters
@@ -93,7 +94,7 @@ def validate_global_neurons_metadata(filepath):
     return _validate_csv_metadata(filepath, mandatory_columns=mandatory_columns, optional_columns=optional_columns)
         
 
-def validate_metadata_video_dict(metadata):
+def validate_metadata_video_dict(metadata: dict[str, Any]) -> bool:
     """Validate one video metadata dictionary.
 
     Parameters
@@ -136,7 +137,7 @@ def validate_metadata_video_dict(metadata):
     return is_valid
 
 
-def validate_metadata_video_json(filepath):
+def validate_metadata_video_json(filepath: str | Path) -> tuple[dict[str, Any], bool]:
     """Load and validate one video metadata JSON file.
 
     Parameters
@@ -171,7 +172,7 @@ def validate_metadata_video_json(filepath):
     return metadata, is_valid
 
 
-def validate_metadata_per_trial_dict(metadata):
+def validate_metadata_per_trial_dict(metadata: dict[str, Any]) -> bool:
     """Validate one per-trial metadata dictionary.
 
     Parameters
@@ -211,7 +212,7 @@ def validate_metadata_per_trial_dict(metadata):
     return is_valid
 
 
-def validate_metadata_per_trial_json(filepath):
+def validate_metadata_per_trial_json(filepath: str | Path) -> tuple[dict[str, Any], bool]:
     """Load and validate one per-trial metadata JSON file.
 
     Parameters
@@ -247,7 +248,7 @@ def validate_metadata_per_trial_json(filepath):
     return metadata, is_valid
 
 
-def _validate_metadata_videos_segment_field(segments, from_filepath=None, verbose=True):
+def _validate_metadata_videos_segment_field(segments: dict[str, Any], from_filepath: str | Path | None = None, verbose: bool = True) -> bool:
     """Validate ``segments`` field structure in video metadata.
 
     Parameters
@@ -283,7 +284,7 @@ def _validate_metadata_videos_segment_field(segments, from_filepath=None, verbos
     return is_valid
 
 
-def _validate_metadata_videos_duplicates_field(duplicates, from_filepath=None):
+def _validate_metadata_videos_duplicates_field(duplicates: dict[str, Any], from_filepath: str | Path | None = None) -> bool:
     """Validate ``duplicates`` field structure for video metadata.
 
     Parameters
@@ -316,7 +317,7 @@ def _validate_metadata_videos_duplicates_field(duplicates, from_filepath=None):
     return is_valid
 
 
-def validate_metadata_segment_json(filepath, verbose=True):
+def validate_metadata_segment_json(filepath: str | Path, verbose: bool = True) -> tuple[dict[str, Any], bool]:
     """Load and validate one segment metadata JSON file.
 
     Parameters
@@ -372,7 +373,7 @@ def validate_metadata_segment_json(filepath, verbose=True):
             
     return metadata, is_valid
                 
-def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None):
+def _validate_metadata_segments_duplicates_field(duplicates: dict[str, Any], from_filepath: str | Path | None = None) -> bool:
     """Validate ``duplicates`` field structure for segment metadata.
 
     Parameters
@@ -405,7 +406,7 @@ def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None)
     return is_valid
 
 
-def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
+def validate_metadata_video_folder(folder_globalmetadata_videos: str | Path, verbose: bool = True) -> bool:
     """Validate all video metadata JSON files in a folder.
 
     Parameters
@@ -439,7 +440,7 @@ def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
     return good_global_meta_videos
 
 
-def validate_metadata_segment_folder(folder_globalmetadata_segments, verbose=True):               
+def validate_metadata_segment_folder(folder_globalmetadata_segments: str | Path, verbose: bool = True) -> bool:               
     """Validate all segment metadata JSON files in a folder.
 
     Parameters
@@ -473,7 +474,7 @@ def validate_metadata_segment_folder(folder_globalmetadata_segments, verbose=Tru
     return good_global_meta_segments
 
 
-def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_videos, trials, n_neurons, verbose=True):
+def validate_metadata_recording(folder_metadata_rec: str | Path, folder_globalmetadata_videos: str | Path, trials: list[str], n_neurons: int, verbose: bool = True) -> bool:
     """Validate recording-level metadata and consistency with data inventory.
 
     Parameters
@@ -558,7 +559,7 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
     return good_trials and good_neurons
 
 
-def check_metadata_integrity(folder_metadata, recording, folder_globalmetadata_videos, folder_globalmetadata_segments, info, verbose=True):
+def check_metadata_integrity(folder_metadata: str | Path | None, recording: list[str], folder_globalmetadata_videos: str | Path, folder_globalmetadata_segments: str | Path, info: dict[str, Any], verbose: bool = True) -> tuple[bool, dict[str, Any] | None]:
     """Run full metadata integrity checks for a dataset.
 
     Parameters
@@ -611,7 +612,7 @@ def check_metadata_integrity(folder_metadata, recording, folder_globalmetadata_v
     return good_metadata, results
 
 
-def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, info, verbose=True):
+def check_metadata_per_trial_integrity(folder_metadata_per_trial: str | Path | None, recording: list[str], info: dict[str, Any], verbose: bool = True) -> tuple[bool, dict[str, bool] | None]:
     """Validate per-trial metadata folders and files.
 
     Parameters
