@@ -1,0 +1,83 @@
+{
+    "recording": "dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "267",
+    "trial_type": "final_test_main",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "peaks": [
+        99
+    ],
+    "n_peaks": 1,
+    "segments_n_peaks": 2,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 150.0,
+    "segments": {
+        "frame_start": [
+            0,
+            100
+        ],
+        "frame_end": [
+            100,
+            300
+        ],
+        "duration": [
+            100,
+            200
+        ],
+        "transition_start": [
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0
+        ],
+        "max_change": [
+            10.040414885484264,
+            407.67563209175614
+        ],
+        "is_static": [
+            true,
+            false
+        ],
+        "intensity_range": [
+            242.19683837890625,
+            254.0
+        ],
+        "margin_left": [
+            0,
+            0
+        ],
+        "margin_right": [
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0
+        ],
+        "background_color": [
+            3.513725757598877,
+            11.545098304748535
+        ],
+        "background_proportion": [
+            0.037889601007494646,
+            0.02498665004889071
+        ],
+        "is_uniform": [
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false
+        ]
+    }
+}

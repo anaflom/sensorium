@@ -1,0 +1,100 @@
+{
+    "recording": "dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "254",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "peaks": [
+        203,
+        252
+    ],
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            204,
+            253
+        ],
+        "frame_end": [
+            204,
+            253,
+            300
+        ],
+        "duration": [
+            204,
+            49,
+            47
+        ],
+        "transition_start": [
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            2305.452354961185,
+            63.651949337410265,
+            131.60173160829527
+        ],
+        "is_static": [
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            240.875,
+            101.5,
+            103.125
+        ],
+        "margin_left": [
+            0,
+            0,
+            13
+        ],
+        "margin_right": [
+            0,
+            0,
+            3
+        ],
+        "margin_top": [
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            1.5058825016021729,
+            32.6274528503418,
+            5.521568775177002
+        ],
+        "background_proportion": [
+            0.0936465737804132,
+            0.03030738232702836,
+            0.14287205458742494
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

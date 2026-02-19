@@ -1,0 +1,100 @@
+{
+    "recording": "dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "369",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "peaks": [
+        163,
+        249
+    ],
+    "n_peaks": 2,
+    "segments_n_peaks": 3,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 100.0,
+    "segments": {
+        "frame_start": [
+            0,
+            164,
+            250
+        ],
+        "frame_end": [
+            164,
+            250,
+            300
+        ],
+        "duration": [
+            164,
+            86,
+            50
+        ],
+        "transition_start": [
+            0,
+            0,
+            1
+        ],
+        "transition_end": [
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            162.43445053977135,
+            38.42917519898841,
+            33.546323006881465
+        ],
+        "is_static": [
+            false,
+            true,
+            true
+        ],
+        "intensity_range": [
+            185.31460571289062,
+            131.14035034179688,
+            206.8213348388672
+        ],
+        "margin_left": [
+            0,
+            0,
+            0
+        ],
+        "margin_right": [
+            0,
+            0,
+            1
+        ],
+        "margin_top": [
+            0,
+            6,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            2.5098040103912354,
+            2.5098040103912354,
+            3.513725757598877
+        ],
+        "background_proportion": [
+            0.21113373689023926,
+            0.058445305574515265,
+            0.22830673620048889
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false
+        ]
+    }
+}

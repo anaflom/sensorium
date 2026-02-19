@@ -1,0 +1,151 @@
+{
+    "recording": "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce",
+    "trial": "94",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "peaks": [
+        12,
+        75,
+        135,
+        187,
+        257
+    ],
+    "n_peaks": 5,
+    "segments_n_peaks": 6,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 50.0,
+    "segments": {
+        "frame_start": [
+            0,
+            13,
+            76,
+            136,
+            188,
+            258
+        ],
+        "frame_end": [
+            13,
+            76,
+            136,
+            188,
+            258,
+            300
+        ],
+        "duration": [
+            13,
+            63,
+            60,
+            52,
+            70,
+            42
+        ],
+        "transition_start": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            25.475767404927133,
+            41.414633690528746,
+            81.384560615917,
+            50.61055202894848,
+            520.4803919632917,
+            117.27075468897237
+        ],
+        "is_static": [
+            true,
+            true,
+            false,
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            79.37181854248047,
+            81.99877166748047,
+            117.29457092285156,
+            82.78805541992188,
+            129.9375,
+            128.9980010986328
+        ],
+        "margin_left": [
+            0,
+            0,
+            0,
+            4,
+            0,
+            26
+        ],
+        "margin_right": [
+            0,
+            1,
+            10,
+            0,
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+        ],
+        "background_color": [
+            38.65098190307617,
+            1.5058825016021729,
+            27.60784339904785,
+            3.513725757598877,
+            2.5098040103912354,
+            5.521568775177002
+        ],
+        "background_proportion": [
+            0.027170427425773736,
+            0.10000601686703715,
+            0.02837541537403225,
+            0.12902624329321644,
+            0.04973057634586976,
+            0.18213545658714597
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}
