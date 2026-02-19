@@ -8,30 +8,26 @@ import json
 import warnings
 
 
-from utils.metadata import ( validate_global_trials_metadata, 
-                                 validate_global_neurons_metadata, 
-                                 validate_metadata_video_json, 
-                                 validate_metadata_per_trial_json, 
-                                 validate_metadata_segment_json,
-                                 validate_metadata_video_dict,
-                                 check_metadata_integrity,
-                                 check_metadata_per_trial_integrity,
-                                 )
 
 from utils.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from utils.responses import Responses
+from utils.neurons import Neurons, NeuronsData
 from utils.behavioral import (Gaze, Pupil, Locomotion)
 from utils.data_handling import (load_all_data, 
-                                     load_metadata_from_id,
-                                     load_trials_descriptor,
-                                     save_json,
-                                     check_data_integrity)
+                                 load_metadata_from_id,
+                                 save_json,
+                                 check_data_integrity,
+                                 check_meta_neurons_integrity,
+                                 check_meta_trials_integrity)
+from utils.metadata import (validate_metadata_video_dict,
+                            check_metadata_integrity,
+                            check_metadata_per_trial_integrity,
+                            )
 
-from utils.videos_duplicates import (same_segments_edges, 
-                                          compute_dissimilarity_video_list, 
-                                          compare_with_idvideos, 
-                                          find_equal_sets_scipy,
-                                          generate_new_id)
+from utils.videos_duplicates import (compute_dissimilarity_video_list, 
+                                     compare_with_idvideos, 
+                                     find_equal_sets_scipy,
+                                     generate_new_id)
 
 
 def combine_data(behavioral_list, weights=None):
@@ -98,6 +94,12 @@ class DataSet():
         self.check_metadata(verbose=verbose)
         self.check_metadata_per_trial(verbose=verbose)
 
+        # load neurons data for all recordings and store it in the info variable
+        self.load_neurons()
+
+        # load trial types for all recordings and store it in the info variable
+        self.load_trial_types()
+
 
     def __str__(self):
         s = ''
@@ -110,7 +112,62 @@ class DataSet():
             s = s + "The recoding has consistent metadata per trial\n"
         
         return s
+
+
+    def load_neurons(self, recording=None, verbose=True):  
+
+        print_title('Loading neurons metadata ', verbose)
         
+        if recording is None:
+            recording = self.recording
+        elif isinstance(recording, str):
+            recording = [recording]
+
+        for rec in recording: 
+            if self._good_metadata_per_recording[rec]:
+                print(f"Loading neurons for recording {rec} from metadata") if verbose else None
+                self.info[rec]['neurons'] = Neurons(self.folder_metadata, rec)
+                if self.info[rec]['neurons'].coord_xyz.shape[0]!=self.info[rec]['n_neurons']:
+                    print(f"Warning: The number of neurons in the metadata for recording {rec} does not match the number of neurons in the data, Neurons coordinates data will be set to None.")
+                    self.info[rec]['neurons'].coord_xyz = None
+                if self.info[rec]['neurons'].IDs.shape[0]!=self.info[rec]['n_neurons']:
+                    print(f"Warning: The number of neuron IDs in the metadata for recording {rec} does not match the number of neurons in the data, Neurons IDs data will be set to None.")
+                    self.info[rec]['neurons'].IDs = None
+            else:
+                print(f"Loading neurons for recording {rec} from data folder") if verbose else None
+                try:
+                    path_to_meta_neurons = os.path.join(self.folder_data, rec, 'meta','neurons')
+                    neurons_coord, neurons_ids = check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=self.info[rec]['n_neurons'], verbose=True)
+                    self.info[rec]['neurons'] = NeuronsData(neurons_coord, neurons_ids)
+                    if neurons_coord is None or neurons_ids is None:
+                        print(f"Error loading neurons for recording {rec} from data folder: neurons_coord or neurons_ids is None.")
+                except Exception as e:
+                    print(f"Error loading neurons for recording {rec} from data folder: {e}. Neurons data will be set to None.") 
+                    self.info[rec]['neurons'] = NeuronsData(None, None)
+            
+
+
+    def load_trial_types(self, recording=None):
+        if recording is None:
+            recording = self.recording
+        elif isinstance(recording, str):
+            recording = [recording]
+
+        for rec in recording: 
+            if self._good_metadata_per_recording[rec]:
+                path_to_table = os.path.join(self.folder_metadata, rec)
+                file = os.path.join(path_to_table,f"meta-trials_{rec}.csv")
+                df = pd.read_csv(file)
+                self.info[rec]['trial_type'] = df['trial_type'].copy().to_list()
+            else:                
+                try:
+                    path_to_meta_trials = os.path.join(self.folder_data, rec, 'meta','trials')
+                    trial_types = check_meta_trials_integrity(path_to_meta_trials, n_trials=self.info[rec]['n_trials'], verbose=True)
+                    self.info[rec]['trial_type'] = trial_types
+                except Exception as e:
+                    print(f"Error loading trial types for recording {rec} from metadata: {e}. Trial types will be set to None.")
+                    self.info[rec]['trial_type'] = None
+
 
     def check_data(self, verbose=True):
 
@@ -122,21 +179,23 @@ class DataSet():
         for rec in self.recording:
 
             # check the data folder
-            path_to_data = os.path.join(self.folder_data, rec)
-            all_fine, info_data_rec = check_data_integrity(path_to_data, verbose=verbose)
+            path_to_data = os.path.join(self.folder_data, rec, 'data')
+            all_fine_data, info_data_rec = check_data_integrity(path_to_data, verbose=verbose)
+            
+            # store the information about the data for the recording
             self.info[rec] = info_data_rec
                 
-            # stroe the infromation about data quality
-            good_data_per_recording[rec] = all_fine
+            # store the information about data quality
+            good_data_per_recording[rec] = all_fine_data 
 
-            # print some finel info and store some information
-            if all_fine:
+            # print some final info and store some information
+            if good_data_per_recording[rec]:
                 print(f"- All data files seem consistent across trials and data types for recording {rec}.") if verbose else None
 
-            # update the varaible holding wheter data is ok across all recordings
-            is_valid = is_valid and all_fine
+            # update the variable holding whether data is ok across all recordings
+            is_valid = is_valid and good_data_per_recording[rec]
 
-        # stroe the infromation about data quality   
+        # store the information about data quality   
         self._good_data_per_recording = good_data_per_recording
         self._good_data = is_valid
 
@@ -397,7 +456,7 @@ class DataSet():
     
     def get_indexes_of_trials(self, recording, label=None, trial_type=None, ID=None, trial=None, valid_trial=None):
         
-        if not isinstance(recording, str) and recording in self.recording:
+        if not isinstance(recording, str) or recording not in self.recording:
             raise ValueError(f"'recording' must be a string indicating a recording of the dataset, {recording} is not valid")
         
         # get a data frame with the filtered trials
@@ -416,6 +475,9 @@ class DataSet():
         all_conditions = {'recording', 'label', 'trial_type','ID'}
         if not (set(subset)<=all_conditions):
             raise ValueError(f"The subset must be included in {all_conditions}")
+
+        if not isinstance(subset, (list, tuple)):
+            subset = sorted(list(subset))
 
         # get a table with trials metadata if not loaded yet
         if not hasattr(self, 'trials_df'):
@@ -515,7 +577,8 @@ class DataSet():
                 response.ID = trials_meta["ID"].iloc[0]
                 response.label = trials_meta['label'].iloc[0] 
                 # load the metadata 
-                response.load_metadata_videoid(self.folder_globalmetadata_videos)
+                if self.folder_globalmetadata_videos is not None:
+                    response.load_metadata_videoid(self.folder_globalmetadata_videos)
             else:
                 raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
 
@@ -549,7 +612,8 @@ class DataSet():
                 behavior.ID = trials_meta["ID"].iloc[0]
                 behavior.label = trials_meta['label'].iloc[0] 
                 # load the metadata 
-                behavior.load_metadata_videoid(self.folder_globalmetadata_videos)
+                if self.folder_globalmetadata_videos is not None:
+                    behavior.load_metadata_videoid(self.folder_globalmetadata_videos)
             else:
                 raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
         except Exception as e:
@@ -705,6 +769,9 @@ class DataSet():
         if not (set(subset)<=all_conditions):
             raise ValueError(f"The subset must be included in {all_conditions}")
 
+        if not isinstance(subset, (list, tuple)):
+            subset = sorted(list(subset))
+
         # load a table with segments metadata if not loaded yet
         if not hasattr(self, 'segments_df'):
             raise ValueError("segments_df is not loaded, please run get_segments_meta() first")
@@ -805,15 +872,15 @@ class DataSet():
                 stats = self.compute_neurons_stats(rec, idx_trials_stats=idx_trials_stats)
 
                 # get neurons metadats
-                neurons_coord = self.info[rec]['neurons']['coord']
-                if neurons_coord:
+                neurons_coord = self.info[rec]['neurons']['coord_xyz']
+                if neurons_coord is not None and len(neurons_coord) > 0:
                     df_coord = pd.DataFrame(neurons_coord, columns=['coord_x','coord_y','coord_z'])
                 else:
                     warnings.warn(f"Neurons coordinates were not defined for recording {rec}")
                     df_coord = pd.DataFrame(np.full((self.info[rec]['n_neurons'], 3), None), columns=['coord_x', 'coord_y', 'coord_z'])
 
                 neurons_ids = self.info[rec]['neurons']['IDs']
-                if neurons_ids:
+                if neurons_ids is not None and len(neurons_ids) > 0:
                     df_id = pd.DataFrame(neurons_ids, columns=['ID'])
                 else:
                     warnings.warn(f"Neurons IDs were not defined for recording {rec}")
@@ -823,7 +890,7 @@ class DataSet():
                 meta_neurons = pd.concat([df_id, df_coord, stats], axis=1)
 
                 # save
-                folder_recording_meta = Path(self.folder_meta) / rec
+                folder_recording_meta = Path(self.folder_metadata) / rec
                 out_path = os.path.join(folder_recording_meta, f"meta-neurons_{rec}.csv")
                 meta_neurons.to_csv(out_path, index=False)
                 print(f"Saved neurons metadata: {out_path}") if verbose else None
@@ -1013,6 +1080,7 @@ class DataSet():
 
             # load all segments
             for file_videoID in json_files:
+                video_id = None
                 try:
                     video_id = Path(file_videoID).stem.split('-')[1]
                     video = self.load_video_by_id(video_id)
@@ -1031,7 +1099,10 @@ class DataSet():
                             continue
 
                 except Exception as e:
-                    print(f"Warning: Could not load video {video_id}: {e}")
+                    if video_id is None:
+                        print(f"Warning: Could not load video from {file_videoID}: {e}")
+                    else:
+                        print(f"Warning: Could not load video {video_id}: {e}")
                     continue
 
             print(f"- {len(all_segments)} segments were found and loaded") if verbose else None

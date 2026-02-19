@@ -30,7 +30,7 @@ def load_all_data(recording_folder, what_data, data_slice=None):
 
     path_to_data = os.path.join(recording_folder, "data", what_data)
     if not os.path.exists(path_to_data):
-            raise ValueError(f"Path does not exist: {path_to_data}")
+        raise ValueError(f"Path does not exist: {path_to_data}")
 
     # Get sorted list of .npy files only
     data_files_list = sorted([f for f in os.listdir(path_to_data) if f.endswith('.npy')])
@@ -53,7 +53,7 @@ def load_all_data(recording_folder, what_data, data_slice=None):
             continue
 
     if len(data_all) == 0:
-            raise ValueError(f"No data successfully loaded from {path_to_data}")
+        raise ValueError(f"No data successfully loaded from {path_to_data}")
               
     return np.stack(data_all, axis=0)
 
@@ -99,23 +99,18 @@ def load_metadata_from_id(id, folder):
 
 
 
-def check_data_integrity(the_path_to_recording, verbose=True):
-
-    path_to_data = os.path.join(the_path_to_recording, "data")
-    path_to_meta = os.path.join(the_path_to_recording, "meta")
+def check_data_integrity(path_to_data, verbose=True):
 
     info = {}
     data_ok = True
 
-
     if not os.path.exists(path_to_data):
         warnings.warn(f"Warning: Path does not exist: {path_to_data}")
         data_ok = False
-        info['n_trials'] = None
-        info['trials'] = None
-        info['samples_per_trial'] = None
-        info['n_neurons'] = None
-        info['trial_type'] = None 
+        n_trials = None
+        samples_per_trial = None
+        the_trials = None
+        n_neurons = None
     
     else:
         n_trials = {}
@@ -188,9 +183,9 @@ def check_data_integrity(the_path_to_recording, verbose=True):
             data_ok = False
             n_neurons = None
         elif len(unique_n_neurons)>1:
-                warnings.warn(f"Warning: Different number of neurons across response files in {path_to_data}: {unique_n_neurons}")
-                data_ok = False
-                n_neurons = None
+            warnings.warn(f"Warning: Different number of neurons across response files in {path_to_data}: {unique_n_neurons}")
+            data_ok = False
+            n_neurons = None
         else:
             n_neurons = unique_n_neurons.pop()
 
@@ -199,72 +194,66 @@ def check_data_integrity(the_path_to_recording, verbose=True):
         info['trials'] = the_trials
         info['samples_per_trial'] = samples_per_trial
         info['n_neurons'] = n_neurons
+           
+    return data_ok, info
 
 
-    # check information in meta folder for the trials description
-    trials_meta_ok = True
+def check_meta_neurons_integrity(path_to_meta_neurons, n_neurons=None, verbose=True):
 
-    if not os.path.exists(path_to_meta):
-        warnings.warn(f"Warning: Path does not exist: {path_to_meta}")
-        trials_meta_ok = False
-    else:
-        if info['n_trials']:
-            file_path = Path(path_to_meta) / 'trials' / 'tiers.npy'
-            if not file_path.exists():
-                warnings.warn(f"No trial description file was founs in {file_path}, description will be set to None")
-                info['trial_type'] = None
-                trials_meta_ok = False
-                
-            trials_description = load_trials_descriptor(file_path, verbose=False)
-            if len(trials_description)!=info['n_trials']:
-                raise ValueError(f"Wrong number of trials ({info['n_trials']}) and descriptors ({len(trials_description)})")
-            info['trial_type'] = trials_description
-        
-    # check information in meta folder for the neurons
-    info['neurons'] = {}
-    neurons_meta_ok = True
-    
-    neurons_coord_path = Path(path_to_meta) / 'neurons' / 'cell_motor_coordinates.npy'
+    # check information in meta folder for the neurons coordinates
+    neurons_coord_path = Path(path_to_meta_neurons) / 'cell_motor_coordinates.npy'
     if not neurons_coord_path.exists():
         warnings.warn(f"No neurons coordinate file was founs in {neurons_coord_path}, coordinates are set to None")
-        info['neurons']['coord'] = None
-        neurons_meta_ok = False
+        neurons_coord =  None
     else:
         try:
             neurons_coord = np.load(neurons_coord_path)
-            if neurons_coord.shape[0]!=info['n_neurons']:
-                info['neurons']['coord'] = None
-                warnings.warn(f"The coordinates file has {neurons_coord.shape[0]} neurons but {info['n_neurons']} neurons were detected in the data, coordinates are set to None")
-                neurons_meta_ok = False
-            else:
-                info['neurons']['coord'] = neurons_coord
+            if n_neurons is not None and neurons_coord.shape[0]!=n_neurons:
+                coord_count = neurons_coord.shape[0]
+                neurons_coord = None
+                warnings.warn(f"The coordinates file has {coord_count} neurons but {n_neurons} neurons were detected in the data, coordinates are set to None") 
         except Exception as e:
-            info['neurons']['coord'] = None
-            neurons_meta_ok = False
+            neurons_coord = None
             warnings.warn(f"Could not load neurons coordinates, error {e}, coordinates are set to None")
-        
-    neurons_ids_path = Path(path_to_meta) / 'neurons' / 'unit_ids.npy'
+            
+    # check information in meta folder for the neurons IDs
+    neurons_ids_path = Path(path_to_meta_neurons) / 'unit_ids.npy'
     if not neurons_ids_path.exists():
         warnings.warn(f"No neurons IDs file was founs in {neurons_ids_path}, IDs are set to None")
-        info['neurons']['IDs'] = None
-        neurons_meta_ok = False
+        neurons_ids = None
     else:
         try:
             neurons_ids = np.load(neurons_ids_path)
-            if neurons_ids.shape[0]!=info['n_neurons']:
-                info['neurons']['IDs'] = None
-                neurons_meta_ok = False
-                warnings.warn(f"The IDs file has {neurons_ids.shape[0]} neurons but {info['n_neurons']} neurons were detected in the data, IDs are set to None")
-            else:
-                info['neurons']['IDs'] = neurons_ids
+            if n_neurons is not None and neurons_ids.shape[0]!=n_neurons:
+                ids_count = neurons_ids.shape[0]
+                neurons_ids = None
+                warnings.warn(f"The IDs file has {ids_count} neurons but {n_neurons} neurons were detected in the data, IDs are set to None")
         except Exception as e:
-            neurons_meta_ok = False
-            info['neurons']['IDs'] = None
+            neurons_ids = None
             warnings.warn(f"Could not load neurons IDs, error {e}, IDs are set to None")
         
-    # update the varaible holding wheter data is ok for recording
-    all_fine = data_ok and neurons_meta_ok and trials_meta_ok
-           
-    return all_fine, info
+    return neurons_coord, neurons_ids
 
+def check_meta_trials_integrity(path_to_meta_trials, n_trials=None, verbose=True):
+
+    # check information in meta folder for the trials description
+
+    file_path = Path(path_to_meta_trials) / 'tiers.npy'
+    if not file_path.exists():
+        warnings.warn(f"No trial description file was founs in {file_path}, description will be set to None")
+        return None
+
+    try:
+        trial_type = load_trials_descriptor(file_path, verbose=False)
+        if n_trials:
+            if len(trial_type)!=n_trials:
+                warnings.warn(f"Wrong number of trials ({n_trials}) and descriptors ({len(trial_type)}), description will be set to None")
+                trial_type = None
+    
+    except Exception as e:
+        warnings.warn(f"Could not load trial description, error {e}, description will be set to None")
+        return None
+    
+    return trial_type
+   
 

@@ -444,10 +444,18 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
 
     # check the neurons metadata file
     file = os.path.join(folder_metadata_rec,f"meta-neurons_{rec}.csv")
-    df, good_neurons = validate_global_neurons_metadata(file)
-    if len(df)!=n_neurons:
-        good_neurons = False
-        warnings.warn(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}")
+    if not os.path.exists(file):
+        warnings.warn(f"Warning: File does not exist: {file}")
+        df, good_neurons = None, False
+    else:
+        try:
+            df, good_neurons = validate_global_neurons_metadata(file)
+            if len(df)!=n_neurons:
+                good_neurons = False
+                warnings.warn(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}")
+        except Exception as e:
+            warnings.warn(f"Warning: Could not load {file}: {e}")
+            df, good_neurons = None, False
 
     # print if all fine for the recording
     if good_trials and good_neurons:
