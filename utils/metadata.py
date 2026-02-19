@@ -3,10 +3,9 @@ import json
 import os
 import pandas as pd
 import numpy as np
-import warnings
 
 
-def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=None):
+def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=None, verbose=True):
     """
     Validate the structure of global metadata for a trial.
     
@@ -46,12 +45,12 @@ def _validate_csv_metadata(filepath, mandatory_columns=None, optional_columns=No
     for col in mandatory_columns:
         if col not in df.columns:
             is_valid = False
-            warnings.warn(f"Warning: '{col}' column not found in {filepath}")
+            print(f"Warning: '{col}' column not found in {filepath}") if verbose else None
 
     # # Warn about unexpected columns
     # unexpected_columns = set(df.columns) - mandatory_columns - optional_columns
     # if unexpected_columns:
-    #     warnings.warn(f"Warning: Unexpected columns in {filepath}: {unexpected_columns}")
+    #     print(f"Warning: Unexpected columns in {filepath}: {unexpected_columns}") if verbose else None
 
     return df, is_valid
 
@@ -120,7 +119,7 @@ def validate_metadata_video_dict(metadata):
     # all_allowed_fields = mandatory_fields | optional_fields
     # unexpected_fields = set(metadata.keys()) - all_allowed_fields
     # if unexpected_fields:
-    #     warnings.warn(f"Warning: Unexpected fields : {unexpected_fields}")
+    #     print(f"Warning: Unexpected fields : {unexpected_fields}") if verbose else None
 
     # Check the structure of 'segments' if it exists
     if 'segments' in metadata:
@@ -199,7 +198,7 @@ def validate_metadata_per_trial_dict(metadata):
     # all_allowed_fields = mandatory_fields | optional_fields
     # unexpected_fields = set(metadata.keys()) - all_allowed_fields
     # if unexpected_fields:
-    #     warnings.warn(f"Warning: Unexpected fields: {unexpected_fields}")
+    #     print(f"Warning: Unexpected fields: {unexpected_fields}") if verbose else None
 
     # Check the structure of 'segments' if it exists
     if 'segments' in metadata:
@@ -246,7 +245,7 @@ def validate_metadata_per_trial_json(filepath):
     return metadata, is_valid
 
 
-def _validate_metadata_videos_segment_field(segments, from_filepath=None):
+def _validate_metadata_videos_segment_field(segments, from_filepath=None, verbose=True):
     is_valid = True
     if not isinstance(segments, dict):
         is_valid = False
@@ -261,7 +260,7 @@ def _validate_metadata_videos_segment_field(segments, from_filepath=None):
     n = [len(v) for v in segments.values()]
     if len(set(n)) > 1:
         is_valid = False
-        warnings.warn(f"Warning: Different number of segments across entries in 'segments' in {from_filepath}: {n}")
+        print(f"Warning: Different number of segments across entries in 'segments' in {from_filepath}: {n}") if verbose else None
 
     return is_valid
 
@@ -285,7 +284,7 @@ def _validate_metadata_videos_duplicates_field(duplicates, from_filepath=None):
     return is_valid
 
 
-def validate_metadata_segment_json(filepath):
+def validate_metadata_segment_json(filepath, verbose=True):
     """
     Check if a JSON metadata file exists and has all mandatory fields.
     
@@ -331,7 +330,7 @@ def validate_metadata_segment_json(filepath):
     # all_allowed_fields = mandatory_fields | optional_fields
     # unexpected_fields = set(metadata.keys()) - all_allowed_fields
     # if unexpected_fields:
-    #     warnings.warn(f"Warning: Unexpected fields in {filepath}: {unexpected_fields}")
+    #     print(f"Warning: Unexpected fields in {filepath}: {unexpected_fields}") if verbose else None
     
     # Check the structure of 'duplicates' if it exists
     if 'duplicates' in metadata:
@@ -362,7 +361,7 @@ def _validate_metadata_segments_duplicates_field(duplicates, from_filepath=None)
 def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
     
     if not Path(folder_globalmetadata_videos).exists():
-        warnings.warn(f"Warning: folder_globalmetadata_videos does not exist")
+        print(f"Warning: folder_globalmetadata_videos does not exist") if verbose else None
         return False
     
     files = list(Path(folder_globalmetadata_videos).glob(f"*.json"))
@@ -371,10 +370,10 @@ def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
         try:
             _, good_files[i] = validate_metadata_video_json(fff)
         except Exception as e:
-            warnings.warn(f"Warning: Could not validate metadata video json file {fff}: {e}")
+            print(f"Warning: Could not validate metadata video json file {fff}: {e}") if verbose else None
     good_global_meta_videos = good_files.sum()==len(files)
     if not good_global_meta_videos:
-        warnings.warn(f"Warning: {len(files) - good_files.sum()} metadata video json files are invalid in {folder_globalmetadata_videos}")
+        print(f"Warning: {len(files) - good_files.sum()} metadata video json files are invalid in {folder_globalmetadata_videos}") if verbose else None
 
     return good_global_meta_videos
 
@@ -382,19 +381,19 @@ def validate_metadata_video_folder(folder_globalmetadata_videos, verbose=True):
 def validate_metadata_segment_folder(folder_globalmetadata_segments, verbose=True):               
     
     if not Path(folder_globalmetadata_segments).exists():
-        warnings.warn(f"Warning: folder_globalmetadata_segments does not exist")
+        print(f"Warning: folder_globalmetadata_segments does not exist") if verbose else None
         return False
     
     files = list(Path(folder_globalmetadata_segments).glob(f"*.json"))
     good_files = np.zeros(len(files), dtype=bool)
     for i, fff in enumerate(files):
         try:
-            _, good_files[i] = validate_metadata_segment_json(fff)
+            _, good_files[i] = validate_metadata_segment_json(fff, verbose=verbose)
         except Exception as e:
-            warnings.warn(f"Warning: Could not validate metadata segment json file {fff}: {e}")
+            print(f"Warning: Could not validate metadata segment json file {fff}: {e}") if verbose else None
     good_global_meta_segments = good_files.sum()==len(files)
     if not good_global_meta_segments:
-        warnings.warn(f"Warning: {len(files) - good_files.sum()} metadata segment json files are invalid in {folder_globalmetadata_segments}")
+        print(f"Warning: {len(files) - good_files.sum()} metadata segment json files are invalid in {folder_globalmetadata_segments}") if verbose else None
 
     return good_global_meta_segments
 
@@ -406,13 +405,13 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
 
     # check if a folder for the recording exists in the metadata folder
     if not folder_metadata_rec.exists():
-        warnings.warn(f"Warning: Path does not exist: {folder_metadata_rec}")
+        print(f"Warning: Path does not exist: {folder_metadata_rec}") if verbose else None
         return False
     
     # check the trials metadata file
     file = os.path.join(folder_metadata_rec,f"meta-trials_{rec}.csv")
     if not os.path.exists(file):
-        warnings.warn(f"Warning: File does not exist: {file}")
+        print(f"Warning: File does not exist: {file}") if verbose else None
         good_trials = False
     else:
         try:
@@ -423,7 +422,7 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
                 if not df['trial'].isin(trials).all():
                     triasl_diff = set(df['trial'].values) - set(trials)
                     good_trials = False
-                    warnings.warn(f"Warning: {len(triasl_diff)} trials in {file} are not found in data files for recording {rec}: {triasl_diff}")
+                    print(f"Warning: {len(triasl_diff)} trials in {file} are not found in data files for recording {rec}: {triasl_diff}") if verbose else None
 
             # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
             if Path(folder_globalmetadata_videos).exists():
@@ -433,28 +432,28 @@ def validate_metadata_recording(folder_metadata_rec, folder_globalmetadata_video
                         files = list(Path(folder_globalmetadata_videos).glob(f"*{id}.json"))
                         if len(files)==0:
                             good_trials = False
-                            warnings.warn(f"Warning: No metadata file found for ID {id} in folder_globalmetadata_videos")
+                            print(f"Warning: No metadata file found for ID {id} in folder_globalmetadata_videos") if verbose else None
                         elif len(files)>1:
                             good_trials = False
-                            warnings.warn(f"Warning: Multiple metadata files found for ID {id} in folder_globalmetadata_videos: {[f.name for f in files]}")
+                            print(f"Warning: Multiple metadata files found for ID {id} in folder_globalmetadata_videos: {[f.name for f in files]}") if verbose else None
         
         except Exception as e:
-            warnings.warn(f"Warning: Could not load {file}: {e}")
+            print(f"Warning: Could not load {file}: {e}") if verbose else None
             good_trials = False
 
     # check the neurons metadata file
     file = os.path.join(folder_metadata_rec,f"meta-neurons_{rec}.csv")
     if not os.path.exists(file):
-        warnings.warn(f"Warning: File does not exist: {file}")
+        print(f"Warning: File does not exist: {file}") if verbose else None
         df, good_neurons = None, False
     else:
         try:
             df, good_neurons = validate_global_neurons_metadata(file)
             if len(df)!=n_neurons:
                 good_neurons = False
-                warnings.warn(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}")
+                print(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}") if verbose else None
         except Exception as e:
-            warnings.warn(f"Warning: Could not load {file}: {e}")
+            print(f"Warning: Could not load {file}: {e}") if verbose else None
             df, good_neurons = None, False
 
     # print if all fine for the recording
@@ -470,7 +469,7 @@ def check_metadata_integrity(folder_metadata, recording, folder_globalmetadata_v
         return False, None
 
     if not Path(folder_metadata).exists():
-        warnings.warn("The metadata folder was set but it does not exist")
+        print("Warning: The metadata folder was set but it does not exist") if verbose else None
         return False, None
         
     # check all the video metadata files
@@ -501,7 +500,7 @@ def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, inf
         return False, None
  
     if not Path(folder_metadata_per_trial).exists():
-        warnings.warn("The metadata per trial folder was set but it does not exist, you can create it with create_folders_metadata_per_trial()")
+        print("Warning: The metadata per trial folder was set but it does not exist, you can create it with create_folders_metadata_per_trial()") if verbose else None
         return False, None
      
         
@@ -512,7 +511,7 @@ def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, inf
         # check if a folder for the recording exists in the metadata folder
         path_to_table = Path(folder_metadata_per_trial) / rec / 'videos'
         if not path_to_table.exists():
-            warnings.warn(f"Warning: Path does not exist: {path_to_table}")
+            print(f"Warning: Path does not exist: {path_to_table}") if verbose else None
             good_metadata_per_trial_per_recording[rec] = False
         
         else:
@@ -528,16 +527,16 @@ def check_metadata_per_trial_integrity(folder_metadata_per_trial, recording, inf
                     metadata, good_files[i] = validate_metadata_per_trial_json(fff)
                     trials.append(metadata['trial'])
                 except Exception as e:
-                    warnings.warn(f"Warning: Could not validate metadata per trial json file {fff}: {e}")
+                    print(f"Warning: Could not validate metadata per trial json file {fff}: {e}") if verbose else None
 
             if set(trials) != set(info[rec]['trials']):
                 trials_diff = set(trials) - set(info[rec]['trials'])
                 all_fine = False
-                warnings.warn(f"Warning: Trials in metadata per trial json files do not match the trials in the data files for recording {rec}: {trials_diff}")
+                print(f"Warning: Trials in metadata per trial json files do not match the trials in the data files for recording {rec}: {trials_diff}") if verbose else None
             
             if good_files.sum() != len(info[rec]['trials']):
                 all_fine = False
-                warnings.warn(f"Warning: Number of valid metadata per trial json files does not match the number of trials in the data files for recording {rec}: {good_files.sum()} vs {len(info[rec]['trials'])}")
+                print(f"Warning: Number of valid metadata per trial json files does not match the number of trials in the data files for recording {rec}: {good_files.sum()} vs {len(info[rec]['trials'])}") if verbose else None
             
             # print if all fine for the recording
             if all_fine:

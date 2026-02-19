@@ -5,29 +5,28 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 import json
-import warnings
-
 
 
 from utils.videos import (Video, VideoID, VideoSegment, VideoSegmentID)
 from utils.responses import Responses
-from utils.neurons import Neurons, NeuronsData
+from utils.neurons import (Neurons, NeuronsData)
 from utils.behavioral import (Gaze, Pupil, Locomotion)
 from utils.data_handling import (load_all_data, 
                                  load_metadata_from_id,
                                  save_json,
                                  check_data_integrity,
                                  check_meta_neurons_integrity,
-                                 check_meta_trials_integrity)
+                                 check_meta_trials_integrity,
+                                 )
 from utils.metadata import (validate_metadata_video_dict,
                             check_metadata_integrity,
                             check_metadata_per_trial_integrity,
                             )
-
 from utils.videos_duplicates import (compute_dissimilarity_video_list, 
                                      compare_with_idvideos, 
                                      find_equal_sets_scipy,
-                                     generate_new_id)
+                                     generate_new_id,
+                                     )
 
 
 def combine_data(behavioral_list, weights=None):
@@ -117,7 +116,7 @@ class DataSet():
     def load_neurons(self, recording=None, verbose=True):  
 
         print_title('Loading neurons metadata ', verbose)
-        
+
         if recording is None:
             recording = self.recording
         elif isinstance(recording, str):
@@ -221,7 +220,7 @@ class DataSet():
             results = None
  
         elif not Path(self.folder_metadata).exists():
-            warnings.warn("The metadata folder was set but it does not exist, you can create it with create_folders_metadata()")
+            print("Warning: The metadata folder was set but it does not exist, you can create it with create_folders_metadata()") if verbose else None
             self.folder_globalmetadata_videos = None
             self.folder_globalmetadata_segments = None
             is_valid = False
@@ -876,14 +875,14 @@ class DataSet():
                 if neurons_coord is not None and len(neurons_coord) > 0:
                     df_coord = pd.DataFrame(neurons_coord, columns=['coord_x','coord_y','coord_z'])
                 else:
-                    warnings.warn(f"Neurons coordinates were not defined for recording {rec}")
+                    print(f"Warning: Neurons coordinates were not defined for recording {rec}") if verbose else None
                     df_coord = pd.DataFrame(np.full((self.info[rec]['n_neurons'], 3), None), columns=['coord_x', 'coord_y', 'coord_z'])
 
                 neurons_ids = self.info[rec]['neurons']['IDs']
                 if neurons_ids is not None and len(neurons_ids) > 0:
                     df_id = pd.DataFrame(neurons_ids, columns=['ID'])
                 else:
-                    warnings.warn(f"Neurons IDs were not defined for recording {rec}")
+                    print(f"Warning: Neurons IDs were not defined for recording {rec}") if verbose else None
                     df_id = pd.DataFrame(np.full((self.info[rec]['n_neurons'], 1), None), columns=['ID'])
 
                 # generate a dataframe with all neurons info
@@ -1172,7 +1171,7 @@ class DataSet():
                 if is_valid:
                     save_json(metadata_video, file_path)
                 else:
-                    warnings.warn(f"segment ID info could no be added to video {row['video_ID']} fro segment {row['segment_index']}")
+                    print(f"Warning: segment ID info could no be added to video {row['video_ID']} from segment {row['segment_index']}") if verbose else None
             
             except Exception as e:
                 print(f"Error {e} processing segment: {row['segment_ID']} - video: {row['video_ID']} - segment index {row['segment_index']}") if verbose else None
