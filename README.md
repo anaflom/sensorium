@@ -73,7 +73,12 @@ Notebook examples:
 Programmatic example (copy-pasteable):
 
 ```py
+import sys
 from pathlib import Path
+repo_root = Path.cwd().parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
 from utils.dataset import DataSet
 
 repo_root = Path.cwd()
