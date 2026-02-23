@@ -85,30 +85,35 @@ class Responses():
         return copy.deepcopy(self) if deep else copy.copy(self)
 
 
-    def load_metadata_videoid(self, folder_metadata: str | pathlib.Path) -> None:
-        """Load global video metadata for current ``label`` and ``ID``.
+    def load_metadata(self, file_metadata: str | pathlib.Path, verbose=True) -> None:
+        """Load metadata for current response.
 
         Parameters
         ----------
-        folder_metadata : str or pathlib.Path
-            Folder containing global video metadata JSON files.
-        """
+        file_metadata : str or pathlib.Path
+            Path to a JSON file with the metadata.
+         """
 
-        file_metadata = self.label+'-'+self.ID+".json"
-        path_metavideo = os.path.join(folder_metadata, file_metadata)
-        with open(path_metavideo, "r", encoding="utf-8") as f:
-            metavideo = json.load(f)
+        try:
+            with open(file_metadata, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except Exception as e:
+            if verbose:
+                print(f"Warning. load_metadata: Could not load metadata: {e}")
 
-        if metavideo['label']!=self.label:
+        # check the metadata
+        if self.label is not None and metadata['label']!=self.label:
             raise ValueError("The metadata file contains a label different from the video")
-        if metavideo['ID']!=self.ID:
+        if self.ID is not None and metadata['ID']!=self.ID:
             raise ValueError("The metadata file contains an ID different from the video")
         
-        self.valid_frames=metavideo['valid_frames']
-
-        self.segments={}
-        for k in metavideo['segments'].keys():
-            self.segments[k] = np.asarray(metavideo['segments'][k])
+        # add some other metadata
+        if 'valid_frames' in metadata.keys():
+            self.valid_frames=metadata['valid_frames']
+        if 'segments' in metadata.keys():
+            self.segments={}
+            for k in metadata['segments'].keys():
+                self.segments[k] = np.asarray(metadata['segments'][k])
 
 
     def load_metadata_neurons(self, folder_metadata: str | pathlib.Path) -> None:

@@ -133,6 +133,16 @@ def load_trials_descriptor(trials_descriptor_file: str | Path, verbose: bool = F
     return valid_trials_descriptor
 
 
+def get_file_with_pattern(file_pattern: str, folder: str | Path):
+
+    files = list(Path(folder).glob(file_pattern))
+    if len(files) == 0:
+        raise FileNotFoundError(f"No file matches {file_pattern} in {folder}")
+    if len(files) > 1:
+        raise ValueError(f"Multiple files ({len(files)}) match {file_pattern} in {folder}")
+    return files[0]
+
+
 def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
     """Load one metadata JSON matching an ID pattern.
 
@@ -148,16 +158,14 @@ def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
     tuple[dict, pathlib.Path]
         Loaded metadata dictionary and matching file path.
     """
-    file_pattern = f"*-{id}.json"
-    files = list(Path(folder).glob(file_pattern))
-    if len(files) == 0:
-        raise FileNotFoundError(f"No file matches {file_pattern} in {folder}")
-    if len(files) > 1:
-        raise ValueError(f"Multiple files ({len(files)}) match {file_pattern} in {folder}")
-
-    with open(files[0], "r", encoding="utf-8") as f:
+    try:
+        file = get_file_with_pattern(f"*-{id}.json", folder)
+    except Exception as e:
+        print(f"Warning: Could not get a a file name with error {e}")
+    
+    with open(file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    return metadata, files[0]
+    return metadata, file
 
 
 

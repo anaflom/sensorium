@@ -13,6 +13,7 @@ from utils.neurons import (Neurons, NeuronsData)
 from utils.behavioral import (Gaze, Pupil, Locomotion)
 from utils.data_handling import (load_all_data, 
                                  load_metadata_from_id,
+                                 get_file_with_pattern,
                                  save_json,
                                  check_data_integrity,
                                  check_meta_neurons_integrity,
@@ -721,15 +722,9 @@ class DataSet():
         video = Video(recording_folder, trial)
 
         # lookup trial metadata
-        try:
-            trials_meta = self.filter_trials(recording=recording, trial=trial)
-            if len(trials_meta) != 1:
-                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        except Exception as e:
-            if verbose:
-                print(f"Could not load metadata for recording {recording}, trial {trial}: {e}")
-            return video
-
+        trials_meta = self.filter_trials(recording=recording, trial=trial)
+        if len(trials_meta) != 1:
+            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
         video.ID = trials_meta["ID"].iloc[0]
         video.label = trials_meta["label"].iloc[0]
 
@@ -737,8 +732,6 @@ class DataSet():
         if self.folder_globalmetadata_videos is not None and try_global_first:
             try:
                 video.load_metadata_from_id(self.folder_globalmetadata_videos)
-                if verbose:
-                    print("Metadata loaded from ID")
                 return video
             except Exception as e:
                 if verbose:
@@ -750,19 +743,17 @@ class DataSet():
             if os.path.exists(path_to_metadata_file):
                 try:
                     video.load_metadata(path_to_metadata_file)
-                    if verbose:
-                        print("Metadata loaded from metadata per trial")
                 except Exception as e:
                     if verbose:
                         print(f"Could not load metadata from metadata per trial: {e}")
             else:
                 if verbose:
-                    print(f"Metadata file not found: {path_to_metadata_file}")
+                    print(f"Could not load metadata from metadata per trial: Metadata file not found: {path_to_metadata_file}")
 
         return video
     
 
-    def load_response_by_trial(self, recording: str, trial: str, verbose: bool = True) -> Responses:
+    def load_response_by_trial(self, recording: str, trial: str, verbose: bool = True, try_global_first: bool = True) -> Responses:
         """Load one trial responses object and attach metadata.
 
         Returns
@@ -775,29 +766,44 @@ class DataSet():
         recording_folder = os.path.join(self.folder_data, recording)
         response = Responses(recording_folder, trial)
 
-        # find the video ID
-        try:
-            trials_meta = self.filter_trials(recording=recording, trial=trial)
-            if len(trials_meta)==1:
-                response.ID = trials_meta["ID"].iloc[0]
-                response.label = trials_meta['label'].iloc[0] 
-                # load the metadata 
-                if self.folder_globalmetadata_videos is not None:
-                    response.load_metadata_videoid(self.folder_globalmetadata_videos)
+        # lookup trial metadata
+        trials_meta = self.filter_trials(recording=recording, trial=trial)
+        if len(trials_meta) != 1:
+            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+        response.ID = trials_meta["ID"].iloc[0]
+        response.label = trials_meta['label'].iloc[0] 
+        
+        # load neurons metadata
+        response.neurons = self.info[recording]['neurons']
+        
+        # try loading metadata from global metadata folder (if configured)
+        if self.folder_globalmetadata_videos is not None and try_global_first:
+            try:
+                file = get_file_with_pattern(f"*-{response.ID}.json", self.folder_globalmetadata_videos)
+                response.load_metadata(file)
+                return response
+            except Exception as e:
+                if verbose:
+                    print(f"Loading metadata from {self.folder_globalmetadata_videos} failed: {e}")
+
+        # fallback: try loading metadata from metadata per trials (if configured)
+        if self.folder_metadata_per_trial is not None:
+            path_to_metadata_folder = os.path.join(self.folder_metadata_per_trial, recording, "videos")
+            if os.path.exists(path_to_metadata_folder):
+                try:
+                    file = get_file_with_pattern(f"{trial}.json", path_to_metadata_folder)
+                    response.load_metadata(file)
+                except Exception as e:
+                    if verbose:
+                        print(f"Loading metadata from {path_to_metadata_folder} failed: {e}")
             else:
-                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-
-            # load neurons metadata
-            response.load_metadata_neurons(self.folder_metadata)
-
-        except Exception as e:
-            if verbose:
-                print(f"Could not load metadata for recording {recording}, trial {trial}: {e}")
+                if verbose:
+                    print(f"Loading metadata from {path_to_metadata_folder} failed: folder does not exist")
 
         return response
     
 
-    def load_behavior_by_trial(self, recording: str, trial: str, behavior_type: str = 'pupil', verbose: bool = True) -> Pupil | Gaze | Locomotion:
+    def load_behavior_by_trial(self, recording: str, trial: str, behavior_type: str = 'pupil', verbose: bool = True, try_global_first: bool = True) -> Pupil | Gaze | Locomotion:
         """Load one trial behavior object and attach metadata.
 
         Parameters
@@ -822,20 +828,36 @@ class DataSet():
         else:
             raise ValueError(f"behavior_type must be 'pupil', 'gaze', or 'locomotion', got {behavior_type}")
         
-        # find the video ID
-        try:
-            trials_meta = self.filter_trials(recording=recording, trial=trial)
-            if len(trials_meta)==1:
-                behavior.ID = trials_meta["ID"].iloc[0]
-                behavior.label = trials_meta['label'].iloc[0] 
-                # load the metadata 
-                if self.folder_globalmetadata_videos is not None:
-                    behavior.load_metadata_videoid(self.folder_globalmetadata_videos)
+        # lookup trial metadata
+        trials_meta = self.filter_trials(recording=recording, trial=trial)
+        if len(trials_meta) != 1:
+            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+        behavior.ID = trials_meta["ID"].iloc[0]
+        behavior.label = trials_meta['label'].iloc[0] 
+
+        # try loading metadata from global metadata folder (if configured)
+        if self.folder_globalmetadata_videos is not None and try_global_first:
+            try:
+                file = get_file_with_pattern(f"*-{behavior.ID}.json", self.folder_globalmetadata_videos)
+                behavior.load_metadata(file)
+                return behavior
+            except Exception as e:
+                if verbose:
+                    print(f"Loading metadata from {self.folder_globalmetadata_videos} failed: {e}")
+
+        # fallback: try loading metadata from metadata per trials (if configured)
+        if self.folder_metadata_per_trial is not None:
+            path_to_metadata_folder = os.path.join(self.folder_metadata_per_trial, recording, "videos")
+            if os.path.exists(path_to_metadata_folder):
+                try:
+                    file = get_file_with_pattern(f"{trial}.json", path_to_metadata_folder)
+                    behavior.load_metadata(file)
+                except Exception as e:
+                    if verbose:
+                        print(f"Loading metadata from {path_to_metadata_folder} failed: {e}")
             else:
-                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        except Exception as e:
-            if verbose:
-                print(f"Could not load metadata for recording {recording}, trial {trial}: {e}")
+                if verbose:
+                    print(f"Loading metadata from {path_to_metadata_folder} failed: folder does not exist")
 
         return behavior
     
