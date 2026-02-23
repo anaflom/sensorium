@@ -21,7 +21,7 @@ from utils.data_handling import (load_metadata_from_id,
 
 
 
-def display_video_clip(video_tensor: np.ndarray, interval_ms: int = 33) -> HTML:
+def display_video_clip(video_tensor: np.ndarray, interval_ms: int = 33, vmin: int = 0, vmax: int = 255) -> HTML:
     """Render a video tensor as an inline HTML animation.
 
     Parameters
@@ -30,6 +30,10 @@ def display_video_clip(video_tensor: np.ndarray, interval_ms: int = 33) -> HTML:
         Video array with shape ``(height, width, n_frames)``.
     interval_ms : int or float, default=33
         Delay between displayed frames in milliseconds.
+    vmin : int, default=0
+        Minimum pixel value for display.
+    vmax : int, default=255
+        Maximum pixel value for display.
 
     Returns
     -------
@@ -37,10 +41,10 @@ def display_video_clip(video_tensor: np.ndarray, interval_ms: int = 33) -> HTML:
         HTML object containing a JavaScript animation.
     """
     fig, ax = plt.subplots(figsize=(4, 3))
-    img = ax.imshow(video_tensor[:, :, 0], cmap="gray", animated=True)
+    img = ax.imshow(video_tensor[:, :, 0], cmap="gray", animated=True, vmin=vmin, vmax=vmax)
     ax.axis("off")
 
-    def update(frame_idx: int) -> tuple[plt.Image,]:
+    def update(frame_idx: int):
         """Update displayed frame for animation callback."""
         img.set_data(video_tensor[:, :, frame_idx])
         ax.set_title(f"Frame {frame_idx}")
