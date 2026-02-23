@@ -87,6 +87,9 @@ data/
 # Sensorium metadata intermediate results (reproducible / regenerate)
 # intermediate_results/
 
+# A notebook with ramdom outputs that we don't want to track
+some_tests.ipynb
+
 # Numpy binary arrays that might be produced during processing
 *.npy
 
