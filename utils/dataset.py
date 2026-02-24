@@ -116,7 +116,7 @@ class DataSet():
         self.check_metadata_per_trial(verbose=verbose)
 
         # load neurons data for all recordings and store it in the info variable
-        self.load_neurons()
+        self.load_neurons(verbose=verbose)
 
         # load trial types for all recordings and store it in the info variable
         self.load_trial_types()
@@ -184,13 +184,15 @@ class DataSet():
             
 
 
-    def load_trial_types(self, recording: str | list[str] | None = None) -> None:
+    def load_trial_types(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
         """Load trial-type labels for selected recordings.
 
         Parameters
         ----------
         recording : str or list[str] or None, optional
             Recordings to process. If ``None``, process all recordings.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
         """
         if recording is None:
             recording = self.recording
@@ -206,7 +208,7 @@ class DataSet():
             else:                
                 try:
                     path_to_meta_trials = os.path.join(self.folder_data, rec, 'meta','trials')
-                    trial_types = check_meta_trials_integrity(path_to_meta_trials, n_trials=self.info[rec]['n_trials'], verbose=True)
+                    trial_types = check_meta_trials_integrity(path_to_meta_trials, n_trials=self.info[rec]['n_trials'], verbose=verbose)
                     self.info[rec]['trial_type'] = trial_types
                 except Exception as e:
                     print(f"Error loading trial types for recording {rec} from metadata: {e}. Trial types will be set to None.")
