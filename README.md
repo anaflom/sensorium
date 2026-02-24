@@ -9,7 +9,7 @@ A small collection of utilities to create FAIR metadata for the Sensorium datase
 - `scripts_to_generate_metadata/`: scripts to create and regenerate metadata (see *Regenerating metadata* below).
 - `metadata/`: generated metadata output (per-recording and `global_meta/`).
 - `intermediate_results/`: temporary outputs produced by processing scripts (classified videos, per-trial results).
-- `examples_dataset_exploration/`: Jupyter notebooks demonstrating loading and using the data, and exploring video classification and label distributions.
+- `notebooks_dataset_exploration/`: Jupyter notebooks demonstrating loading and using the data, and exploring video classification and label distributions.
 
 ## Requirements
 - Python 3.8+ (3.9 or 3.10 recommended)
@@ -67,8 +67,8 @@ Source: https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f
 ## Quick usage
 
 Notebook examples:
-- `examples_dataset_exploration/example_load_data.ipynb` — loading a recording.
-- `examples_dataset_exploration/examples_handle_data.ipynb` — workflows and visualizations.
+- `notebooks_dataset_exploration/example_load_data.ipynb` — loading a recording.
+- `notebooks_dataset_exploration/examples_handle_data.ipynb` — workflows and visualizations.
 
 Programmatic example (copy-pasteable):
 
