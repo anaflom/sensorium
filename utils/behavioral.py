@@ -6,12 +6,14 @@ import copy
 from typing import Any, Self
 from scipy.signal import detrend
 from scipy.signal import welch
-import pathlib 
+import pathlib
 
 import matplotlib.pyplot as plt
 
 
-def compute_power_spectrum(data: np.ndarray, sampling_freq: float | int) -> tuple[np.ndarray, np.ndarray]:
+def compute_power_spectrum(
+    data: np.ndarray, sampling_freq: float | int
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute power spectral density using Welch's method.
 
     Parameters
@@ -26,7 +28,7 @@ def compute_power_spectrum(data: np.ndarray, sampling_freq: float | int) -> tupl
     tuple[numpy.ndarray, numpy.ndarray]
         Frequencies and corresponding power spectral density values.
     """
-    
+
     # Remove DC offset (important for pupil data)
     data = data - np.mean(data)
 
@@ -36,16 +38,21 @@ def compute_power_spectrum(data: np.ndarray, sampling_freq: float | int) -> tupl
         window="hann",
         nperseg=128,
         noverlap=64,
-        detrend="linear"
+        detrend="linear",
     )
 
     return freqs, psd
 
 
+class Behavior:
 
-class Behavior():
-
-    def __init__(self, recording_folder: str | pathlib.Path, trial: str, behavior_type: str, indexes: list[int] | np.ndarray | None = None): 
+    def __init__(
+        self,
+        recording_folder: str | pathlib.Path,
+        trial: str,
+        behavior_type: str,
+        indexes: list[int] | np.ndarray | None = None,
+    ):
         """Initialize behavior data for one recording/trial.
 
         Parameters
@@ -60,25 +67,27 @@ class Behavior():
             Optional channel indices to select.
         """
 
-        if behavior_type not in ['pupil_center','behavior']:
+        if behavior_type not in ["pupil_center", "behavior"]:
             raise ValueError("behavior_type must be 'pupil_center' or 'behavior'")
-        if indexes is not None: 
+        if indexes is not None:
             if not isinstance(indexes, list) and not isinstance(indexes, np.ndarray):
                 raise ValueError("indexes must be a list or a numpy array")
 
         trial, ext = os.path.splitext(trial)
         trial = os.path.basename(trial)
-        
+
         self.recording = os.path.basename(recording_folder)
         self.trial = trial
-        d = np.load(os.path.join(recording_folder, 'data', behavior_type, trial+'.npy'))
+        d = np.load(
+            os.path.join(recording_folder, "data", behavior_type, trial + ".npy")
+        )
         if indexes is not None:
-            d = d[np.asarray(indexes),:]
+            d = d[np.asarray(indexes), :]
         self.data = d.squeeze()
 
         self.sampling_freq = 30
-        n_emptyframes = np.sum(np.all(np.isnan(self.data),axis=0))
-        self.valid_frames = np.shape(self.data)[-1]-n_emptyframes
+        n_emptyframes = np.sum(np.all(np.isnan(self.data), axis=0))
+        self.valid_frames = np.shape(self.data)[-1] - n_emptyframes
 
         self.label = None
         self.ID = None
@@ -94,7 +103,6 @@ class Behavior():
         new = self.__class__.__new__(self.__class__)
         new.__dict__.update(self.__dict__)
         return new
-
 
     def __deepcopy__(self, memo: dict[int, Any]) -> Self:
         """Return a deep copy of the object.
@@ -114,8 +122,8 @@ class Behavior():
         for k, v in self.__dict__.items():
             setattr(new, k, copy.deepcopy(v, memo))
         return new
-    
-    def copy(self, deep: bool =False) -> Self: 
+
+    def copy(self, deep: bool = False) -> Self:
         """Copy the object.
 
         Parameters
@@ -129,7 +137,6 @@ class Behavior():
             Copied object.
         """
         return copy.deepcopy(self) if deep else copy.copy(self)
-
 
     def load_metadata(self, file_metadata: str | pathlib.Path, verbose=True) -> None:
         """Load metadata for current bahavior.
@@ -148,26 +155,31 @@ class Behavior():
                 print(f"Warning. load_metadata: Could not load metadata: {e}")
 
         # check the metadata
-        if self.label is not None and metadata['label']!=self.label:
-            raise ValueError("The metadata file contains a label different from the video")
-        if self.ID is not None and metadata['ID']!=self.ID:
-            raise ValueError("The metadata file contains an ID different from the video")
-        
-        # add some other metadata
-        if 'valid_frames' in metadata.keys():
-            self.valid_frames=metadata['valid_frames']
-        if 'segments' in metadata.keys():
-            self.segments={}
-            for k in metadata['segments'].keys():
-                self.segments[k] = np.asarray(metadata['segments'][k])  
+        if self.label is not None and metadata["label"] != self.label:
+            raise ValueError(
+                "The metadata file contains a label different from the video"
+            )
+        if self.ID is not None and metadata["ID"] != self.ID:
+            raise ValueError(
+                "The metadata file contains an ID different from the video"
+            )
 
-    
+        # add some other metadata
+        if "valid_frames" in metadata.keys():
+            self.valid_frames = metadata["valid_frames"]
+        if "segments" in metadata.keys():
+            self.segments = {}
+            for k in metadata["segments"].keys():
+                self.segments[k] = np.asarray(metadata["segments"][k])
+
 
 class Gaze(Behavior):
 
     def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize gaze traces for one trial."""
-        super().__init__(recording_folder, trial, behavior_type='pupil_center', indexes=[0,1])
+        super().__init__(
+            recording_folder, trial, behavior_type="pupil_center", indexes=[0, 1]
+        )
 
     def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot 2D gaze trajectory.
@@ -177,19 +189,20 @@ class Gaze(Behavior):
         tuple
             ``(fig, ax)`` matplotlib objects.
         """
-        fig, ax = plt.subplots(ncols=1,nrows=1)
-        ax.plot(self.data[0,:], self.data[1,:],'k')
-        ax.set_xlabel('gaze x')
-        ax.set_ylabel('gaze y')
+        fig, ax = plt.subplots(ncols=1, nrows=1)
+        ax.plot(self.data[0, :], self.data[1, :], "k")
+        ax.set_xlabel("gaze x")
+        ax.set_ylabel("gaze y")
         return fig, ax
+
 
 class Pupil(Behavior):
 
     def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize pupil-size trace for one trial."""
-        super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[0])
+        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[0])
 
-    def detrend(self, type: str ='linear', bp: int | list[int] =0) -> 'Pupil':
+    def detrend(self, type: str = "linear", bp: int | list[int] = 0) -> "Pupil":
         """Detrend pupil signal in place.
 
         Parameters
@@ -204,10 +217,12 @@ class Pupil(Behavior):
         Pupil
             Self instance after detrending.
         """
-        data_detrended = detrend(self.data[:self.valid_frames], axis=-1, type=type, bp=bp)
-        self.data[:self.valid_frames] = data_detrended
+        data_detrended = detrend(
+            self.data[: self.valid_frames], axis=-1, type=type, bp=bp
+        )
+        self.data[: self.valid_frames] = data_detrended
         return self
-    
+
     def compute_power_spectrum(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute power spectrum of the valid pupil samples.
 
@@ -216,7 +231,9 @@ class Pupil(Behavior):
         tuple[numpy.ndarray, numpy.ndarray]
             Frequencies and PSD values.
         """
-        return compute_power_spectrum(self.data[:self.valid_frames], self.sampling_freq)
+        return compute_power_spectrum(
+            self.data[: self.valid_frames], self.sampling_freq
+        )
 
     def plot_power_spectrum(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot pupil power spectrum.
@@ -226,8 +243,10 @@ class Pupil(Behavior):
         tuple
             ``(fig, ax)`` matplotlib objects.
         """
-        freqs, psd = compute_power_spectrum(self.data[:self.valid_frames], self.sampling_freq)
-        fig, ax = plt.subplots(ncols=1,nrows=1)
+        freqs, psd = compute_power_spectrum(
+            self.data[: self.valid_frames], self.sampling_freq
+        )
+        fig, ax = plt.subplots(ncols=1, nrows=1)
         ax.semilogy(freqs, psd)
         ax.set_xlim(0, 2)
         ax.set_xlabel("Frequency (Hz)")
@@ -244,20 +263,21 @@ class Pupil(Behavior):
         tuple
             ``(fig, ax)`` matplotlib objects.
         """
-        fig, ax = plt.subplots(ncols=1,nrows=1)
-        time = np.arange(len(self.data))/self.sampling_freq
-        ax.plot(time, self.data,'k')
-        ax.set_xlabel('time (s)')
-        ax.set_ylabel('pupil size')
+        fig, ax = plt.subplots(ncols=1, nrows=1)
+        time = np.arange(len(self.data)) / self.sampling_freq
+        ax.plot(time, self.data, "k")
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("pupil size")
         return fig, ax
-    
+
+
 class Locomotion(Behavior):
 
     def __init__(self, recording_folder: str | pathlib.Path, trial: str):
         """Initialize locomotion trace for one trial."""
-        super().__init__(recording_folder, trial, behavior_type='behavior', indexes=[1])
+        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[1])
 
-    def plot(self) -> tuple[plt.Figure, plt.Axes]: 
+    def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot locomotion speed over time.
 
         Returns
@@ -265,9 +285,9 @@ class Locomotion(Behavior):
         tuple
             ``(fig, ax)`` matplotlib objects.
         """
-        fig, ax = plt.subplots(ncols=1,nrows=1)
-        time = np.arange(len(self.data))/self.sampling_freq
-        ax.plot(time, self.data,'k')
-        ax.set_xlabel('time (s)')
-        ax.set_ylabel('locomotion speed')
+        fig, ax = plt.subplots(ncols=1, nrows=1)
+        time = np.arange(len(self.data)) / self.sampling_freq
+        ax.plot(time, self.data, "k")
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("locomotion speed")
         return fig, ax

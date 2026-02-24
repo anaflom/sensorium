@@ -1,10 +1,8 @@
-
 import numpy as np
 import os
 import json
 from pathlib import Path
 from typing import Any
-
 
 
 def to_json_safe(obj: Any) -> Any:
@@ -23,7 +21,9 @@ def to_json_safe(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: to_json_safe(v) for k, v in obj.items()}
     elif isinstance(obj, np.ndarray):
-        return to_json_safe(obj.tolist())  # recursively convert elements if it's an array of objects
+        return to_json_safe(
+            obj.tolist()
+        )  # recursively convert elements if it's an array of objects
     elif isinstance(obj, list):
         return [to_json_safe(v) for v in obj]
     elif isinstance(obj, np.generic):
@@ -47,7 +47,11 @@ def save_json(metadata: dict, full_file_name: str | Path) -> None:
         json.dump(metadata, f, indent=4)
 
 
-def load_all_data(recording_folder: str | Path, what_data: str, data_slice: slice | tuple | None = None) -> np.ndarray:
+def load_all_data(
+    recording_folder: str | Path,
+    what_data: str,
+    data_slice: slice | tuple | None = None,
+) -> np.ndarray:
     """Load and stack all ``.npy`` files for a data type.
 
     Parameters
@@ -70,16 +74,19 @@ def load_all_data(recording_folder: str | Path, what_data: str, data_slice: slic
         raise ValueError(f"Path does not exist: {path_to_data}")
 
     # Get sorted list of .npy files only
-    data_files_list = sorted([f for f in os.listdir(path_to_data) if f.endswith('.npy')])
+    data_files_list = sorted(
+        [f for f in os.listdir(path_to_data) if f.endswith(".npy")]
+    )
 
     if len(data_files_list) == 0:
         raise ValueError(f"No .npy files found in {path_to_data}")
-        
-       
+
     data_all = []
     for file in data_files_list:
         try:
-            data = np.load(os.path.join(recording_folder, "data", what_data, file), mmap_mode="r")
+            data = np.load(
+                os.path.join(recording_folder, "data", what_data, file), mmap_mode="r"
+            )
             if data_slice is None:
                 d = data
             else:
@@ -91,7 +98,7 @@ def load_all_data(recording_folder: str | Path, what_data: str, data_slice: slic
 
     if len(data_all) == 0:
         raise ValueError(f"No data successfully loaded from {path_to_data}")
-              
+
     return np.stack(data_all, axis=0)
 
 
@@ -101,12 +108,21 @@ def _is_valid_value(value: Any) -> bool:
         return False
     if isinstance(value, np.ndarray) and value.shape == ():
         return value.item() is not None
-    if value == '' or value == 'None' or value == 'none' or value == 'nan' or value == 'NaN' or value == 'NAN':
+    if (
+        value == ""
+        or value == "None"
+        or value == "none"
+        or value == "nan"
+        or value == "NaN"
+        or value == "NAN"
+    ):
         return False
     return True
 
 
-def load_trials_descriptor(trials_descriptor_file: str | Path, verbose: bool = False) -> list:
+def load_trials_descriptor(
+    trials_descriptor_file: str | Path, verbose: bool = False
+) -> list:
     """Load and clean trial descriptors from ``tiers.npy``.
 
     Parameters
@@ -121,15 +137,21 @@ def load_trials_descriptor(trials_descriptor_file: str | Path, verbose: bool = F
     list
         Valid descriptor entries.
     """
-        
+
     arr_trials_descriptor = np.load(trials_descriptor_file)
     trials_descriptor = arr_trials_descriptor.tolist()
     valid_trials_descriptor = [v for v in trials_descriptor if _is_valid_value(v)]
-    
-    if verbose and len(valid_trials_descriptor)!=len(trials_descriptor):
-        print(f'Total valid trials: {len(valid_trials_descriptor)}') 
-        print("Excluded values: " + ", ".join(f'"{x}"' for x in sorted(set(trials_descriptor)-set(valid_trials_descriptor))))
-    
+
+    if verbose and len(valid_trials_descriptor) != len(trials_descriptor):
+        print(f"Total valid trials: {len(valid_trials_descriptor)}")
+        print(
+            "Excluded values: "
+            + ", ".join(
+                f'"{x}"'
+                for x in sorted(set(trials_descriptor) - set(valid_trials_descriptor))
+            )
+        )
+
     return valid_trials_descriptor
 
 
@@ -139,7 +161,9 @@ def get_file_with_pattern(file_pattern: str, folder: str | Path):
     if len(files) == 0:
         raise FileNotFoundError(f"No file matches {file_pattern} in {folder}")
     if len(files) > 1:
-        raise ValueError(f"Multiple files ({len(files)}) match {file_pattern} in {folder}")
+        raise ValueError(
+            f"Multiple files ({len(files)}) match {file_pattern} in {folder}"
+        )
     return files[0]
 
 
@@ -162,18 +186,15 @@ def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
         file = get_file_with_pattern(f"*-{id}.json", folder)
     except Exception as e:
         print(f"Warning: Could not get a a file name with error {e}")
-    
+
     with open(file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
     return metadata, file
 
 
-
-
-
-
-
-def check_data_integrity(path_to_data: str | Path, verbose: bool = True) -> tuple[bool, dict]:
+def check_data_integrity(
+    path_to_data: str | Path, verbose: bool = True
+) -> tuple[bool, dict]:
     """Check integrity and consistency of trial data files.
 
     Parameters
@@ -199,17 +220,21 @@ def check_data_integrity(path_to_data: str | Path, verbose: bool = True) -> tupl
         samples_per_trial = None
         the_trials = None
         n_neurons = None
-    
+
     else:
         n_trials = {}
         data_shape = {}
         samples_per_trial = {}
         the_trials = {}
         n_neurons = []
-        for what_data in ['responses', 'videos', 'behavior','pupil_center']:
+        for what_data in ["responses", "videos", "behavior", "pupil_center"]:
             path_to_whatdata = os.path.join(path_to_data, what_data)
             if not os.path.exists(path_to_whatdata):
-                print(f"Warning: Path does not exist: {path_to_whatdata}") if verbose else None
+                (
+                    print(f"Warning: Path does not exist: {path_to_whatdata}")
+                    if verbose
+                    else None
+                )
                 data_ok = False
                 samples_per_trial[what_data] = None
                 n_trials[what_data] = 0
@@ -217,7 +242,11 @@ def check_data_integrity(path_to_data: str | Path, verbose: bool = True) -> tupl
                 continue
             files = list(Path(path_to_whatdata).glob("*.npy"))
             if len(files) == 0:
-                print(f"Warning: No .npy files found in {path_to_whatdata}") if verbose else None
+                (
+                    print(f"Warning: No .npy files found in {path_to_whatdata}")
+                    if verbose
+                    else None
+                )
                 data_ok = False
                 samples_per_trial[what_data] = None
                 n_trials[what_data] = 0
@@ -228,65 +257,103 @@ def check_data_integrity(path_to_data: str | Path, verbose: bool = True) -> tupl
             the_trials[what_data] = set([Path(f).stem for f in files])
             for fff in files:
                 try:
-                    data = np.load(fff, mmap_mode='r')
+                    data = np.load(fff, mmap_mode="r")
                     if what_data not in data_shape:
                         data_shape[what_data] = data.shape
                         samples_per_trial[what_data] = data.shape[-1]
                     else:
                         if data.shape != data_shape[what_data]:
-                            print(f"Warning: Different data shapes across {what_data} files in {path_to_data}: {data.shape} vs {data_shape[what_data]}") if verbose else None
+                            (
+                                print(
+                                    f"Warning: Different data shapes across {what_data} files in {path_to_data}: {data.shape} vs {data_shape[what_data]}"
+                                )
+                                if verbose
+                                else None
+                            )
                             data_ok = False
                         if data.shape[-1] != samples_per_trial[what_data]:
-                            print(f"Warning: Different number of samples per trial across {what_data} files in {path_to_data}: {data.shape[-1]} vs {samples_per_trial[what_data]}") if verbose else None
+                            (
+                                print(
+                                    f"Warning: Different number of samples per trial across {what_data} files in {path_to_data}: {data.shape[-1]} vs {samples_per_trial[what_data]}"
+                                )
+                                if verbose
+                                else None
+                            )
                             data_ok = False
-                    if what_data=='responses':
+                    if what_data == "responses":
                         n_neurons.append(data.shape[0])
                 except Exception as e:
                     print(f"Warning: Could not load {fff}: {e}") if verbose else None
                     data_ok = False
 
-        if len(set(n_trials.values()))>1:
-            print(f"Warning: Different number of trials across data types in {path_to_data}: {n_trials}") if verbose else None
+        if len(set(n_trials.values())) > 1:
+            (
+                print(
+                    f"Warning: Different number of trials across data types in {path_to_data}: {n_trials}"
+                )
+                if verbose
+                else None
+            )
             data_ok = False
             n_trials = None
         else:
             n_trials = set(n_trials.values()).pop()
-        
-        if not all(s == the_trials['responses'] for s in the_trials.values()):
-            print(f"Warning: Different trial files across data types in {path_to_data}") if verbose else None
+
+        if not all(s == the_trials["responses"] for s in the_trials.values()):
+            (
+                print(
+                    f"Warning: Different trial files across data types in {path_to_data}"
+                )
+                if verbose
+                else None
+            )
             data_ok = False
             the_trials = None
         else:
-            the_trials = sorted(the_trials['responses'])
+            the_trials = sorted(the_trials["responses"])
 
-        if len(set(samples_per_trial.values()))>1:
-            print(f"Warning: Different number of samples per trial across data types in {path_to_data}: {samples_per_trial}") if verbose else None
+        if len(set(samples_per_trial.values())) > 1:
+            (
+                print(
+                    f"Warning: Different number of samples per trial across data types in {path_to_data}: {samples_per_trial}"
+                )
+                if verbose
+                else None
+            )
             data_ok = False
             samples_per_trial = None
         else:
             samples_per_trial = set(samples_per_trial.values()).pop()
 
         unique_n_neurons = set(n_neurons)
-        if len(unique_n_neurons)==0:
+        if len(unique_n_neurons) == 0:
             data_ok = False
             n_neurons = None
-        elif len(unique_n_neurons)>1:
-            print(f"Warning: Different number of neurons across response files in {path_to_data}: {unique_n_neurons}") if verbose else None
+        elif len(unique_n_neurons) > 1:
+            (
+                print(
+                    f"Warning: Different number of neurons across response files in {path_to_data}: {unique_n_neurons}"
+                )
+                if verbose
+                else None
+            )
             data_ok = False
             n_neurons = None
         else:
             n_neurons = unique_n_neurons.pop()
 
         # save some information
-        info['n_trials'] = n_trials
-        info['trials'] = the_trials
-        info['samples_per_trial'] = samples_per_trial
-        info['n_neurons'] = n_neurons
-           
+        info["n_trials"] = n_trials
+        info["trials"] = the_trials
+        info["samples_per_trial"] = samples_per_trial
+        info["n_neurons"] = n_neurons
+
     return data_ok, info
 
 
-def check_meta_neurons_integrity(path_to_meta_neurons: str | Path, n_neurons: int | None = None, verbose: bool = True) -> tuple[np.ndarray | None, np.ndarray | None]:
+def check_meta_neurons_integrity(
+    path_to_meta_neurons: str | Path, n_neurons: int | None = None, verbose: bool = True
+) -> tuple[np.ndarray | None, np.ndarray | None]:
     """Check and load neuron coordinates/IDs metadata.
 
     Parameters
@@ -305,40 +372,79 @@ def check_meta_neurons_integrity(path_to_meta_neurons: str | Path, n_neurons: in
     """
 
     # check information in meta folder for the neurons coordinates
-    neurons_coord_path = Path(path_to_meta_neurons) / 'cell_motor_coordinates.npy'
+    neurons_coord_path = Path(path_to_meta_neurons) / "cell_motor_coordinates.npy"
     if not neurons_coord_path.exists():
-        print(f"Warning: No neurons coordinate file was found in {neurons_coord_path}, coordinates are set to None") if verbose else None
-        neurons_coord =  None
+        (
+            print(
+                f"Warning: No neurons coordinate file was found in {neurons_coord_path}, coordinates are set to None"
+            )
+            if verbose
+            else None
+        )
+        neurons_coord = None
     else:
         try:
             neurons_coord = np.load(neurons_coord_path)
-            if n_neurons is not None and neurons_coord.shape[0]!=n_neurons:
+            if n_neurons is not None and neurons_coord.shape[0] != n_neurons:
                 coord_count = neurons_coord.shape[0]
                 neurons_coord = None
-                print(f"Warning: The coordinates file has {coord_count} neurons but {n_neurons} neurons were detected in the data, coordinates are set to None") if verbose else None
+                (
+                    print(
+                        f"Warning: The coordinates file has {coord_count} neurons but {n_neurons} neurons were detected in the data, coordinates are set to None"
+                    )
+                    if verbose
+                    else None
+                )
         except Exception as e:
             neurons_coord = None
-            print(f"Warning: Could not load neurons coordinates, error {e}, coordinates are set to None") if verbose else None
-            
+            (
+                print(
+                    f"Warning: Could not load neurons coordinates, error {e}, coordinates are set to None"
+                )
+                if verbose
+                else None
+            )
+
     # check information in meta folder for the neurons IDs
-    neurons_ids_path = Path(path_to_meta_neurons) / 'unit_ids.npy'
+    neurons_ids_path = Path(path_to_meta_neurons) / "unit_ids.npy"
     if not neurons_ids_path.exists():
-        print(f"Warning: No neurons IDs file was found in {neurons_ids_path}, IDs are set to None") if verbose else None
+        (
+            print(
+                f"Warning: No neurons IDs file was found in {neurons_ids_path}, IDs are set to None"
+            )
+            if verbose
+            else None
+        )
         neurons_ids = None
     else:
         try:
             neurons_ids = np.load(neurons_ids_path)
-            if n_neurons is not None and neurons_ids.shape[0]!=n_neurons:
+            if n_neurons is not None and neurons_ids.shape[0] != n_neurons:
                 ids_count = neurons_ids.shape[0]
                 neurons_ids = None
-                print(f"Warning: The IDs file has {ids_count} neurons but {n_neurons} neurons were detected in the data, IDs are set to None") if verbose else None
+                (
+                    print(
+                        f"Warning: The IDs file has {ids_count} neurons but {n_neurons} neurons were detected in the data, IDs are set to None"
+                    )
+                    if verbose
+                    else None
+                )
         except Exception as e:
             neurons_ids = None
-            print(f"Warning: Could not load neurons IDs, error {e}, IDs are set to None") if verbose else None
-        
+            (
+                print(
+                    f"Warning: Could not load neurons IDs, error {e}, IDs are set to None"
+                )
+                if verbose
+                else None
+            )
+
     return neurons_coord, neurons_ids
 
-def check_meta_trials_integrity(path_to_meta_trials: str | Path, n_trials: int | None = None, verbose: bool = True) -> list | None:
+
+def check_meta_trials_integrity(
+    path_to_meta_trials: str | Path, n_trials: int | None = None, verbose: bool = True
+) -> list | None:
     """Check and load trial descriptor metadata.
 
     Parameters
@@ -358,22 +464,38 @@ def check_meta_trials_integrity(path_to_meta_trials: str | Path, n_trials: int |
 
     # check information in meta folder for the trials description
 
-    file_path = Path(path_to_meta_trials) / 'tiers.npy'
+    file_path = Path(path_to_meta_trials) / "tiers.npy"
     if not file_path.exists():
-        print(f"Warning: No trial description file was found in {file_path}, description will be set to None") if verbose else None
+        (
+            print(
+                f"Warning: No trial description file was found in {file_path}, description will be set to None"
+            )
+            if verbose
+            else None
+        )
         return None
 
     try:
         trial_type = load_trials_descriptor(file_path, verbose=False)
         if n_trials:
-            if len(trial_type)!=n_trials:
-                print(f"Warning: Wrong number of trials ({n_trials}) and descriptors ({len(trial_type)}), description will be set to None") if verbose else None
+            if len(trial_type) != n_trials:
+                (
+                    print(
+                        f"Warning: Wrong number of trials ({n_trials}) and descriptors ({len(trial_type)}), description will be set to None"
+                    )
+                    if verbose
+                    else None
+                )
                 trial_type = None
-    
-    except Exception as e:
-        print(f"Warning: Could not load trial description, error {e}, description will be set to None") if verbose else None
-        return None
-    
-    return trial_type
-   
 
+    except Exception as e:
+        (
+            print(
+                f"Warning: Could not load trial description, error {e}, description will be set to None"
+            )
+            if verbose
+            else None
+        )
+        return None
+
+    return trial_type

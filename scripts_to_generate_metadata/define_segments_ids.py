@@ -7,10 +7,11 @@ if str(repo_root) not in sys.path:
 
 from utils.dataset import DataSet
 
+
 def main(folder_data, folder_meta):
 
     # the labels to check
-    labels = ['NaturalImages','GaussianDot','Gabor','PinkNoise','RandomDots']
+    labels = ["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"]
 
     # set the limit to decide that two segments are the same or different
     limit_dissimilarity = 20
@@ -28,10 +29,9 @@ def main(folder_data, folder_meta):
 if __name__ == "__main__":
 
     # path to the folder with the data as downloaded
-    folder_data = repo_root / 'data'
+    folder_data = repo_root / "data"
     # path to the metadata folder
-    folder_meta = repo_root / 'metadata'
-
+    folder_meta = repo_root / "metadata"
 
     try:
         main(folder_data, folder_meta)

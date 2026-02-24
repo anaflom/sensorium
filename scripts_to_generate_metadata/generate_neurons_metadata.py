@@ -19,13 +19,13 @@ def main(folder_data, folder_meta):
     # generate the metadata for all recordings
     dataset.generates_neurons_metadata()
 
-    
+
 if __name__ == "__main__":
 
     # path to the folder with the data as downloaded
-    folder_data = repo_root / 'data'
+    folder_data = repo_root / "data"
     # path to the metadata folder
-    folder_meta = repo_root / 'metadata'
+    folder_meta = repo_root / "metadata"
 
     try:
         main(folder_data, folder_meta)

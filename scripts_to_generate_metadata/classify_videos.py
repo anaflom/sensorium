@@ -7,22 +7,24 @@ if str(repo_root) not in sys.path:
 
 from utils.dataset import DataSet
 
+
 def main(folder_data, folder_results):
 
     # initialize a datset object to handle the data and metadata
-    dataset = DataSet(folder_data, folder_metadata=None, folder_metadata_per_trial=folder_results)
-    
+    dataset = DataSet(
+        folder_data, folder_metadata=None, folder_metadata_per_trial=folder_results
+    )
+
     # clasiffy the videos for all recordings
     dataset.classify_videos()
-    
-    
+
 
 if __name__ == "__main__":
 
     # base folder
-    folder_data = repo_root / 'data'
+    folder_data = repo_root / "data"
     # results folder
-    folder_results = repo_root / 'intermediate_results'
+    folder_results = repo_root / "intermediate_results"
 
     try:
         main(folder_data, folder_results)
