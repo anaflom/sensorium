@@ -1,6 +1,6 @@
 # Sensorium — metadata creation and data handling
 
-A small collection of utilities to create FAIR metadata for the Sensorium dataset, and to load, inspect and preprocess Sensorium recordings (videos, neural responses, gaze, pupil, locomotion).
+A small collection of utilities to create FAIR metadata for the Sensorium [https://sensorium-competition.net/] dataset, and to load, inspect and preprocess Sensorium recordings (videos, neural responses, gaze, pupil, locomotion).
 
 **Author:** Ana Fló
 
