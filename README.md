@@ -38,31 +38,76 @@ Download the Sensorium dataset and place it under `./data/`. Expected layout (ex
 
 ```
 data/
-  dynamic29513-3-5-Video-<hash>/
-    data/
-        videos/
-            0.npy
-            1.npy
-        responses/
-            0.npy
-            1.npy
-        pupil_center/
-            0.npy
-            1.npy
-        bahavior/
-            0.npy
-            1.npy
-    meta/
-        neurons/
-            cell_motor_coordinates.npy
-            unit_ids.npy
-        trials/
-            tiers.npy
-  dynamic29514-2-9-Video-<hash>/
+    dynamic29513-3-5-.../
+        data/
+            videos/
+                0.npy
+                1.npy
+            responses/
+                0.npy
+                1.npy
+            pupil_center/
+                0.npy
+                1.npy
+            bahavior/
+                0.npy
+                1.npy
+        meta/
+            neurons/
+                cell_motor_coordinates.npy
+                unit_ids.npy
+            trials/
+                tiers.npy
+    dynamic29514-2-9-.../
     ...
 ```
 
 Source: https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730
+
+## Regenerating metadata — recommended order
+Run these scripts in order when regenerating metadata:
+
+1. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `intermediate_results/<recording>/`.
+2. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
+3. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
+4. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
+
+Notes and tips:
+- To regenerate from scratch, remove `metadata/` and `intermediate_results/` first:
+```bash
+rm -rf metadata/ intermediate_results/
+```
+- Regenerating from scratch will assign new `videoID`/`segmentID` values; update downstream code that relies on stable IDs.
+- If the scripts `define_videos_ids.py` is run before removing the metadata folder, it will compare every trial against the existing video IDs (in `./metadata/global_meta/`), which significantly slows down execution.
+
+## Running the scripts
+From the repository root:
+
+```bash
+python scripts_to_generate_metadata/classify_videos.py
+python scripts_to_generate_metadata/define_videos_ids.py
+python scripts_to_generate_metadata/define_segments_ids.py
+python scripts_to_generate_metadata/generate_neurons_metadata.py
+```
+
+## Metaata (expected layout)
+The generated metadata will be placed under `./metadata/`. Expected layout (example):
+
+```
+metadata/
+    dynamic29513-3-5-.../
+        meta-neurons_dynamic29156-11-10...csv
+        meta-trials_dynamic29156-11-10...csv
+    dynamic29513-3-5-.../
+    ...
+    global_meta/
+        segments/
+            Gabor-s028037.json
+            ...
+        videos/
+            Gabor-v002231.json
+            ...   
+```
 
 ## Quick usage
 
@@ -117,31 +162,6 @@ locomotion, df_trials = ds.load_behavior_by("locomotion", recording="dynamic2951
 Notes:
 - Replace the example recording/video IDs with the actual IDs present under `./data/`.
 
-## Regenerating metadata — recommended order
-Run these scripts in order when regenerating metadata:
-
-1. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `intermediate_results/<recording>/`.
-2. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
-3. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
-4. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
-
-Notes and tips:
-- To regenerate from scratch, remove `metadata/` and `intermediate_results/` first:
-```bash
-rm -rf metadata/ intermediate_results/
-```
-- Regenerating from scratch will assign new `videoID`/`segmentID` values; update downstream code that relies on stable IDs.
-- If the scripts `define_videos_ids.py` is run before removing the metadata folder, it will compare every trial against the existing video IDs (in `./metadata/global_meta/`), which significantly slows down execution.
-
-## Running the scripts
-From the repository root:
-
-```bash
-python scripts_to_generate_metadata/classify_videos.py
-python scripts_to_generate_metadata/define_videos_ids.py
-python scripts_to_generate_metadata/define_segments_ids.py
-python scripts_to_generate_metadata/generate_neurons_metadata.py
-```
 
 ## Contributing
 - Please open issues or pull requests for improvements or bug reports.
