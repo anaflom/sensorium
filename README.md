@@ -1,8 +1,9 @@
 # Sensorium — metadata creation and data handling
 
-A small collection of utilities to create FAIR metadata for the [Sensorium] (https://sensorium-competition.net/) dataset.
+A small collection of utilities to create FAIR metadata for the [Sensorium](https://sensorium-competition.net/) dataset.
 
-It provides videos classifications for the dataset and allows to load and inspect the data (videos, neural responses, gaze, pupil, locomotion).
+It provides metadata including video classification and assignment of unique identifiers. 
+It allows to load and inspect the data (videos, neural responses, gaze, pupil, locomotion).
 
 **Author:** Ana Fló
 
@@ -51,7 +52,7 @@ data/
             pupil_center/
                 0.npy
                 1.npy
-            bahavior/
+            behavior/
                 0.npy
                 1.npy
         meta/
@@ -98,8 +99,8 @@ The generated metadata will be placed under `./metadata/`. Expected layout (exam
 ```
 metadata/
     dynamic29513-3-5-.../
-        meta-neurons_dynamic29156-11-10...csv
-        meta-trials_dynamic29156-11-10...csv
+        meta-neurons_dynamic29513-3-5-...csv
+        meta-trials_dynamic29513-3-5-...csv
     dynamic29514-2-9-.../
     ...
     global_meta/
@@ -128,7 +129,6 @@ if str(repo_root) not in sys.path:
 
 from utils.dataset import DataSet
 
-repo_root = Path.cwd()
 data_root = repo_root / "data"
 
 # Initialize dataset (adjust parameters to your setup)
