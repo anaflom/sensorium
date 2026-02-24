@@ -995,7 +995,7 @@ class DataSet():
                            })
         
         
-    def get_segments_meta(self, set_segments_df: bool = True, verbose: bool = True) -> pd.DataFrame:
+    def get_segments_metadata(self, set_segments_df: bool = True, verbose: bool = True) -> pd.DataFrame:
         """Load and aggregate all global segment metadata.
 
         Returns
@@ -1042,7 +1042,7 @@ class DataSet():
         
         # load a table with segments metadata if not loaded yet
         if not hasattr(self, 'segments_df'):
-            raise ValueError("segments_df is not loaded, please run get_segments_meta() first")
+            raise ValueError("segments_df is not loaded, please run get_segments_metadata() first")
         all_segments_df = self.segments_df.copy()
         
         # find trials agreeing on that conditions
@@ -1081,7 +1081,7 @@ class DataSet():
 
         # load a table with segments metadata if not loaded yet
         if not hasattr(self, 'segments_df'):
-            raise ValueError("segments_df is not loaded, please run get_segments_meta() first")
+            raise ValueError("segments_df is not loaded, please run get_segments_metadata() first")
         all_segments_df = self.segments_df.copy()
 
         # count
@@ -1514,7 +1514,7 @@ class DataSet():
             If ``True``, print warnings and progress messages.
         """
 
-        segments_df = self.get_segments_meta()
+        segments_df = self.get_segments_metadata()
         segm = segments_df[['segment_ID','segment_label','video_ID', 'video_label','segment_index']].drop_duplicates()
 
         print_title('Adding segments IDs info to the videos metadata ', verbose)
