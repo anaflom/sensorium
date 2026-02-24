@@ -169,4 +169,8 @@ Notes:
 - Please open issues or pull requests for improvements or bug reports.
 
 ## License
-This project is licensed under the BSD 3-Clause "New" or "Revised" License. See `LICENSE/` for details.
+The sofware of this project is licensed under the BSD 3-Clause "New" or "Revised" License. 
+
+The generated metadata is license under CC-BY-NC-ND-4.0
+
+See `LICENSE/` for details.
