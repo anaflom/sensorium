@@ -147,4 +147,4 @@ python scripts_to_generate_metadata/generate_neurons_metadata.py
 - Please open issues or pull requests for improvements or bug reports.
 
 ## License
-This project is licensed under the BSD 3-Clause "New" or "Revised" License. See `LICENSE` for details.
+This project is licensed under the BSD 3-Clause "New" or "Revised" License. See `LICENSE/` for details.

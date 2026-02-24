@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Ana Flo <anaflom@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 from tabnanny import verbose
 import pandas as pd
 import numpy as np

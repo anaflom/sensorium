@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Ana Flo <anaflom@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 import numpy as np
 import os
 import json
