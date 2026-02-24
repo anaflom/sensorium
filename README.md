@@ -90,7 +90,7 @@ python scripts_to_generate_metadata/define_segments_ids.py
 python scripts_to_generate_metadata/generate_neurons_metadata.py
 ```
 
-## Metaata (expected layout)
+## Metadata (expected layout)
 The generated metadata will be placed under `./metadata/`. Expected layout (example):
 
 ```
@@ -98,7 +98,7 @@ metadata/
     dynamic29513-3-5-.../
         meta-neurons_dynamic29156-11-10...csv
         meta-trials_dynamic29156-11-10...csv
-    dynamic29513-3-5-.../
+    dynamic29514-2-9-.../
     ...
     global_meta/
         segments/
@@ -109,7 +109,7 @@ metadata/
             ...   
 ```
 
-## Quick usage
+## Dataset quick usage
 
 Notebook examples:
 - `notebooks_dataset_exploration/example_load_data.ipynb` — loading a recording.
