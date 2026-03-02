@@ -284,6 +284,27 @@ class DataSet:
         is_valid = True
         for rec in self.recording:
 
+            # parse some information from the recording name, to be stored in the info variable
+            info_data_rec_general = {}
+            x = rec.split("-")
+            start_index = x[0].find('dynamic')
+            if start_index != -1:
+                end_index = start_index + len('dynamic')
+                info_data_rec_general["animal_id"] = x[0][end_index:]
+            else:
+                info_data_rec_general["animal_id"] = None
+                print("Warning:Substring dynamic not found in the recording folder name. The animal ID could not be set") if verbose else None
+            if len(x)>0:
+                info_data_rec_general["session"] = x[1]
+            else:
+                info_data_rec_general["session"] = None
+                print("Warning: Could not parse session from the recording folder name. The session could not be set") if verbose else None
+            if len(x)>1:
+                info_data_rec_general["scan_idx"] = x[2]
+            else:
+                info_data_rec_general["scan_idx"] = None
+                print("Warning: Could not parse scan index from the recording folder name. The scan index could not be set") if verbose else None
+            
             # check the data folder
             path_to_data = os.path.join(self.folder_data, rec, "data")
             all_fine_data, info_data_rec = check_data_integrity(
@@ -291,7 +312,7 @@ class DataSet:
             )
 
             # store the information about the data for the recording
-            self.info[rec] = info_data_rec
+            self.info[rec] = {**info_data_rec_general, **info_data_rec}
 
             # store the information about data quality
             good_data_per_recording[rec] = all_fine_data
@@ -1630,6 +1651,14 @@ class DataSet:
             except Exception as e:
                 print(f"Error processing recording {rec}: {e}")
                 continue
+
+    def generates_basic_metadata_per_recording(self, sampling_freq: float | int = 30) -> None:
+        for rec in self.recording:
+            keys = ['animal_id', 'session', 'scan_idx', 'n_trials', 'samples_per_trial', 'n_neurons']
+            info_save = {k: self.info[rec][k] for k in keys if k in self.info[rec]}
+            info_save['sampling_freq'] = sampling_freq
+            save_json(info_save, os.path.join(self.folder_metadata, rec, f"meta-basic-{rec}.json"))
+
 
     def classify_videos(
         self, recording: str | list[str] | None = None, verbose: bool = True
