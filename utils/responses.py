@@ -274,6 +274,7 @@ class Responses:
         neurons_idx: np.ndarray,
         normalization: str | None = None,
         plot_segments: bool | None = None,
+        plot_thresh: float | None = None,
     ) -> tuple[plt.Figure, list[plt.Axes]]:
         """Plot response traces for selected neurons.
 
@@ -285,6 +286,8 @@ class Responses:
             Optional normalization mode.
         plot_segments : bool or None, optional
             Whether to overlay segment boundaries.
+        plot_thresh : float or None, optional
+            Optional threshold to plot as horizontal line.
 
         Returns
         -------
@@ -324,6 +327,8 @@ class Responses:
             if plot_segments and hasattr(self, "segments"):
                 for x in self.segments["frame_start"][1:]:
                     ax.axvline(time[x - 1], color="b", linestyle=":", linewidth=0.5)
+            if plot_thresh is not None:
+                ax.axhline(plot_thresh, color="r", linestyle="--", linewidth=0.5)
         axs[-1].set_xlabel("time (s)")
         plt.tight_layout()
 
