@@ -12,7 +12,7 @@ if str(repo_root) not in sys.path:
 from utils.dataset import DataSet
 
 
-def main(folder_data, folder_meta):
+def main(folder_data, folder_meta, recording=None):
 
     # the labels to check
     labels = ["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"]
@@ -21,7 +21,7 @@ def main(folder_data, folder_meta):
     limit_dissimilarity = 20
 
     # initialize a datset object to handle the data and metadata
-    dataset = DataSet(folder_data, folder_metadata=folder_meta)
+    dataset = DataSet(folder_data, folder_metadata=folder_meta, recording=recording)
 
     # define segments IDs
     dataset.define_segments_id(labels, limit_dissimilarity=limit_dissimilarity)
@@ -36,9 +36,17 @@ if __name__ == "__main__":
     folder_data = repo_root / "data"
     # path to the metadata folder
     folder_meta = repo_root / "metadata"
+    # recordings to define segments IDs for (if None, all recordings will be used)
+    recordings_to_use = [
+    'dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce',
+    'dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce',
+    'dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce',
+    'dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce',
+    'dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce',
+    ]
 
     try:
-        main(folder_data, folder_meta)
+        main(folder_data, folder_meta, recording=recordings_to_use)
         print("\nSegment ID definition completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
