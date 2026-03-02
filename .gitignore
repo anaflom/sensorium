@@ -19,5 +19,8 @@ notebooks_dataset_exploration/some_tests.ipynb
 # Large generated data
 data/
 
+# Figures
+figures/
+
 # Local arrays
 *.npy
