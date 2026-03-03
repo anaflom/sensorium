@@ -171,7 +171,7 @@ def get_file_with_pattern(file_pattern: str, folder: str | Path):
     return files[0]
 
 
-def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
+def load_metadata_from_id(id: str, folder: str | Path, verbose: bool = True) -> tuple[dict, Path]:
     """Load one metadata JSON matching an ID pattern.
 
     Parameters
@@ -180,6 +180,8 @@ def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
         Identifier suffix used in file pattern ``*-{id}.json``.
     folder : str or pathlib.Path
         Metadata folder.
+    verbose : bool, default=True
+        If ``True``, print warnings.
 
     Returns
     -------
@@ -189,7 +191,8 @@ def load_metadata_from_id(id: str, folder: str | Path) -> tuple[dict, Path]:
     try:
         file = get_file_with_pattern(f"*-{id}.json", folder)
     except Exception as e:
-        print(f"Warning: Could not get a a file name with error {e}")
+        print(f"Warning: Could not get a a file name with error {e}") if verbose else None
+        return {}, None
 
     with open(file, "r", encoding="utf-8") as f:
         metadata = json.load(f)

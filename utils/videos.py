@@ -1706,13 +1706,15 @@ class Video:
             for k in self.segments.keys():
                 self.segments[k] = np.asarray(self.segments[k])
 
-    def load_metadata_from_id(self, folder_metadata: Path | str) -> None:
+    def load_metadata_from_id(self, folder_metadata: Path | str, verbose: bool = True) -> None:
         """Load metadata by ``self.ID`` and update core video attributes.
 
         Parameters
         ----------
         folder_metadata : str or pathlib.Path
             Directory containing video metadata files.
+        verbose : bool, default=True
+            If ``True``, print warnings.
 
         Raises
         ------
@@ -1721,7 +1723,9 @@ class Video:
         """
 
         # load metadata
-        metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
+        metadata, _ = load_metadata_from_id(self.ID, folder_metadata, verbose=verbose)
+        if len(metadata) == 0:
+            raise ValueError(f"No metadata found for video ID {self.ID} in {folder_metadata}")
 
         # check it is compatible
         if metadata["label"] != self.label:
@@ -1815,6 +1819,8 @@ class VideoID(Video):
 
         # load metadata
         metavideo, _ = load_metadata_from_id(video_id, videos_metadata_folder)
+        if len(metavideo) == 0:
+            raise ValueError(f"No metadata found for video ID {video_id} in {videos_metadata_folder}")
 
         # pick and exemplar video
         duplicates = metavideo.get("duplicates", {})
@@ -2342,6 +2348,8 @@ class VideoSegment:
         """
 
         metadata, _ = load_metadata_from_id(self.ID, folder_metadata)
+        if len(metadata) == 0:
+            raise ValueError(f"No metadata found for segment ID {self.ID} in {folder_metadata}")
         for k, v in metadata.items():
             setattr(self, k, metadata[k])
 
@@ -2449,6 +2457,8 @@ class VideoSegmentID(VideoSegment):
 
         # load metadata
         metasegment, _ = load_metadata_from_id(segment_id, segment_metadata_folder)
+        if len(metasegment) == 0:
+            raise ValueError(f"No metadata found for segment ID {segment_id} in {segment_metadata_folder}")
 
         # pick an exemplar video
         duplicates = metasegment.get("duplicates", {})

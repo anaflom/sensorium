@@ -1045,7 +1045,7 @@ class DataSet:
         # try loading metadata from global metadata folder (if configured)
         if self.folder_globalmetadata_videos is not None and try_global_first:
             try:
-                video.load_metadata_from_id(self.folder_globalmetadata_videos)
+                video.load_metadata_from_id(self.folder_globalmetadata_videos, verbose=verbose)
                 return video
             except Exception as e:
                 if verbose:
