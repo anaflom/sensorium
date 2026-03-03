@@ -9,6 +9,44 @@ import pandas as pd
 import numpy as np
 from typing import Any
 
+def parse_info_from_recording_name(recording: str, verbose: bool = True) -> dict:
+    """Parse recording information from recording folder name.
+
+    Parameters
+    ----------
+    recording : str
+        Recording folder name.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    dict
+        Parsed recording information.
+    """
+
+    info = {}
+    x = recording.split("-")
+    start_index = x[0].find('dynamic')
+    if start_index != -1:
+        end_index = start_index + len('dynamic')
+        info["animal_id"] = x[0][end_index:]
+    else:
+        info["animal_id"] = None
+        print("Warning:Substring dynamic not found in the recording folder name. The animal ID could not be set") if verbose else None
+    if len(x)>0:
+        info["session"] = x[1]
+    else:
+        info["session"] = None
+        print("Warning: Could not parse session from the recording folder name. The session could not be set") if verbose else None
+    if len(x)>1:
+        info["scan_idx"] = x[2]
+    else:
+        info["scan_idx"] = None
+        print("Warning: Could not parse scan index from the recording folder name. The scan index could not be set") if verbose else None
+
+    return info
+
 
 def _validate_csv_metadata(
     filepath: str | Path,
@@ -71,6 +109,71 @@ def _validate_csv_metadata(
     #     print(f"Warning: Unexpected columns in {filepath}: {unexpected_columns}") if verbose else None
 
     return df, is_valid
+
+
+def validate_metadata_basic_dict(metadata: dict[str, Any]) -> bool:
+    """Validate basic metadata dictionary.
+
+    Parameters
+    ----------
+    metadata : dict
+        Basic metadata dictionary.
+
+    Returns
+    -------
+    bool
+        ``True`` when dictionary passes all checks.
+    """
+    is_valid = True
+
+    # Check for mandatory fields
+    mandatory_fields = {"animal_id", "session", "scan_idx", "sampling_freq","n_neurons", "n_trials","samples_per_trial"}
+
+    missing_fields = mandatory_fields - set(metadata.keys())
+    if missing_fields:
+        is_valid = False
+        raise ValueError(f"Missing mandatory fields: {missing_fields}")
+
+    return is_valid
+
+
+
+def validate_metadata_basic_json(
+    filepath: str | Path,
+) -> tuple[dict[str, Any], bool]:
+    """Load and validate one basic metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
+    """
+    filepath = Path(filepath)
+    is_valid = True
+
+    # Check if file exists
+    if not filepath.exists():
+        is_valid = False
+        raise FileNotFoundError(f"Metadata file not found: {filepath}")
+
+    # Try to load JSON
+    try:
+        with open(filepath, "r") as f:
+            metadata = json.load(f)
+        is_valid = validate_metadata_basic_dict(metadata)
+    except json.JSONDecodeError as e:
+        is_valid = False
+        raise ValueError(f"Invalid JSON in {filepath}: {e}")
+    except Exception as e:
+        is_valid = False
+        raise ValueError(f"Error reading {filepath}: {e}")
+
+    return metadata, is_valid
 
 
 def validate_global_trials_metadata(filepath: str | Path) -> tuple[pd.DataFrame, bool]:
@@ -696,11 +799,23 @@ def validate_metadata_recording(
             print(f"Warning: Could not load {file}: {e}") if verbose else None
             df, good_neurons = None, False
 
+    # check the basic metadata file
+    file = os.path.join(folder_metadata_rec, f"meta-basic_{rec}.json")
+    if not os.path.exists(file):
+        print(f"Warning: File does not exist: {file}") if verbose else None
+        good_basic = False
+    else:
+        try:
+            basic_meta, good_basic = validate_metadata_basic_json(file)
+        except Exception as e:
+            print(f"Warning: Could not load {file}: {e}") if verbose else None
+            basic_meta, good_basic = None, False
+
     # print if all fine for the recording
-    if good_trials and good_neurons:
+    if good_trials and good_neurons and good_basic:
         print(f"---> Metadata seems ok for recording {rec}.") if verbose else None
 
-    return good_trials and good_neurons
+    return good_trials and good_neurons and good_basic
 
 
 def check_metadata_integrity(

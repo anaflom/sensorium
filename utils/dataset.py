@@ -9,6 +9,7 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 import json
+import operator
 
 
 from utils.videos import Video, VideoID, VideoSegment, VideoSegmentID
@@ -25,6 +26,7 @@ from utils.data_handling import (
     check_meta_trials_integrity,
 )
 from utils.metadata import (
+    parse_info_from_recording_name,
     validate_metadata_video_dict,
     check_metadata_integrity,
     check_metadata_per_trial_integrity,
@@ -83,6 +85,108 @@ def print_title(s: str, verbose: bool):
     print(f"\n{s:-<100}") if verbose else None
 
 
+
+def filter_dataframe(df,
+    query: str | None = None,
+    **conditions,
+) -> pd.DataFrame:
+    """Filter the trials table by one or more conditions.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame to filter.
+    query : str | None, default=None
+        A query string to filter the trials using pandas.DataFrame.query().
+    conditions : keyword arguments
+        Conditions to filter the trials. Keys are column names and values are the values to filter by. Values can be a single value or a list of values.
+        
+    Returns
+    -------
+    pandas.DataFrame
+        Filtered trial rows.
+
+    Examples
+    --------
+    filter_dataframe(df, trial_type="A")
+    filter_dataframe(df, trial_type=["A", "B"])
+    filter_dataframe(df, score__gt=5)
+    filter_dataframe(df, score__ge=5, score__lt=10)
+    filter_dataframe(df, recording__contains="mouse")
+    filter_dataframe(df, score=lambda s: s % 2 == 0)
+    filter_dataframe(df, query="score > 5 and trial_type == 'A'")
+    """
+
+    mask = pd.Series(True, index=df.index)
+
+    # operator mapping
+    ops = {
+        "gt": operator.gt,
+        "lt": operator.lt,
+        "ge": operator.ge,
+        "le": operator.le,
+        "ne": operator.ne,
+        "eq": operator.eq,
+    }
+        
+    for key, value in conditions.items():
+
+        if "__" in key:
+            column, op_name = key.split("__", 1)
+        else:
+            column, op_name = key, "eq"
+
+        # Validate column
+        if column not in df.columns:
+            raise ValueError(f"Column '{column}' not found in trials_df")
+
+        series = df[column]
+
+        # Callable support
+        if callable(value):
+            callable_result = value(series)
+            if isinstance(callable_result, pd.Series):
+                if not callable_result.index.equals(df.index):
+                    raise ValueError(
+                        f"Callable filter for column '{column}' must return a Series aligned with trials_df index"
+                    )
+                mask &= callable_result.fillna(False).astype(bool)
+            else:
+                callable_array = np.asarray(callable_result)
+                if callable_array.shape[0] != len(df):
+                    raise ValueError(
+                        f"Callable filter for column '{column}' must return one boolean value per row"
+                    )
+                mask &= pd.Series(callable_array, index=df.index).fillna(False).astype(bool)
+            continue
+
+        # List support
+        if isinstance(value, (list, tuple, set)) and op_name == "eq":
+            mask &= series.isin(value)
+            continue
+
+        # String operators
+        if op_name in ["contains", "startswith", "endswith"]:
+            if not pd.api.types.is_string_dtype(series):
+                raise TypeError(f"Column '{column}' is not string type")
+            mask &= getattr(series.str, op_name)(value, na=False)
+            continue
+
+        # Comparison operators
+        if op_name in ops:
+            mask &= ops[op_name](series, value)
+        else:
+            raise ValueError(f"Unsupported operator '__{op_name}'")
+
+    filtered_df = df.loc[mask]
+
+    # Query support (applied after kwargs filtering)
+    if query is not None:
+        filtered_df = filtered_df.query(query)
+
+    return filtered_df
+    
+
 class DataSet:
 
     def __init__(
@@ -135,6 +239,9 @@ class DataSet:
 
         # load trial types for all recordings and store it in the info variable
         self.load_trial_types()
+
+        # create a table with basic info about the trials
+        self.trials_df = self.get_trials_metadata_basic(verbose=verbose)
 
     def __str__(self):
         """Return a human-readable summary of the dataset.
@@ -285,25 +392,7 @@ class DataSet:
         for rec in self.recording:
 
             # parse some information from the recording name, to be stored in the info variable
-            info_data_rec_general = {}
-            x = rec.split("-")
-            start_index = x[0].find('dynamic')
-            if start_index != -1:
-                end_index = start_index + len('dynamic')
-                info_data_rec_general["animal_id"] = x[0][end_index:]
-            else:
-                info_data_rec_general["animal_id"] = None
-                print("Warning:Substring dynamic not found in the recording folder name. The animal ID could not be set") if verbose else None
-            if len(x)>0:
-                info_data_rec_general["session"] = x[1]
-            else:
-                info_data_rec_general["session"] = None
-                print("Warning: Could not parse session from the recording folder name. The session could not be set") if verbose else None
-            if len(x)>1:
-                info_data_rec_general["scan_idx"] = x[2]
-            else:
-                info_data_rec_general["scan_idx"] = None
-                print("Warning: Could not parse scan index from the recording folder name. The scan index could not be set") if verbose else None
+            info_data_rec_general = parse_info_from_recording_name(rec, verbose=verbose)
             
             # check the data folder
             path_to_data = os.path.join(self.folder_data, rec, "data")
@@ -721,61 +810,76 @@ class DataSet:
             self.trials_df = trials_df
 
         return trials_df
+    
+    def get_trials_metadata_basic(self, set_trials_df: bool = True, verbose: bool = True) -> pd.DataFrame:
+        """Create a basic trial metadata table from the data folder structure and the info variable.
 
-    def filter_trials(
-        self,
-        recording: str | list[str] | None = None,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
-    ) -> pd.DataFrame:
-        """Filter the trials table by one or more conditions.
+        Parameters
+        ----------
+        set_trials_df : bool, default=True
+            If ``True``, store result in ``self.trials_df``.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
 
         Returns
         -------
         pandas.DataFrame
-            Filtered trial rows.
+            Basic trial metadata table.
         """
 
-        conditions_val = [recording, label, trial_type, ID, trial, valid_trial]
-        conditions_key = [
-            "recording",
-            "label",
-            "trial_type",
-            "ID",
-            "trial",
-            "valid_trial",
-        ]
+        print_title("Creating basic trials metadata from data folder structure and info variable ", verbose)
 
-        # get a table with trials metadata if not loaded yet
+        all_rows = []
+        for rec in self.recording:
+            for t in self.info[rec]["trials"]:
+                row = {
+                    "recording": rec,
+                    "trial": t,
+                }
+                all_rows.append(row)
+
+        trials_df = pd.DataFrame(all_rows)
+        trials_df["trial"] = trials_df["trial"].astype(str)
+
+        if set_trials_df:
+            self.trials_df = trials_df
+
+        return trials_df
+
+    def filter_trials(
+        self,
+        query: str | None = None,
+        **conditions,
+    ) -> pd.DataFrame:
+        """Filter the trials table by one or more conditions.
+
+        Parameters
+        ----------
+        query : str | None, default=None
+            A query string to filter the trials using pandas.DataFrame.query().
+        conditions : keyword arguments
+            Conditions to filter the trials. Keys are column names and values are the values to filter by. Values can be a single value or a list of values.
+            
+        Returns
+        -------
+        pandas.DataFrame
+            Filtered trial rows.
+
+        """
+
+        # check if a table with trials metadata is loaded, if not raise an error
         if not hasattr(self, "trials_df"):
             raise ValueError(
                 "trials_df is not loaded, please run get_trials_metadata() or get_trials_metadata_per_trials() first"
             )
-        all_trials_df = self.trials_df.copy()
+        df = self.trials_df.copy()
 
-        # find trials agreeing on that conditions
-        mask = np.full(len(all_trials_df), True)
-        for key, val in zip(conditions_key, conditions_val):
-            if val is not None:
-                if isinstance(val, list):
-                    maski = all_trials_df[key].isin(val)
-                else:
-                    maski = all_trials_df[key] == val
-                mask = np.logical_and(mask, maski)
-
-        return all_trials_df.loc[mask]
+        return filter_dataframe(df, query=query, **conditions)
 
     def get_indexes_of_trials(
         self,
-        recording: str,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
+        query: str | None = None,
+        **conditions,
     ) -> list[int]:
         """Map filtered trial names to numeric trial indices.
 
@@ -785,20 +889,16 @@ class DataSet:
             Trial indices in recording order.
         """
 
+        if 'recording' not in conditions:
+            raise ValueError("The 'recording' condition is required to get trial indexes")
+        recording = conditions.get('recording')
         if not isinstance(recording, str) or recording not in self.recording:
             raise ValueError(
                 f"'recording' must be a string indicating a recording of the dataset, {recording} is not valid"
             )
 
         # get a data frame with the filtered trials
-        filtered_trials_df = self.filter_trials(
-            recording=recording,
-            label=label,
-            trial_type=trial_type,
-            ID=ID,
-            trial=trial,
-            valid_trial=valid_trial,
-        )
+        filtered_trials_df = self.filter_trials(**conditions, query=query)
         the_trials = sorted(filtered_trials_df["trial"].to_list())
 
         # get the indexes
@@ -937,8 +1037,10 @@ class DataSet:
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        video.ID = trials_meta["ID"].iloc[0]
-        video.label = trials_meta["label"].iloc[0]
+        if "ID" in trials_meta.columns:
+            video.ID = trials_meta["ID"].iloc[0]
+        if "label" in trials_meta.columns:
+            video.label = trials_meta["label"].iloc[0]
 
         # try loading metadata from global metadata folder (if configured)
         if self.folder_globalmetadata_videos is not None and try_global_first:
@@ -991,8 +1093,10 @@ class DataSet:
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        response.ID = trials_meta["ID"].iloc[0]
-        response.label = trials_meta["label"].iloc[0]
+        if "ID" in trials_meta.columns:
+            response.ID = trials_meta["ID"].iloc[0]
+        if "label" in trials_meta.columns:
+            response.label = trials_meta["label"].iloc[0]
 
         # load neurons metadata
         response.neurons = self.info[recording]["neurons"]
@@ -1073,8 +1177,10 @@ class DataSet:
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        behavior.ID = trials_meta["ID"].iloc[0]
-        behavior.label = trials_meta["label"].iloc[0]
+        if "ID" in trials_meta.columns:
+            behavior.ID = trials_meta["ID"].iloc[0]
+        if "label" in trials_meta.columns:
+            behavior.label = trials_meta["label"].iloc[0]
 
         # try loading metadata from global metadata folder (if configured)
         if self.folder_globalmetadata_videos is not None and try_global_first:
@@ -1116,13 +1222,9 @@ class DataSet:
 
     def load_responses_by(
         self,
-        recording: str | list[str] | None = None,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
         verbose: bool = True,
+        query: str | None = None,
+        **conditions,
     ) -> tuple[list[Responses], pd.DataFrame]:
         """Load responses for all trials matching filters.
 
@@ -1132,14 +1234,7 @@ class DataSet:
             Loaded objects and the filtered trial table.
         """
 
-        trials_df = self.filter_trials(
-            recording=recording,
-            label=label,
-            trial_type=trial_type,
-            ID=ID,
-            trial=trial,
-            valid_trial=valid_trial,
-        )
+        trials_df = self.filter_trials(**conditions, query=query)
         responses = []
         for index, row in trials_df.iterrows():
             resp = self.load_response_by_trial(
@@ -1151,13 +1246,9 @@ class DataSet:
 
     def load_videos_by(
         self,
-        recording: str | list[str] | None = None,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
         verbose: bool = True,
+        query: str | None = None,
+        **conditions,
     ) -> tuple[list[Video], pd.DataFrame]:
         """Load videos for all trials matching filters.
 
@@ -1167,14 +1258,7 @@ class DataSet:
             Loaded objects and the filtered trial table.
         """
 
-        trials_df = self.filter_trials(
-            recording=recording,
-            label=label,
-            trial_type=trial_type,
-            ID=ID,
-            trial=trial,
-            valid_trial=valid_trial,
-        )
+        trials_df = self.filter_trials(query=query, **conditions)
         videos = []
         for index, row in trials_df.iterrows():
             vi = self.load_video_by_trial(
@@ -1187,13 +1271,9 @@ class DataSet:
     def load_behavior_by(
         self,
         behavior_type: str,
-        recording: str | list[str] | None = None,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
         verbose: bool = True,
+        query: str | None = None,
+        **conditions,
     ) -> tuple[list[Pupil | Gaze | Locomotion], pd.DataFrame]:
         """Load behavior objects for all trials matching filters.
 
@@ -1203,14 +1283,7 @@ class DataSet:
             Loaded objects and the filtered trial table.
         """
 
-        trials_df = self.filter_trials(
-            recording=recording,
-            label=label,
-            trial_type=trial_type,
-            ID=ID,
-            trial=trial,
-            valid_trial=valid_trial,
-        )
+        trials_df = self.filter_trials(**conditions, query=query)
         behavior = []
         for index, row in trials_df.iterrows():
             beh = self.load_behavior_by_trial(
@@ -1225,15 +1298,11 @@ class DataSet:
 
     def compute_dissimilarity_videos(
         self,
-        recording: str | list[str] | None = None,
-        label: str | list[str] | None = None,
-        trial_type: str | list[str] | None = None,
-        ID: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        valid_trial: bool | list[bool] | None = None,
         dissimilarity_measure: str = "mse",
         check_edges_first: bool = True,
         verbose: bool = True,
+        query: str | None = None,
+        **conditions,
     ) -> tuple[np.ndarray, pd.DataFrame]:
         """Compute pairwise video dissimilarity for filtered trials.
 
@@ -1242,15 +1311,7 @@ class DataSet:
         tuple[numpy.ndarray, pandas.DataFrame]
             Dissimilarity matrix and filtered trial table.
         """
-        videos, trials_df = self.load_videos_by(
-            recording=recording,
-            label=label,
-            trial_type=trial_type,
-            ID=ID,
-            trial=trial,
-            valid_trial=valid_trial,
-            verbose=verbose,
-        )
+        videos, trials_df = self.load_videos_by(**conditions, query=query, verbose=verbose)
         dissimilarity = compute_dissimilarity_video_list(
             videos,
             dissimilarity_measure=dissimilarity_measure,
@@ -1382,13 +1443,9 @@ class DataSet:
 
     def filter_segments(
         self,
-        recording: str | list[str] | None = None,
-        video_label: str | list[str] | None = None,
-        segment_label: str | list[str] | None = None,
-        trial: str | list[str] | None = None,
-        video_ID: str | list[str] | None = None,
-        segment_ID: str | list[str] | None = None,
-    ) -> pd.DataFrame:
+        query: str | None = None,
+        **conditions,
+   ) -> pd.DataFrame:
         """Filter segment table by one or more conditions.
 
         Returns
@@ -1397,41 +1454,15 @@ class DataSet:
             Filtered segment rows.
         """
 
-        conditions_val = [
-            recording,
-            video_label,
-            segment_label,
-            trial,
-            video_ID,
-            segment_ID,
-        ]
-        conditions_key = [
-            "recording",
-            "video_label",
-            "segment_label",
-            "trial",
-            "video_ID",
-            "segment_ID",
-        ]
 
-        # load a table with segments metadata if not loaded yet
+        # check if segments metadata is loaded
         if not hasattr(self, "segments_df"):
             raise ValueError(
                 "segments_df is not loaded, please run get_segments_metadata() first"
             )
-        all_segments_df = self.segments_df.copy()
+        df = self.segments_df.copy()
 
-        # find trials agreeing on that conditions
-        mask = np.full(len(all_segments_df), True)
-        for key, val in zip(conditions_key, conditions_val):
-            if val is not None:
-                if isinstance(val, list):
-                    maski = all_segments_df[key].isin(val)
-                else:
-                    maski = all_segments_df[key] == val
-                mask = np.logical_and(mask, maski)
-
-        return all_segments_df.loc[mask]
+        return filter_dataframe(df, query=query, **conditions)
 
     def count_segments_across(
         self, subset: list[str] | tuple[str] | set[str]
@@ -1604,7 +1635,7 @@ class DataSet:
                 )
 
                 # get neurons metadata
-                neurons_coord = self.info[rec]["neurons"]["coord_xyz"]
+                neurons_coord = self.info[rec]["neurons"].coord_xyz
                 if neurons_coord is not None and len(neurons_coord) > 0:
                     df_coord = pd.DataFrame(
                         neurons_coord, columns=["coord_x", "coord_y", "coord_z"]
@@ -1622,7 +1653,7 @@ class DataSet:
                         columns=["coord_x", "coord_y", "coord_z"],
                     )
 
-                neurons_ids = self.info[rec]["neurons"]["IDs"]
+                neurons_ids = self.info[rec]["neurons"].IDs
                 if neurons_ids is not None and len(neurons_ids) > 0:
                     df_id = pd.DataFrame(neurons_ids, columns=["ID"])
                 else:
@@ -1657,7 +1688,7 @@ class DataSet:
             keys = ['animal_id', 'session', 'scan_idx', 'n_trials', 'samples_per_trial', 'n_neurons']
             info_save = {k: self.info[rec][k] for k in keys if k in self.info[rec]}
             info_save['sampling_freq'] = sampling_freq
-            save_json(info_save, os.path.join(self.folder_metadata, rec, f"meta-basic-{rec}.json"))
+            save_json(info_save, os.path.join(self.folder_metadata, rec, f"meta-basic_{rec}.json"))
 
 
     def classify_videos(
@@ -1717,7 +1748,7 @@ class DataSet:
                 try:
                     # initialize class and load video
                     video = self.load_video_by_trial(
-                        rec, os.path.basename(video_trial), verbose=False
+                        rec, Path(video_trial).stem, verbose=False
                     )
 
                     # run all the classification
