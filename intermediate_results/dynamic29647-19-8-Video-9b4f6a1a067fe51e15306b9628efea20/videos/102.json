@@ -1,0 +1,117 @@
+{
+    "recording": "dynamic29647-19-8-Video-9b4f6a1a067fe51e15306b9628efea20",
+    "trial": "102",
+    "trial_type": "train",
+    "first_label": "NaturalVideo",
+    "label": "NaturalVideo",
+    "ID": null,
+    "sampling_freq": 30,
+    "valid_frames": 300,
+    "peaks": [
+        52,
+        117,
+        260
+    ],
+    "n_peaks": 3,
+    "segments_n_peaks": 4,
+    "segments_bad_n": 0,
+    "segments_avg_duration": 75.0,
+    "segments": {
+        "frame_start": [
+            0,
+            53,
+            118,
+            261
+        ],
+        "frame_end": [
+            53,
+            118,
+            261,
+            300
+        ],
+        "duration": [
+            53,
+            65,
+            143,
+            39
+        ],
+        "transition_start": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "transition_end": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "max_change": [
+            2597.720890212922,
+            2496.112606572406,
+            1440.7350999221208,
+            591.0596767021748
+        ],
+        "is_static": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "intensity_range": [
+            202.92012051450544,
+            214.34872325704913,
+            228.6852391756228,
+            205.0558441280065
+        ],
+        "margin_left": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_right": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_top": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "margin_bottom": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "background_color": [
+            10.541176470588235,
+            173.1764705882353,
+            187.2313725490196,
+            180.20392156862744
+        ],
+        "background_proportion": [
+            0.03354246511399371,
+            0.031626774714543386,
+            0.01244089264413976,
+            0.013657268295940219
+        ],
+        "is_uniform": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false
+        ]
+    }
+}

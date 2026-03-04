@@ -1683,8 +1683,14 @@ class DataSet:
                 print(f"Error processing recording {rec}: {e}")
                 continue
 
-    def generates_basic_metadata_per_recording(self, sampling_freq: float | int = 30) -> None:
-        for rec in self.recording:
+    def generates_basic_metadata_per_recording(self, recording: str | list[str] | None = None, sampling_freq: float | int = 30) -> None:
+        if recording is None:
+            recording = self.recording
+
+        if isinstance(recording, str):
+            recording = [recording]
+
+        for rec in recording:
             keys = ['animal_id', 'session', 'scan_idx', 'n_trials', 'samples_per_trial', 'n_neurons']
             info_save = {k: self.info[rec][k] for k in keys if k in self.info[rec]}
             info_save['sampling_freq'] = sampling_freq
@@ -1924,7 +1930,6 @@ class DataSet:
     def define_segments_id(
         self,
         labels: str | list[str],
-        recording: str | list[str] | None = None,
         limit_dissimilarity: float | int = 20,
         verbose: bool = True,
     ) -> None:
@@ -1934,22 +1939,11 @@ class DataSet:
         ----------
         labels : str or list[str]
             Segment labels to process.
-        recording : str or list[str] or None, optional
-            Recordings to process.
         limit_dissimilarity : float or int, default=20
             Maximum dissimilarity to treat segments as duplicates.
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
-
-        if recording is None:
-            recording = self.recording
-
-        if isinstance(recording, str):
-            recording = [recording]
-
-        if isinstance(labels, str):
-            labels = [labels]
 
         # create a folder for the outputs if it doesn't exists
         self.create_folders_metadata(what_global_data=["segments"])
@@ -1963,6 +1957,10 @@ class DataSet:
                 "folder_globalmetadata_videos and folder_globalmetadata_segments must be set"
             )
 
+        if any(Path(self.folder_globalmetadata_segments).iterdir()):
+            raise ValueError(f"Files were found in {self.folder_globalmetadata_segments}. The folder should be empty before running this function.")
+
+        # Find identical segments for each label and save metadata
         print_title("Finding identical segments ", verbose)
         all_used_ids = []
 

@@ -1,0 +1,9 @@
+{
+    "animal_id": "29755",
+    "session": "2",
+    "scan_idx": "8",
+    "n_trials": 712,
+    "samples_per_trial": 414,
+    "n_neurons": 8122,
+    "sampling_freq": 30
+}
