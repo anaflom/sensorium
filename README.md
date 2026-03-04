@@ -108,18 +108,24 @@ The generated metadata will be placed under `./metadata/`. Expected layout (exam
 
 ```
 metadata/
-    dynamic29513-3-5-.../
-        meta-neurons_dynamic29513-3-5-...csv
-        meta-trials_dynamic29513-3-5-...csv
-    dynamic29514-2-9-.../
-    ...
-    global_meta/
-        segments/
-            Gabor-s028037.json
-            ...
-        videos/
-            Gabor-v002231.json
-            ...   
+├── global_meta/
+│   ├── segments/
+│   │   ├── Gabor-s001167.json
+│   │   ├── Gabor-s028132.json
+│   │   ...
+│   └── videos/
+│       ├── Gabor-v002231.json
+│       ├── Gabor-v028823.json
+│        ...   
+├── dynamic29513-3-5-.../
+│   ├── meta-basic_dynamic29513-3-5-...json 
+│   ├── meta-neurons_dynamic29513-3-5-...csv
+│   └── meta-trials_dynamic29513-3-5-...csv
+├── dynamic29514-2-9-.../
+│   ├── meta-basic_dynamic29514-2-9-...json 
+│   ├── meta-neurons_dynamic29514-2-9-...csv
+│   └── meta-trials_dynamic29514-2-9-...csv
+...
 ```
 
 ## Dataset quick usage
