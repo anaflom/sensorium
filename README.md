@@ -37,35 +37,45 @@ pip install -r requirements.txt
 (Optionally: `pip install jupyterlab` to run the example notebooks.)
 
 ## Data (expected layout)
-Download the Sensorium dataset and place it under `./data/`. Expected layout (example):
+Download the Sensorium dataset and place it under `./data/`. 
+
+Data source: 
+https://gin.g-node.org/pollytur/sensorium_2023_dataset
+https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730
+
+Expected layout (example):
 
 ```
 data/
-    dynamic29513-3-5-.../
-        data/
-            videos/
-                0.npy
-                1.npy
-            responses/
-                0.npy
-                1.npy
-            pupil_center/
-                0.npy
-                1.npy
-            behavior/
-                0.npy
-                1.npy
-        meta/
-            neurons/
-                cell_motor_coordinates.npy
-                unit_ids.npy
-            trials/
-                tiers.npy
-    dynamic29514-2-9-.../
+├── dynamic29513-3-5-.../
+│   ├── data/
+│   │   ├── videos/
+│   │   │   ├── 0.npy
+│   │   │   ├── 1.npy
+│   │   │   ...
+│   │   ├── responses/
+│   │   │   ├── 0.npy
+│   │   │   ├── 1.npy
+│   │   │   ...
+│   │   ├── pupil_center/
+│   │   │   ├── 0.npy
+│   │   │   ├── 1.npy
+│   │   │   ...
+│   │   └── behavior/
+│   │       ├── 0.npy
+│   │       ├── 1.npy
+│   │       ...
+│   └── meta/
+│       ├── neurons/
+│       │       cell_motor_coordinates.npy
+│       │       unit_ids.npy
+│       └── trials/
+│               tiers.npy
+├── dynamic29514-2-9-.../
     ...
 ```
 
-Source: https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730
+
 
 ## Regenerating metadata — recommended order
 Run these scripts in order when regenerating metadata:
