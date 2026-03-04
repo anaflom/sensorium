@@ -40,8 +40,8 @@ pip install -r requirements.txt
 Download the Sensorium dataset and place it under `./data/`. 
 
 Data source: 
-- Dataset 1 (5 mice): https://gin.g-node.org/pollytur/sensorium_2023_dataset
-- Dataset 2 (5 mice): https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730
+- [Dataset 1 (5 mice)](https://gin.g-node.org/pollytur/sensorium_2023_dataset)
+- [Dataset 2 (5 mice)](https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730)
 
 Expected layout (example):
 
