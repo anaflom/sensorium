@@ -195,6 +195,10 @@ class DataSet:
         folder_metadata: str | Path | None = None,
         folder_metadata_per_trial: str | Path | None = None,
         recording: list[str] | str | None = None,
+        check_data: bool = True,
+        check_metadata: bool = True,
+        check_metadata_per_trial: bool = True,
+        check: bool = True,
         verbose: bool = True,
     ):
         """Initialize dataset paths, integrity checks, and cached metadata.
@@ -209,11 +213,24 @@ class DataSet:
             Root per-trial metadata folder.
         recording : list[str] or str or None, optional
             Recording names to include; if ``None``, all subfolders are used.
+        check_data : bool, default=True
+            If ``True``, perform data integrity checks.
+        check_metadata : bool, default=True
+            If ``True``, perform metadata integrity checks.
+        check_metadata_per_trial : bool, default=True
+            If ``True``, perform per-trial metadata integrity checks.
+        check : bool, default=True
+            If ``False``, skip all integrity checks. Overrides other check flags.
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
 
         print_title("Initializing DataSet ", verbose)
+
+        if check==False:
+            check_data = False
+            check_metadata = False
+            check_metadata_per_trial = False
 
         # set data folders and check they exist
         self.folder_data = folder_data
@@ -222,18 +239,38 @@ class DataSet:
         if recording is None:
             recording = [p.name for p in Path(folder_data).iterdir() if p.is_dir()]
         self.recording = recording
-
+        
         # Check the data and store some info about it
-        self.check_data(verbose=verbose)
-
+        self.add_data_info()
+        if check_data:
+            self.check_data(verbose=verbose)
+        else:
+            print_title("Data integrity check skipped ", verbose)
+            print(" > If you want to check it, set check and check_data to True when initializing the DataSet.") if verbose else None
+            print(" > Data is assumed to be valid. Misbehavior may occur if the data is corrupted.") if verbose else None
+        
         # set metadata folders
         self.folder_metadata = folder_metadata
         self.folder_metadata_per_trial = folder_metadata_per_trial
+        self.set_metadata_folders()
 
         # check the metadata folders and files and their consistency with the data files
-        self.check_metadata(verbose=verbose)
-        self.check_metadata_per_trial(verbose=verbose)
+        if check_metadata:
+            self.check_metadata(verbose=verbose)
+        else:
+            print_title("Metadata integrity check skipped ", verbose)
+            print(" > If you want to check it, set check and check_metadata to True when initializing the DataSet.") if verbose else None
+            print(" > Metadata will be assumed to be valid for existing folders and invalid for missing folders.") if verbose else None
+            self._check_metadata_folder_structure(verbose=False)
 
+        if check_metadata_per_trial:
+            self.check_metadata_per_trial(verbose=verbose)
+        else:
+            print_title("Metadata per trial integrity check skipped ", verbose)
+            print(" > If you want to check it, set check and check_metadata_per_trial to True when initializing the DataSet.") if verbose else None
+            print(" > Metadata per trial will be assumed to be valid for existing folders and invalid for missing folders.") if verbose else None
+            self._check_metadata_per_trial_folder_structure(verbose=False)
+        
         # load neurons data for all recordings and store it in the info variable
         self.load_neurons(verbose=verbose)
 
@@ -264,6 +301,63 @@ class DataSet:
             s = s + "The recording has consistent metadata per trial\n"
 
         return s
+    
+    def _check_metadata_folder_structure(self, verbose: bool = True):
+
+        if self.folder_metadata is not None and self.folder_metadata.is_dir():
+            
+            all_meta_rec_directories_exist = all([Path(self.folder_metadata, rec).is_dir() for rec in self.recording]) if self.folder_metadata is not None else False
+            if all_meta_rec_directories_exist:
+                print("   - All metadata directories for recordings exist.") if verbose else None
+                self._good_metadata_per_recording = {rec: True for rec in self.recording}
+            else:
+                print("   - Some metadata directories for recordings are missing.") if verbose else None
+                print("     Metadata for recordings is assumed to be valid for the existing directories.") if verbose else None
+                self._good_metadata_per_recording = {rec: Path(self.folder_metadata, rec).is_dir() for rec in self.recording}
+            
+            if (self.folder_globalmetadata_videos is not None) and (self.folder_globalmetadata_videos.is_dir()):
+                print("   - The metadata folders for global metadata videos exist.") if verbose else None
+                print("     Global metadata for videos is assumed to be valid.") if verbose else None
+                self._good_global_meta_videos = True
+            else:
+                print("   - The metadata folders for global metadata videos are not set or do not exist.") if verbose else None
+                print("     Global metadata for videos is invalid.") if verbose else None
+                self._good_global_meta_videos = False
+
+            if (self.folder_globalmetadata_segments is not None) and (self.folder_globalmetadata_segments.is_dir()):
+                print("   - The metadata folders for global metadata segments exist.") if verbose else None
+                print("     Global metadata for segments is assumed to be valid.") if verbose else None
+                self._good_global_meta_segments = True
+            else:
+                print("   - The metadata folders for global metadata segments are not set or do not exist.") if verbose else None
+                print("     Global metadata for segments is invalid.") if verbose else None
+                self._good_global_meta_segments = False
+        else:
+            print("   - The metadata folder is not set or does not exist.") if verbose else None
+            print("     Metadata for recordings, global metadata for videos and global metadata for segments are all invalid.") if verbose else None
+            self._good_metadata_per_recording = {rec: False for rec in self.recording}
+            self._good_global_meta_videos = False
+            self._good_global_meta_segments = False
+
+    def _check_metadata_per_trial_folder_structure(self, verbose: bool = True):
+
+        if self.folder_metadata_per_trial is not None and self.folder_metadata_per_trial.is_dir():
+
+            all_meta_per_trial_rec_directories_exist = all([Path(self.folder_metadata_per_trial, rec).is_dir() for rec in self.recording]) if self.folder_metadata_per_trial is not None else False
+            if all_meta_per_trial_rec_directories_exist:
+                print("   - All metadata per trial directories for recordings exist.") if verbose else None
+                self._good_metadata_per_trial_per_recording = {rec: True for rec in self.recording}
+            else:
+                print("   - Some metadata per trial directories for recordings are missing.") if verbose else None
+                print("     Metadata per trial for recordings is assumed to be valid for the existing directories.") if verbose else None
+                self._good_metadata_per_trial_per_recording = {rec: Path(self.folder_metadata_per_trial, rec).is_dir() for rec in self.recording}
+            
+        else:
+            print("   - The metadata per trial folder is not set or does not exist.") if verbose else None
+            print("     Metadata per trial for recordings is invalid.") if verbose else None
+            self._good_metadata_per_trial_per_recording = {rec: False for rec in self.recording}
+
+
 
     def load_neurons(
         self, recording: str | list[str] | None = None, verbose: bool = True
@@ -288,7 +382,7 @@ class DataSet:
         for rec in recording:
             if self._good_metadata_per_recording[rec]:
                 (
-                    print(f"Loading neurons for recording {rec} from metadata")
+                    print(f" > Loading neurons for recording {rec} from metadata")
                     if verbose
                     else None
                 )
@@ -311,7 +405,7 @@ class DataSet:
                     self.info[rec]["neurons"].IDs = None
             else:
                 (
-                    print(f"Loading neurons for recording {rec} from data folder")
+                    print(f" > Loading neurons for recording {rec} from data folder")
                     if verbose
                     else None
                 )
@@ -375,6 +469,27 @@ class DataSet:
                     )
                     self.info[rec]["trial_type"] = None
 
+    def add_data_info(self):
+        """
+        Add information to the info varaible about the data
+        """
+        if not hasattr(self,"info"):
+            self.info = {}
+
+        for rec in self.recording:
+            # parse some information from the recording name, to be stored in the info variable
+            info_data_rec_general = parse_info_from_recording_name(rec, verbose=verbose)
+            # get some information about the data for the recording
+            info_data_rec = {}
+            files = self.get_data_list(recording=rec, what_data="responses")
+            data_response_example = np.load(files[0], mmap_mode="r")
+            info_data_rec["n_trials"] = len(files)
+            info_data_rec["trials"] = set([Path(f).stem for f in files])
+            info_data_rec["samples_per_trial"] = data_response_example.shape[-1]
+            info_data_rec["n_neurons"] = data_response_example.shape[0]
+            # store the information about the data for the recording
+            self.info[rec] = {**info_data_rec_general, **info_data_rec}
+
     def check_data(self, verbose: bool = True) -> None:
         """Check consistency of raw data files across recordings.
 
@@ -388,7 +503,6 @@ class DataSet:
 
         self.info = {}
         good_data_per_recording = {}
-        is_valid = True
         for rec in self.recording:
 
             # parse some information from the recording name, to be stored in the info variable
@@ -396,28 +510,26 @@ class DataSet:
             
             # check the data folder
             path_to_data = os.path.join(self.folder_data, rec, "data")
-            all_fine_data, info_data_rec = check_data_integrity(
-                path_to_data, verbose=verbose
-            )
+            data_ok, info_data_rec = check_data_integrity(path_to_data, verbose=verbose)
 
             # store the information about the data for the recording
             self.info[rec] = {**info_data_rec_general, **info_data_rec}
 
             # store the information about data quality
-            good_data_per_recording[rec] = all_fine_data
+            good_data_per_recording[rec] = data_ok
 
             # print some final info and store some information
             if good_data_per_recording[rec]:
                 (
                     print(
-                        f"- All data files seem consistent across trials and data types for recording {rec}."
+                        f" > All data files seem consistent across trials and data types for recording {rec}."
                     )
                     if verbose
                     else None
                 )
 
-            # update the variable holding whether data is ok across all recordings
-            is_valid = is_valid and good_data_per_recording[rec]
+        # Check if data is valid across all recordings
+        is_valid = all([valid_rec for valid_rec in good_data_per_recording.values()])
 
         # store the information about data quality
         self._good_data_per_recording = good_data_per_recording
@@ -431,6 +543,33 @@ class DataSet:
             )
         else:
             print(" > INVALID data") if verbose else None
+
+    def set_metadata_folders(self):
+        '''Set paths for global metadata folders based on the main metadata folder.'''
+
+        if self.folder_metadata is None:
+            self.folder_globalmetadata_videos = None
+            self.folder_globalmetadata_segments = None
+
+        elif not Path(self.folder_metadata).exists():
+            (
+                print(
+                    "Warning: The metadata folder was set but it does not exist, you can create it with create_folders_metadata()"
+                )
+                if verbose
+                else None
+            )
+            self.folder_globalmetadata_videos = None
+            self.folder_globalmetadata_segments = None
+
+        else:
+            self.folder_globalmetadata_videos = (
+                Path(self.folder_metadata) / "global_meta" / "videos"
+            )
+            self.folder_globalmetadata_segments = (
+                Path(self.folder_metadata) / "global_meta" / "segments"
+            )
+
 
     def check_metadata(self, verbose: bool = True) -> None:
         """Validate global metadata folders and files.
@@ -446,36 +585,11 @@ class DataSet:
 
         if not hasattr(self, "info"):
             raise ValueError(
-                "Data must be checked with check_data() before checking metadata"
+                "Data must have info attribute before checking metadata"
             )
-
-        if self.folder_metadata is None:
-            self.folder_globalmetadata_videos = None
-            self.folder_globalmetadata_segments = None
-            is_valid = False
-            results = None
-
-        elif not Path(self.folder_metadata).exists():
-            (
-                print(
-                    "Warning: The metadata folder was set but it does not exist, you can create it with create_folders_metadata()"
-                )
-                if verbose
-                else None
-            )
-            self.folder_globalmetadata_videos = None
-            self.folder_globalmetadata_segments = None
-            is_valid = False
-            results = None
-
-        else:
-            self.folder_globalmetadata_videos = (
-                Path(self.folder_metadata) / "global_meta" / "videos"
-            )
-            self.folder_globalmetadata_segments = (
-                Path(self.folder_metadata) / "global_meta" / "segments"
-            )
-
+        
+        if (self.folder_globalmetadata_videos is not None) and (self.folder_globalmetadata_segments is not None):
+            # if the global metadata folders are already set, we can check the metadata integrity
             is_valid, results = check_metadata_integrity(
                 self.folder_metadata,
                 self.recording,
@@ -484,6 +598,9 @@ class DataSet:
                 self.info,
                 verbose=True,
             )
+        else:
+            is_valid = False
+            results = None
 
         self._good_metadata = is_valid
         if results is not None:
@@ -687,7 +804,7 @@ class DataSet:
         set_trials_df: bool = True,
         verbose: bool = True,
     ) -> pd.DataFrame:
-        """Load trial metadata from per-trial JSON files.
+        """Creating trials metadata DataFrame from per-trial JSON files.
 
         Parameters
         ----------
@@ -709,7 +826,7 @@ class DataSet:
                 "folder_metadata_per_trial is None, cannot load trials metadata"
             )
 
-        s = f"Loading trials from metadata {self.folder_metadata_per_trial} for {what_data} "
+        s = f"Creating trials metadata DataFrame from per-trial JSON files for {what_data} in {self.folder_metadata_per_trial} "
         print_title(s, verbose)
         all_rows = []
 
@@ -783,7 +900,7 @@ class DataSet:
         if self.folder_metadata is None:
             raise ValueError("folder_metadata is None, cannot load trials metadata")
 
-        print_title("Loading trials metadata ", verbose)
+        print_title("Creating trials metadata DataFrame from meta-trials CSV files per recording ", verbose)
         recording = self.recording
         trials_df = []
 
@@ -827,7 +944,7 @@ class DataSet:
             Basic trial metadata table.
         """
 
-        print_title("Creating basic trials metadata from data folder structure and info variable ", verbose)
+        print_title("Creating basic trials metadata DataFrame from data ", verbose)
 
         all_rows = []
         for rec in self.recording:
@@ -1420,7 +1537,8 @@ class DataSet:
             raise ValueError("folder_metadata is None, cannot load segment by id")
 
         # load the segments metadata
-        print_title("Loading segments metadata ", verbose)
+        s = f"Creating segments metadata DataFrame from JSON files in {self.folder_globalmetadata_segments} "
+        print_title(s, verbose)
         files = list(Path(self.folder_globalmetadata_segments).glob("*.json"))
         if len(files) == 0:
             raise ValueError(

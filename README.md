@@ -150,6 +150,9 @@ data_root = repo_root / "data"
 # Initialize dataset (adjust parameters to your setup)
 ds = DataSet(data_root, folder_metadata=repo_root / "metadata")
 
+# Initialize dataset skipping data and metadata integrity checks
+ds = DataSet(data_root, folder_metadata=repo_root / "metadata", check=False)
+
 # Get trials metadata (pandas.DataFrame)
 df_trials = ds.get_trials_metadata()
 

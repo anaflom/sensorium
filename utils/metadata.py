@@ -813,7 +813,7 @@ def validate_metadata_recording(
 
     # print if all fine for the recording
     if good_trials and good_neurons and good_basic:
-        print(f"---> Metadata seems ok for recording {rec}.") if verbose else None
+        print(f" > Metadata seems ok for recording {rec}.") if verbose else None
 
     return good_trials and good_neurons and good_basic
 
@@ -989,7 +989,7 @@ def check_metadata_per_trial_integrity(
             # print if all fine for the recording
             if all_fine:
                 (
-                    print(f"---> Metadata per trial seems ok for recording {rec}.")
+                    print(f" > Metadata per trial seems ok for recording {rec}.")
                     if verbose
                     else None
                 )
