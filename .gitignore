@@ -6,7 +6,9 @@ my-python-env/
 
 # Notebooks
 .ipynb_checkpoints/
-notebooks_dataset_exploration/some_tests.ipynb
+
+# Tests
+tests/
 
 # IDE
 .vscode/
