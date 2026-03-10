@@ -1,5 +1,7 @@
 import numpy as np
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 import sys
@@ -11,6 +13,14 @@ if str(repo_root) not in sys.path:
 
 from utils.dataset import DataSet
 from grids import Grid3D, get_ranges_from_positions
+
+
+def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, folder_output_rec_trials):
+    response = ds.load_response_by_trial(recording=rec, trial=trial)
+    activities = response.get_data(normalization=normalization)
+    grid_activity = grid.compute_grid_activity(positions, activities)
+    np.save(folder_output_rec_trials / f"{trial}.npy", grid_activity)
+    return trial
 
 
 def main():       
@@ -27,6 +37,12 @@ def main():
 
     # data normalization to apply before computing the grid activity
     normalization = 'by_minmax'
+
+    # Number of workers for trial-level parallelism (set GRID_TRIAL_WORKERS env var to override)
+    num_workers = int(os.getenv("GRID_TRIAL_WORKERS", "0"))
+    if num_workers <= 0:
+        cpu_count = os.cpu_count() or 1
+        num_workers = min(8, max(1, cpu_count - 1))
 
     # grid shape
     num_grid=(15, 15, 10)
@@ -47,7 +63,7 @@ def main():
     # create output folders
     folder_name = 'grid' 
     if normalization is not None:
-        folder_name = folder_name + f"_{normalization}"
+        folder_name = folder_name + f"_normalization_{normalization}"
     folder_output = folder_derivatives / folder_name
     folder_output.mkdir(exist_ok=True)
 
@@ -71,7 +87,6 @@ def main():
         folder_output_rec_grid = folder_output_rec / 'grid'
         folder_output_rec_grid.mkdir(exist_ok=True)
 
-        
         # Initialize Grid object for that recording
         positions = ds.info[ds.recording[0]]["neurons"].coord_xyz
         xyz_ranges = get_ranges_from_positions(positions)
@@ -80,14 +95,6 @@ def main():
         # Get a DataFrame with all the trials of that recording
         trials_df = ds.filter_trials(recording=rec)
 
-        # Compute grid activity per trial and save it
-        all_trials = trials_df['trial'].unique()
-        for trial in tqdm(all_trials, total=len(all_trials), desc=f"Processing trials for recording {rec}"):
-            response = ds.load_response_by_trial(recording=rec, trial=trial)
-            activities = response.get_data(normalization=normalization)
-            grid_activity = grid.compute_grid_activity(positions, activities)
-            np.save(folder_output_rec_trials / f"{trial}.npy", grid_activity)
-        
         # save the grid parameters for that recording
         grid.save(folder_output_rec_grid)
 
@@ -98,6 +105,32 @@ def main():
         }
         with open(folder_output_rec / 'params.json', 'w') as f:
             json.dump(params, f, indent=4)
+
+        # Compute grid activity per trial and save it
+        all_trials = trials_df['trial'].unique()
+        workers = min(num_workers, len(all_trials))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(
+                    _compute_and_save_trial,
+                    ds,
+                    rec,
+                    trial,
+                    normalization,
+                    grid,
+                    positions,
+                    folder_output_rec_trials,
+                )
+                for trial in all_trials
+            ]
+
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc=f"Processing trials for recording {rec}",
+            ):
+                future.result()
+        
 
 
 if __name__ == "__main__":
