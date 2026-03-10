@@ -9,6 +9,9 @@ my-python-env/
 
 # Tests
 tests/
+tda/*test*.py
+tda/*test*.ipynb
+
 
 # TDA
 tda/

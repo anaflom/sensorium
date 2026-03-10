@@ -168,8 +168,28 @@ class Responses:
                 raise ValueError(
                     "'mean_activation' was not found in neurons.stats_activity"
                 )
+        elif normalization == "by_zscore":
+            if "mean_activation" in self.neurons.stats_activity.keys() and "std_activation" in self.neurons.stats_activity.keys():
+                mu = self.neurons.stats_activity["mean_activation"]
+                std = self.neurons.stats_activity["std_activation"]
+                data = np.divide(
+                    self.data[:, : self.valid_frames] - mu[:, None], std[:, None]
+                )
+            else:
+                raise ValueError(
+                    "'mean_activation' or 'std_activation' was not found in neurons.stats_activity"
+                )
+        elif normalization.lower() == "by_minmax":
+            if "min_activation" in self.neurons.stats_activity.keys() and "max_activation" in self.neurons.stats_activity.keys():
+                min_val = self.neurons.stats_activity["min_activation"]
+                max_val = self.neurons.stats_activity["max_activation"]
+                data = (self.data[:, : self.valid_frames] - min_val[:, None]) / (max_val[:, None] - min_val[:, None])
+            else:
+                raise ValueError(
+                    "'min_activation' or 'max_activation' was not found in neurons.stats_activity"
+                )
         else:
-            raise ValueError("Normalization can have values: None, by_std, or by_mean")
+            raise ValueError("Normalization can have values: None, by_std, by_mean, or by_minmax")
 
         return data
 
