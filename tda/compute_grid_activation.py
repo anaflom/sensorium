@@ -1,18 +1,48 @@
 import numpy as np
 import json
 import os
+import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 import sys
 from pathlib import Path
 
-repo_root = Path(__file__).resolve().parent.parent
-if str(repo_root) not in sys.path:
-    sys.path.insert(0, str(repo_root))
 
-from utils.dataset import DataSet
-from grids import Grid3D, get_ranges_from_positions
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Compute and save 3D grid activation per trial for selected recordings."
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent,
+        help="Repository root path containing data/, metadata/, and derivatives/.",
+    )
+    parser.add_argument(
+        "--normalization",
+        type=str,
+        default='by_minmax',
+        help="Normalization passed to response.get_data(normalization=...). Use 'none' for no normalization.",
+    )
+    parser.add_argument(
+        "--num-grid",
+        type=int,
+        nargs=3,
+        metavar=("NX", "NY", "NZ"),
+        default=(15, 15, 10),
+        help="Grid shape as three integers: NX NY NZ.",
+    )
+    parser.add_argument(
+        "--recordings",
+        type=str,
+        nargs="+",
+        default='none',
+        help="Recording IDs to process (space-separated). Use 'none' to apply it to all recordings.",
+    )
+    return parser.parse_args()
+
 
 
 def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, folder_output_rec_trials):
@@ -23,7 +53,13 @@ def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, fold
     return trial
 
 
-def main():       
+def main(repo_root, normalization=None, num_grid=(15, 15, 10), recordings=None):       
+
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    from utils.dataset import DataSet
+    from grids import Grid3D, get_ranges_from_positions
 
     # path to the folder with the data as downloaded
     folder_data = repo_root / 'data/'
@@ -35,46 +71,30 @@ def main():
     folder_derivatives = repo_root / 'derivatives' 
     folder_derivatives.mkdir(exist_ok=True)
 
-    # data normalization to apply before computing the grid activity
-    normalization = 'by_minmax'
-
     # Number of workers for trial-level parallelism (set GRID_TRIAL_WORKERS env var to override)
     num_workers = int(os.getenv("GRID_TRIAL_WORKERS", "0"))
     if num_workers <= 0:
         cpu_count = os.cpu_count() or 1
         num_workers = min(8, max(1, cpu_count - 1))
 
-    # grid shape
-    num_grid=(15, 15, 10)
-
-    # recordings to use
-    recordings_to_use = [
-        'dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce',
-        'dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce',
-        'dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce',
-        'dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce',
-        'dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce',
-        'dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20',
-        'dynamic29515-10-12-Video-9b4f6a1a067fe51e15306b9628efea20',
-        'dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20',
-        'dynamic29647-19-8-Video-9b4f6a1a067fe51e15306b9628efea20',
-        'dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20',
-    ]
     # create output folders
     folder_name = 'grid' 
+    folder_name = folder_name + f"-{num_grid[0]}x{num_grid[1]}x{num_grid[2]}"
     if normalization is not None:
-        folder_name = folder_name + f"_normalization_{normalization}"
+        folder_name = folder_name + f"_normalization-{normalization}"
+    else:
+        folder_name = folder_name + "_no-normalization"
     folder_output = folder_derivatives / folder_name
     folder_output.mkdir(exist_ok=True)
 
     # initialize the object to handle the dataset
     ds = DataSet(folder_data, 
                 folder_metadata=folder_meta, 
-                recording=recordings_to_use, 
+                recording=recordings, 
                 check=False,
                 verbose=True)
 
-    trials_df = ds.get_trials_metadata()
+    _ = ds.get_trials_metadata()
 
     # Compute grid activity per trial and save it
     for rec in ds.recording:
@@ -88,7 +108,7 @@ def main():
         folder_output_rec_grid.mkdir(exist_ok=True)
 
         # Initialize Grid object for that recording
-        positions = ds.info[ds.recording[0]]["neurons"].coord_xyz
+        positions = ds.info[rec]["neurons"].coord_xyz
         xyz_ranges = get_ranges_from_positions(positions)
         grid = Grid3D(xyz_ranges, num_grid)
         
@@ -108,6 +128,10 @@ def main():
 
         # Compute grid activity per trial and save it
         all_trials = trials_df['trial'].unique()
+        if len(all_trials) == 0:
+            print(f"No trials found for recording {rec}, skipping.")
+            continue
+
         workers = min(num_workers, len(all_trials))
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = [
@@ -134,8 +158,16 @@ def main():
 
 
 if __name__ == "__main__":
+    args = parse_args()
+    normalization = None if str(args.normalization).lower() == "none" else args.normalization
+    recordings = None if str(args.recordings).lower() == "none" else args.recordings
     try:
-        main()
+        main(
+            args.repo_root,
+            normalization=normalization,
+            num_grid=tuple(args.num_grid),
+            recordings=recordings,
+        )
         print("\nComputation of activity over grids completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
