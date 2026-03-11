@@ -12,10 +12,6 @@ tests/
 tda/*test*.py
 tda/*test*.ipynb
 
-
-# TDA
-tda/
-
 # IDE
 .vscode/
 .idea/
