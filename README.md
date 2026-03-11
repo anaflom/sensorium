@@ -11,7 +11,6 @@ It allows to load and inspect the data (videos, neural responses, gaze, pupil, l
 - `utils/`: core dataset classes and helper functions (`DataSet`, `Video`, `VideoSegment`, `Neurons`, `Responses`, `Gaze`, `Pupil`, `Locomotion`).
 - `scripts_to_generate_metadata/`: scripts to create and regenerate metadata (see *Regenerating metadata* below).
 - `metadata/`: generated metadata output (per-recording and `global_meta/`).
-- `intermediate_results/`: temporary outputs produced by processing scripts (classified videos, per-trial results).
 - `notebooks_dataset_exploration/`: Jupyter notebooks demonstrating loading and using the data, and exploring video classification and label distributions.
 
 ## Requirements
@@ -80,10 +79,11 @@ data/
 ## Regenerating metadata — recommended order
 Run these scripts in order when regenerating metadata:
 
-1. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `intermediate_results/<recording>/`.
-2. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
+1. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `metadata/<recording>/trials`.
+2. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/trials/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
 3. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
-4. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
+4. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/neurons/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
+5. `generate_basic_metadata.py` — creates a JSON file with basic information in `metadata/<recording>/meta-basic_<recording>.json` (animal_id, session, scan_idx, number of trials, neurons, sampling frequency). This script is independent and may be run anytime.
 
 Notes and tips:
 - To regenerate from scratch, remove `metadata/` and `intermediate_results/` first:
@@ -101,6 +101,8 @@ python scripts_to_generate_metadata/classify_videos.py
 python scripts_to_generate_metadata/define_videos_ids.py
 python scripts_to_generate_metadata/define_segments_ids.py
 python scripts_to_generate_metadata/generate_neurons_metadata.py
+python scripts_to_generate_metadata/generate_basic_metadata.py
+
 ```
 
 ## Metadata (expected layout)
@@ -119,12 +121,16 @@ metadata/
 │        ...   
 ├── dynamic29513-3-5-.../
 │   ├── meta-basic_dynamic29513-3-5-...json 
-│   ├── meta-neurons_dynamic29513-3-5-...csv
-│   └── meta-trials_dynamic29513-3-5-...csv
+│   ├── neurons/
+│   │   └── meta-neurons_dynamic29513-3-5-...csv
+│   └── trials/
+│       └── meta-trials_dynamic29513-3-5-...csv
 ├── dynamic29514-2-9-.../
 │   ├── meta-basic_dynamic29514-2-9-...json 
-│   ├── meta-neurons_dynamic29514-2-9-...csv
-│   └── meta-trials_dynamic29514-2-9-...csv
+│   ├── neurons/
+│   │   └──meta-neurons_dynamic29514-2-9-...csv
+│   └── trials/
+│       └── meta-trials_dynamic29514-2-9-...csv
 ...
 ```
 

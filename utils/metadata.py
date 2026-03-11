@@ -48,10 +48,65 @@ def parse_info_from_recording_name(recording: str, verbose: bool = True) -> dict
     return info
 
 
-def _validate_csv_metadata(
+def _validate_dataframe(
+    df: pd.DataFrame,
+    mandatory_columns: set[str] | list[str] | None = None,
+    optional_columns: set[str] | list[str] | None = None,
+    nan_accepted: bool = False,
+    verbose: bool = True,
+) -> tuple[pd.DataFrame, bool]:
+    """Validate CSV metadata file structure.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing trial-level metadata.
+    mandatory_columns : set or list or None, optional
+        Required columns.
+    optional_columns : set or list or None, optional
+        Allowed optional columns.
+    nan_accepted : bool, default=False
+        If ``True``, allow NaN values in the DataFrame for mandatory columns.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, bool]
+        Loaded dataframe and validity flag.
+    """
+    is_valid = True
+
+    # Check if data is a DataFrame
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("Input data must be a pandas DataFrame")
+
+    # Check for mandatory columns and warn about unexpected columns
+    if mandatory_columns is None:
+        mandatory_columns = set()
+    for col in list(mandatory_columns):
+        if col not in df.columns:
+            is_valid = False
+            print(f"Warning: '{col}' column not found") if verbose else None
+        elif not nan_accepted and df[col].isna().any():
+            is_valid = False
+            print(f"Warning: NaN values found in mandatory column '{col}'") if verbose else None
+
+    # Warn about unexpected columns
+    if optional_columns is not None:
+        unexpected_columns = set(df.columns) - set(mandatory_columns) - set(optional_columns)
+        if unexpected_columns:
+            print(f"Warning: Unexpected columns: {unexpected_columns}") if verbose else None
+
+    return is_valid
+
+
+
+def _validate_csv(
     filepath: str | Path,
     mandatory_columns: set[str] | list[str] | None = None,
     optional_columns: set[str] | list[str] | None = None,
+    nan_accepted: bool = False,
     verbose: bool = True,
 ) -> tuple[pd.DataFrame, bool]:
     """Validate CSV metadata file structure.
@@ -62,8 +117,10 @@ def _validate_csv_metadata(
         Path to CSV metadata file.
     mandatory_columns : set or list or None, optional
         Required columns.
-    optional_columns : set or None, optional
+    optional_columns : set or list or None, optional
         Allowed optional columns.
+    nan_accepted : bool, default=False
+        If ``True``, allow NaN values in the DataFrame for mandatory columns.
     verbose : bool, default=True
         If ``True``, print warnings.
 
@@ -77,8 +134,8 @@ def _validate_csv_metadata(
 
     # Check if file exists
     if not filepath.exists():
-        is_valid = False
-        raise FileNotFoundError(f"Metadata file not found: {filepath}")
+        print(f"Metadata file not found: {filepath}") if verbose else None
+        return None, False
 
     # Try to load CSV and validate columns
     try:
@@ -86,38 +143,35 @@ def _validate_csv_metadata(
         if "trial" in df.columns:
             df["trial"] = df["trial"].astype(str)
     except Exception as e:
-        is_valid = False
-        raise ValueError(f"Error reading {filepath}: {e}")
+        print(f"Error reading {filepath}: {e}") if verbose else None
+        return None, False
 
     # Check for mandatory columns and warn about unexpected columns
-    if mandatory_columns is None:
-        mandatory_columns = set()
-    if optional_columns is None:
-        optional_columns = set()
-    for col in mandatory_columns:
-        if col not in df.columns:
-            is_valid = False
-            (
-                print(f"Warning: '{col}' column not found in {filepath}")
-                if verbose
-                else None
-            )
-
-    # # Warn about unexpected columns
-    # unexpected_columns = set(df.columns) - mandatory_columns - optional_columns
-    # if unexpected_columns:
-    #     print(f"Warning: Unexpected columns in {filepath}: {unexpected_columns}") if verbose else None
-
+    is_valid = _validate_dataframe(df, 
+                                   mandatory_columns=mandatory_columns, 
+                                   optional_columns=optional_columns, 
+                                   nan_accepted=nan_accepted, 
+                                   verbose=verbose,
+                                   )
+    
     return df, is_valid
 
-
-def validate_metadata_basic_dict(metadata: dict[str, Any]) -> bool:
-    """Validate basic metadata dictionary.
+def _validate_dict(metadata: dict[str, Any], 
+                   mandatory_fields: set[str] | list[str] | None = None,
+                   optional_fields: set[str] | list[str] | None = None,
+                   verbose: bool = True) -> bool:
+    """Validate metadata dictionary.
 
     Parameters
     ----------
     metadata : dict
-        Basic metadata dictionary.
+        Metadata dictionary.
+    mandatory_fields : set or list
+        Required fields.
+    optional_fields : set or list or None, optional
+        Allowed optional fields.
+    verbose : bool, default=True
+        If ``True``, print warnings.
 
     Returns
     -------
@@ -126,20 +180,26 @@ def validate_metadata_basic_dict(metadata: dict[str, Any]) -> bool:
     """
     is_valid = True
 
-    # Check for mandatory fields
-    mandatory_fields = {"animal_id", "session", "scan_idx", "sampling_freq","n_neurons", "n_trials","samples_per_trial"}
+    if mandatory_fields is not None:
+        missing_fields = set(mandatory_fields) - set(metadata.keys())
+        if missing_fields:
+            is_valid = False
+            print(f"Missing mandatory fields: {missing_fields}") if verbose else None
 
-    missing_fields = mandatory_fields - set(metadata.keys())
-    if missing_fields:
-        is_valid = False
-        raise ValueError(f"Missing mandatory fields: {missing_fields}")
+    # Warn about unexpected fields
+    if optional_fields is not None:
+        unexpected_fields = set(metadata.keys()) - set(mandatory_fields) - set(optional_fields)
+        if unexpected_fields:
+            print(f"Warning: Unexpected fields: {unexpected_fields}") if verbose else None
+
 
     return is_valid
 
-
-
-def validate_metadata_basic_json(
+def _validate_json(
     filepath: str | Path,
+    mandatory_fields: set[str] | list[str] | None = None,
+    optional_fields: set[str] | list[str] | None = None,
+    verbose: bool = True,
 ) -> tuple[dict[str, Any], bool]:
     """Load and validate one basic metadata JSON file.
 
@@ -147,6 +207,12 @@ def validate_metadata_basic_json(
     ----------
     filepath : str or pathlib.Path
         Path to JSON metadata file.
+    mandatory_fields : set or list
+        Required fields.
+    optional_fields : set or list or None, optional
+        Allowed optional fields.
+    verbose : bool, default=True
+        If ``True``, print warnings.
 
     Returns
     -------
@@ -158,234 +224,86 @@ def validate_metadata_basic_json(
 
     # Check if file exists
     if not filepath.exists():
-        is_valid = False
-        raise FileNotFoundError(f"Metadata file not found: {filepath}")
+        print(f"Metadata file not found: {filepath}") if verbose else None
+        return None, False
 
     # Try to load JSON
     try:
         with open(filepath, "r") as f:
             metadata = json.load(f)
-        is_valid = validate_metadata_basic_dict(metadata)
+        is_valid = _validate_dict(metadata, 
+                                  mandatory_fields=mandatory_fields, 
+                                  optional_fields=optional_fields, 
+                                  verbose=verbose)
     except json.JSONDecodeError as e:
         is_valid = False
-        raise ValueError(f"Invalid JSON in {filepath}: {e}")
+        metadata = None
+        print(f"Invalid JSON in {filepath}: {e}") if verbose else None
     except Exception as e:
         is_valid = False
-        raise ValueError(f"Error reading {filepath}: {e}")
+        metadata = None
+        print(f"Error reading {filepath}: {e}") if verbose else None
 
     return metadata, is_valid
 
-
-def validate_global_trials_metadata(filepath: str | Path) -> tuple[pd.DataFrame, bool]:
-    """Validate global trial-level metadata CSV.
-
-    Parameters
-    ----------
-    filepath : str or pathlib.Path
-        Path to metadata CSV.
-
-    Returns
-    -------
-    tuple[pandas.DataFrame, bool]
-        Loaded dataframe and validity flag.
-    """
-    return _validate_csv_metadata(
-        filepath,
-        mandatory_columns={"trial", "ID", "label", "trial_type", "valid_trial"},
-        optional_columns={"valid_frames"},
-    )
-
-
-def validate_global_neurons_metadata(filepath: str | Path) -> tuple[pd.DataFrame, bool]:
-    """Validate global neuron-level metadata CSV.
+def _json_to_dataframe(
+        json_folder: str | Path, 
+        file_pattern: str = "*.json", 
+        include_file_as_column: bool = True,
+        verbose: bool = True) -> None:
+    """Convert trial-level metadata from JSON files to a single DataFrame.
 
     Parameters
     ----------
-    filepath : str or pathlib.Path
-        Path to metadata CSV.
+    json_folder : str or pathlib.Path
+        Folder containing trial metadata JSON files.
+    file_pattern : str, optional
+        Pattern to match JSON files, by default "*.json"
+    verbose : bool, optional
+        Whether to print warnings, by default True.
 
     Returns
     -------
-    tuple[pandas.DataFrame, bool]
-        Loaded dataframe and validity flag.
+    pandas.DataFrame
+        DataFrame containing trial-level metadata.
     """
-    mandatory_columns = {"ID", "coord_x", "coord_y", "coord_z"}
-    optional_columns = {
-        "mean_activation",
-        "std_activation",
-        "median_activation",
-        "min_activation",
-        "max_activation",
-    }
-    return _validate_csv_metadata(
-        filepath, mandatory_columns=mandatory_columns, optional_columns=optional_columns
-    )
+    json_folder = Path(json_folder)
+    
+    if not json_folder.is_dir():
+        print(f"Warning: Trials metadata folder does not exist: {json_folder}") if verbose else None
+        return None, False
+    
+    files = list(Path(json_folder).glob(file_pattern))
+    if len(files) == 0:
+        print(f"Warning: No JSON files found in {json_folder}") if verbose else None
+        return None, False
+    
+    all_rows = []
+    loaded_files = np.zeros(len(files), dtype=bool)
+    for i, fff in enumerate(files):
+        try:
+            with open(fff, "r") as f:
+                meta = json.load(f)
+            loaded_files[i] = True
+            meta_filtered = {
+                                k: v
+                                for k, v in meta.items()
+                                if isinstance(v, (str, int, float, bool, type(None)))
+                            }
+            if include_file_as_column:
+                meta_filtered["file"] = fff.stem
+            all_rows.append(meta_filtered)
+        except json.JSONDecodeError as e:
+            print(f"Invalid JSON in {fff}: {e}") if verbose else None
+        except Exception as e:
+            print(f"Error reading {fff}: {e}") if verbose else None
+        
+    trials_df = pd.DataFrame(all_rows)
+    if 'trial' in trials_df.columns:
+        trials_df["trial"] = trials_df["trial"].astype(str)
+    all_loaded = loaded_files.sum() == len(files)
 
-
-def validate_metadata_video_dict(metadata: dict[str, Any]) -> bool:
-    """Validate one video metadata dictionary.
-
-    Parameters
-    ----------
-    metadata : dict
-        Video metadata dictionary.
-
-    Returns
-    -------
-    bool
-        ``True`` when dictionary passes all checks.
-    """
-    is_valid = True
-
-    # Check for mandatory fields
-    mandatory_fields = {"label", "ID", "valid_frames", "sampling_freq"}
-    optional_fields = {"duplicates", "segments"}
-
-    missing_fields = mandatory_fields - set(metadata.keys())
-    if missing_fields:
-        is_valid = False
-        raise ValueError(f"Missing mandatory fields: {missing_fields}")
-
-    # # Warn about unexpected fields
-    # all_allowed_fields = mandatory_fields | optional_fields
-    # unexpected_fields = set(metadata.keys()) - all_allowed_fields
-    # if unexpected_fields:
-    #     print(f"Warning: Unexpected fields : {unexpected_fields}") if verbose else None
-
-    # Check the structure of 'segments' if it exists
-    if "segments" in metadata:
-        valid_segment = _validate_metadata_videos_segment_field(metadata["segments"])
-        is_valid = is_valid and valid_segment
-
-    # Check the structure of 'duplicates' if it exists
-    if "duplicates" in metadata:
-        valid_duplicates = _validate_metadata_videos_duplicates_field(
-            metadata["duplicates"]
-        )
-        is_valid = is_valid and valid_duplicates
-
-    return is_valid
-
-
-def validate_metadata_video_json(filepath: str | Path) -> tuple[dict[str, Any], bool]:
-    """Load and validate one video metadata JSON file.
-
-    Parameters
-    ----------
-    filepath : str or pathlib.Path
-        Path to JSON metadata file.
-
-    Returns
-    -------
-    tuple[dict, bool]
-        Metadata dictionary and validity flag.
-    """
-    filepath = Path(filepath)
-    is_valid = True
-
-    # Check if file exists
-    if not filepath.exists():
-        raise FileNotFoundError(f"Metadata file not found: {filepath}")
-
-    # Try to load JSON
-    try:
-        with open(filepath, "r") as f:
-            metadata = json.load(f)
-        is_valid = validate_metadata_video_dict(metadata)
-    except json.JSONDecodeError as e:
-        is_valid = False
-        raise ValueError(f"Invalid JSON in {filepath}: {e}")
-    except Exception as e:
-        is_valid = False
-        raise ValueError(f"Error reading {filepath}: {e}")
-
-    return metadata, is_valid
-
-
-def validate_metadata_per_trial_dict(metadata: dict[str, Any]) -> bool:
-    """Validate one per-trial metadata dictionary.
-
-    Parameters
-    ----------
-    metadata : dict
-        Per-trial metadata dictionary.
-
-    Returns
-    -------
-    bool
-        ``True`` when dictionary passes all checks.
-    """
-    is_valid = True
-
-    # Check for mandatory fields
-    mandatory_fields = {"trial", "label", "ID", "valid_frames", "sampling_freq"}
-    optional_fields = {
-        "recording",
-        "trial_type",
-        "first_label",
-        "n_peaks",
-        "segments_n_peaks",
-        "segments_bad_n",
-        "segments_avg_duration",
-        "duplicates",
-        "segments",
-    }
-
-    missing_fields = mandatory_fields - set(metadata.keys())
-    if missing_fields:
-        is_valid = False
-        raise ValueError(f"Missing mandatory fields: {missing_fields}")
-
-    # # Warn about unexpected fields
-    # all_allowed_fields = mandatory_fields | optional_fields
-    # unexpected_fields = set(metadata.keys()) - all_allowed_fields
-    # if unexpected_fields:
-    #     print(f"Warning: Unexpected fields: {unexpected_fields}") if verbose else None
-
-    # Check the structure of 'segments' if it exists
-    if "segments" in metadata:
-        valid_segments = _validate_metadata_videos_segment_field(metadata["segments"])
-        is_valid = is_valid and valid_segments
-
-    return is_valid
-
-
-def validate_metadata_per_trial_json(
-    filepath: str | Path,
-) -> tuple[dict[str, Any], bool]:
-    """Load and validate one per-trial metadata JSON file.
-
-    Parameters
-    ----------
-    filepath : str or pathlib.Path
-        Path to JSON metadata file.
-
-    Returns
-    -------
-    tuple[dict, bool]
-        Metadata dictionary and validity flag.
-    """
-    filepath = Path(filepath)
-    is_valid = True
-
-    # Check if file exists
-    if not filepath.exists():
-        is_valid = False
-        raise FileNotFoundError(f"Metadata file not found: {filepath}")
-
-    # Try to load JSON
-    try:
-        with open(filepath, "r") as f:
-            metadata = json.load(f)
-        is_valid = validate_metadata_per_trial_dict(metadata)
-    except json.JSONDecodeError as e:
-        is_valid = False
-        raise ValueError(f"Invalid JSON in {filepath}: {e}")
-    except Exception as e:
-        is_valid = False
-        raise ValueError(f"Error reading {filepath}: {e}")
-
-    return metadata, is_valid
+    return trials_df, all_loaded
 
 
 def _validate_metadata_videos_segment_field(
@@ -479,67 +397,6 @@ def _validate_metadata_videos_duplicates_field(
     return is_valid
 
 
-def validate_metadata_segment_json(
-    filepath: str | Path, verbose: bool = True
-) -> tuple[dict[str, Any], bool]:
-    """Load and validate one segment metadata JSON file.
-
-    Parameters
-    ----------
-    filepath : str or pathlib.Path
-        Path to JSON metadata file.
-    verbose : bool, default=True
-        If ``True``, print warnings.
-
-    Returns
-    -------
-    tuple[dict, bool]
-        Metadata dictionary and validity flag.
-    """
-    filepath = Path(filepath)
-    is_valid = True
-
-    # Check if file exists
-    if not filepath.exists():
-        is_valid = False
-        raise FileNotFoundError(f"Metadata file not found: {filepath}")
-
-    # Try to load JSON
-    try:
-        with open(filepath, "r") as f:
-            metadata = json.load(f)
-    except json.JSONDecodeError as e:
-        is_valid = False
-        raise ValueError(f"Invalid JSON in {filepath}: {e}")
-    except Exception as e:
-        is_valid = False
-        raise ValueError(f"Error reading {filepath}: {e}")
-
-    # Check for mandatory fields
-    mandatory_fields = {"label", "ID", "valid_frames", "sampling_freq"}
-    optional_fields = {"duplicates"}
-
-    missing_fields = mandatory_fields - set(metadata.keys())
-    if missing_fields:
-        is_valid = False
-        raise ValueError(f"Missing mandatory fields in {filepath}: {missing_fields}")
-
-    # # Warn about unexpected fields
-    # all_allowed_fields = mandatory_fields | optional_fields
-    # unexpected_fields = set(metadata.keys()) - all_allowed_fields
-    # if unexpected_fields:
-    #     print(f"Warning: Unexpected fields in {filepath}: {unexpected_fields}") if verbose else None
-
-    # Check the structure of 'duplicates' if it exists
-    if "duplicates" in metadata:
-        valid_duplicates = _validate_metadata_segments_duplicates_field(
-            metadata["duplicates"], from_filepath=filepath
-        )
-        is_valid = is_valid and valid_duplicates
-
-    return metadata, is_valid
-
-
 def _validate_metadata_segments_duplicates_field(
     duplicates: dict[str, Any], from_filepath: str | Path | None = None
 ) -> bool:
@@ -581,6 +438,126 @@ def _validate_metadata_segments_duplicates_field(
     return is_valid
 
 
+def _validate_metadata_video_json(filepath: str | Path, verbose: bool = True) -> tuple[dict[str, Any], bool]:
+    """Load and validate one trial metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
+    """
+    filepath = Path(filepath)
+    is_valid = True
+
+    metadata, is_valid = _validate_json(filepath,
+                                    mandatory_fields={"label", "ID", "valid_frames", "sampling_freq"},
+                                    optional_fields={"duplicates", "segments"},
+                                    verbose=verbose,)
+
+    if metadata is not None and is_valid:
+        # Check the structure of 'segments' if it exists
+        if "segments" in metadata:
+            valid_segment = _validate_metadata_videos_segment_field(metadata["segments"], from_filepath=filepath, verbose=verbose)
+            is_valid = is_valid and valid_segment
+
+        # Check the structure of 'duplicates' if it exists
+        if "duplicates" in metadata:
+            valid_duplicates = _validate_metadata_videos_duplicates_field(metadata["duplicates"], from_filepath=filepath)
+            is_valid = is_valid and valid_duplicates
+
+        # Check the file name matches the ID and label in the metadata
+        if metadata["ID"] not in filepath.stem or metadata["label"] not in filepath.stem:
+            is_valid = False
+            if verbose:
+                print(f"Warning: File name {filepath.name} does not match ID {metadata['ID']} or label {metadata['label']} in metadata") if verbose else None
+
+    return metadata, is_valid
+
+def _validate_metadata_video_dict(metadata: dict[str, Any], verbose: bool = True) -> tuple[dict[str, Any], bool]:
+    """Validate a video metadata dictionary.
+
+    Parameters
+    ----------
+    metadata : dict
+        Metadata dictionary.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
+    """
+
+    is_valid = _validate_dict(metadata,
+                                    mandatory_fields={"label", "ID", "valid_frames", "sampling_freq"},
+                                    optional_fields={"duplicates", "segments"},
+                                    verbose=verbose,)
+    
+    if is_valid:
+        # Check the structure of 'segments' if it exists
+        if "segments" in metadata:
+            valid_segment = _validate_metadata_videos_segment_field(metadata["segments"], from_filepath=None, verbose=verbose)
+            is_valid = is_valid and valid_segment
+
+        # Check the structure of 'duplicates' if it exists
+        if "duplicates" in metadata:
+            valid_duplicates = _validate_metadata_videos_duplicates_field(metadata["duplicates"], from_filepath=None)
+            is_valid = is_valid and valid_duplicates
+
+    return is_valid
+
+
+def _validate_metadata_segment_json(
+    filepath: str | Path, verbose: bool = True
+) -> tuple[dict[str, Any], bool]:
+    """Load and validate one segment metadata JSON file.
+
+    Parameters
+    ----------
+    filepath : str or pathlib.Path
+        Path to JSON metadata file.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    tuple[dict, bool]
+        Metadata dictionary and validity flag.
+    """
+    filepath = Path(filepath)
+    is_valid = True
+
+    metadata, is_valid = _validate_json(filepath,
+                                    mandatory_fields={"label", "ID", "valid_frames", "sampling_freq"},
+                                    optional_fields={"duplicates"},
+                                    verbose=verbose,)
+
+
+    if metadata is not None and is_valid:
+        # Check the structure of 'duplicates' if it exists
+        if "duplicates" in metadata:
+            valid_duplicates = _validate_metadata_segments_duplicates_field(
+                metadata["duplicates"], from_filepath=filepath
+            )
+            is_valid = is_valid and valid_duplicates
+
+        # Check the file name matches the ID and label in the metadata
+        if metadata["ID"] not in filepath.stem or metadata["label"] not in filepath.stem:
+            is_valid = False
+            if verbose:
+                print(f"Warning: File name {filepath.name} does not match ID {metadata['ID']} or label {metadata['label']} in metadata") if verbose else None
+
+    return metadata, is_valid
+
+
 def validate_metadata_video_folder(
     folder_globalmetadata_videos: str | Path, verbose: bool = True
 ) -> bool:
@@ -611,7 +588,7 @@ def validate_metadata_video_folder(
     good_files = np.zeros(len(files), dtype=bool)
     for i, fff in enumerate(files):
         try:
-            _, good_files[i] = validate_metadata_video_json(fff)
+            _, good_files[i] = _validate_metadata_video_json(fff)
         except Exception as e:
             (
                 print(
@@ -663,7 +640,7 @@ def validate_metadata_segment_folder(
     good_files = np.zeros(len(files), dtype=bool)
     for i, fff in enumerate(files):
         try:
-            _, good_files[i] = validate_metadata_segment_json(fff, verbose=verbose)
+            _, good_files[i] = _validate_metadata_segment_json(fff, verbose=verbose)
         except Exception as e:
             (
                 print(
@@ -690,6 +667,7 @@ def validate_metadata_recording(
     folder_globalmetadata_videos: str | Path,
     trials: list[str],
     n_neurons: int,
+    trials_metadata_file_type: str = "csv",
     verbose: bool = True,
 ) -> bool:
     """Validate recording-level metadata and consistency with data inventory.
@@ -704,6 +682,8 @@ def validate_metadata_recording(
         Trial names detected in data files.
     n_neurons : int
         Expected neuron count from response data.
+    trials_metadata_file_type : str (csv or json), default="csv"
+        File type for trials metadata files.
     verbose : bool, default=True
         If ``True``, print warnings.
 
@@ -716,45 +696,70 @@ def validate_metadata_recording(
     folder_metadata_rec = Path(folder_metadata_rec)
     rec = folder_metadata_rec.name
 
+    if trials_metadata_file_type not in {"csv", "json"}:
+        raise ValueError(f"Invalid trials_metadata_file_type: {trials_metadata_file_type}, expected 'csv' or 'json'")
+
     # check if a folder for the recording exists in the metadata folder
-    if not folder_metadata_rec.exists():
-        (
-            print(f"Warning: Path does not exist: {folder_metadata_rec}")
-            if verbose
-            else None
-        )
+    if not folder_metadata_rec.is_dir():
+        print(f"Warning: Path does not exist: {folder_metadata_rec}") if verbose else None
         return False
 
-    # check the trials metadata file
-    file = os.path.join(folder_metadata_rec, f"meta-trials_{rec}.csv")
-    if not os.path.exists(file):
-        print(f"Warning: File does not exist: {file}") if verbose else None
+    # check the trials metadata
+    folder_meta_trials = folder_metadata_rec / "trials"
+    mandatory_columns = {"trial", "ID", "label", "trial_type", "valid_trial"}
+    optional_columns = {"valid_frames"}   
+    optional_columns = {"recording",
+                        "first_label",
+                        "sampling_freq",
+                        "valid_frames",
+                        "n_peaks",
+                        "segments_n_peaks",
+                        "segments_bad_n",
+                        "segments_avg_duration"}    
+    if not folder_meta_trials.is_dir():
+        print(f"Warning: Trials metadata folder does not exist: {folder_meta_trials}") if verbose else None
         good_trials = False
     else:
-        try:
-            df, good_trials = validate_global_trials_metadata(file)
+        # load trials metadata as dataframe and validate it
+        if trials_metadata_file_type == "csv":
+            file = folder_meta_trials / f"meta-trials_{rec}.csv"
+            trials_df, good_trials = _validate_csv(
+                                                    file,
+                                                    mandatory_columns=mandatory_columns,
+                                                    optional_columns=optional_columns,
+                                                    nan_accepted=False,
+                                                    verbose=verbose
+                                                    )
+            
+        elif trials_metadata_file_type == "json":
+            trials_df, all_loaded = _json_to_dataframe(folder_meta_trials, 
+                                                       file_pattern="*.json", 
+                                                       include_file_as_column=False, 
+                                                       verbose=verbose)
+            if all_loaded:
+                good_trials = _validate_dataframe(trials_df, 
+                                                  mandatory_columns=mandatory_columns, 
+                                                  optional_columns=optional_columns, 
+                                                  nan_accepted=False, 
+                                                  verbose=verbose)
+            else:
+                good_trials = False
 
-            # check that the trials in the metadata file are consistent with the trials in the data files
-            if "trial" in df.columns:
-                if not df["trial"].isin(trials).all():
-                    trials_diff = set(df["trial"].values) - set(trials)
+        # check that the trials in the metadata file are consistent with the trials in the data files
+        if trials_df is not None:
+            if "trial" in trials_df.columns:
+                if not trials_df["trial"].isin(trials).all():
+                    trials_diff = set(trials_df["trial"].values) - set(trials)
                     good_trials = False
-                    (
-                        print(
-                            f"Warning: {len(trials_diff)} trials in {file} are not found in data files for recording {rec}: {trials_diff}"
-                        )
-                        if verbose
-                        else None
-                    )
+                    print(f"Warning: {len(trials_diff)} trials in {file} are not found in data files for recording {rec}: {trials_diff}") if verbose else None
 
-            # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
+        # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
+        if trials_df is not None:
             if Path(folder_globalmetadata_videos).exists():
-                if "ID" in df.columns:
-                    the_ids = set(df["ID"].values)
+                if "ID" in trials_df.columns:
+                    the_ids = set(trials_df["ID"].values)
                     for id in the_ids:
-                        files = list(
-                            Path(folder_globalmetadata_videos).glob(f"*{id}.json")
-                        )
+                        files = list(Path(folder_globalmetadata_videos).glob(f"*{id}.json"))
                         if len(files) == 0:
                             good_trials = False
                             (
@@ -774,43 +779,32 @@ def validate_metadata_recording(
                                 else None
                             )
 
-        except Exception as e:
-            print(f"Warning: Could not load {file}: {e}") if verbose else None
-            good_trials = False
-
     # check the neurons metadata file
-    file = os.path.join(folder_metadata_rec, f"meta-neurons_{rec}.csv")
-    if not os.path.exists(file):
-        print(f"Warning: File does not exist: {file}") if verbose else None
-        df, good_neurons = None, False
-    else:
-        try:
-            df, good_neurons = validate_global_neurons_metadata(file)
-            if len(df) != n_neurons:
-                good_neurons = False
-                (
-                    print(
-                        f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}"
-                    )
-                    if verbose
-                    else None
-                )
-        except Exception as e:
-            print(f"Warning: Could not load {file}: {e}") if verbose else None
-            df, good_neurons = None, False
+    folder_meta_neurons = folder_metadata_rec / "neurons"
+    file = os.path.join(folder_meta_neurons, f"meta-neurons_{rec}.csv")
+    mandatory_columns = {"ID", "coord_x", "coord_y", "coord_z"}
+    optional_columns = {"mean_activation",
+                        "std_activation",
+                        "median_activation",
+                        "min_activation",
+                        "max_activation",
+                        }
+    df, good_neurons = _validate_csv(file, 
+                                     mandatory_columns=mandatory_columns, 
+                                     optional_columns=optional_columns, 
+                                     nan_accepted=False,
+                                     verbose=verbose)
+    if df is not None:
+        if len(df) != n_neurons:
+            good_neurons = False
+            print(f"Warning: Number of neurons in {file} does not match the number of neurons in the data files for recording {rec}: {len(df)} vs {n_neurons}") if verbose else None
+                  
 
     # check the basic metadata file
     file = os.path.join(folder_metadata_rec, f"meta-basic_{rec}.json")
-    if not os.path.exists(file):
-        print(f"Warning: File does not exist: {file}") if verbose else None
-        good_basic = False
-    else:
-        try:
-            basic_meta, good_basic = validate_metadata_basic_json(file)
-        except Exception as e:
-            print(f"Warning: Could not load {file}: {e}") if verbose else None
-            basic_meta, good_basic = None, False
-
+    mandatory_fields = {"animal_id", "session", "scan_idx", "sampling_freq","n_neurons", "n_trials","samples_per_trial"}
+    basic_meta, good_basic = _validate_json(file, mandatory_fields=mandatory_fields, verbose=verbose)
+        
     # print if all fine for the recording
     if good_trials and good_neurons and good_basic:
         print(f" > Metadata seems ok for recording {rec}.") if verbose else None
@@ -824,6 +818,7 @@ def check_metadata_integrity(
     folder_globalmetadata_videos: str | Path,
     folder_globalmetadata_segments: str | Path,
     info: dict[str, Any],
+    trials_metadata_file_type: str = "csv",
     verbose: bool = True,
 ) -> tuple[bool, dict[str, Any] | None]:
     """Run full metadata integrity checks for a dataset.
@@ -840,6 +835,8 @@ def check_metadata_integrity(
         Global segment metadata folder.
     info : dict
         Per-recording data summary from integrity checks.
+    trials_metadata_file_type : str, default="csv"
+        File type for trials metadata files ('csv' or 'json').
     verbose : bool, default=True
         If ``True``, print warnings.
 
@@ -852,7 +849,7 @@ def check_metadata_integrity(
     if folder_metadata is None:
         return False, None
 
-    if not Path(folder_metadata).exists():
+    if not Path(folder_metadata).is_dir():
         (
             print("Warning: The metadata folder was set but it does not exist")
             if verbose
@@ -873,12 +870,13 @@ def check_metadata_integrity(
     # check the metadata for each recording and its consistency with the data files
     good_metadata_per_recording = {}
     for rec in recording:
-        folder_metadata_rec = os.path.join(folder_metadata, rec)
+        folder_metadata_rec = Path(folder_metadata, rec)
         good_metadata_rec = validate_metadata_recording(
             folder_metadata_rec,
             folder_globalmetadata_videos,
             trials=info[rec]["trials"],
             n_neurons=info[rec]["n_neurons"],
+            trials_metadata_file_type=trials_metadata_file_type,
             verbose=verbose,
         )
         good_metadata_per_recording[rec] = good_metadata_rec
@@ -895,108 +893,3 @@ def check_metadata_integrity(
 
     return good_metadata, results
 
-
-def check_metadata_per_trial_integrity(
-    folder_metadata_per_trial: str | Path | None,
-    recording: list[str],
-    info: dict[str, Any],
-    verbose: bool = True,
-) -> tuple[bool, dict[str, bool] | None]:
-    """Validate per-trial metadata folders and files.
-
-    Parameters
-    ----------
-    folder_metadata_per_trial : str or pathlib.Path or None
-        Root per-trial metadata folder.
-    recording : list[str]
-        Recordings to validate.
-    info : dict
-        Per-recording data summary from integrity checks.
-    verbose : bool, default=True
-        If ``True``, print warnings.
-
-    Returns
-    -------
-    tuple[bool, dict or None]
-        Global validity flag and per-recording validity dictionary.
-    """
-
-    if folder_metadata_per_trial is None:
-        return False, None
-
-    if not Path(folder_metadata_per_trial).exists():
-        (
-            print(
-                "Warning: The metadata per trial folder was set but it does not exist, you can create it with create_folders_metadata_per_trial()"
-            )
-            if verbose
-            else None
-        )
-        return False, None
-
-    # check the metadata for each recording and its consistency with the data files
-    good_metadata_per_trial_per_recording = {}
-    for rec in recording:
-
-        # check if a folder for the recording exists in the metadata folder
-        path_to_table = Path(folder_metadata_per_trial) / rec / "videos"
-        if not path_to_table.exists():
-            print(f"Warning: Path does not exist: {path_to_table}") if verbose else None
-            good_metadata_per_trial_per_recording[rec] = False
-
-        else:
-
-            all_fine = True
-
-            # check all the video metadata files
-            files = list(Path(path_to_table).glob(f"*.json"))
-            good_files = np.full(len(files), False)
-            trials = []
-            for i, fff in enumerate(files):
-                try:
-                    metadata, good_files[i] = validate_metadata_per_trial_json(fff)
-                    trials.append(metadata["trial"])
-                except Exception as e:
-                    (
-                        print(
-                            f"Warning: Could not validate metadata per trial json file {fff}: {e}"
-                        )
-                        if verbose
-                        else None
-                    )
-
-            if set(trials) != set(info[rec]["trials"]):
-                trials_diff = set(trials) - set(info[rec]["trials"])
-                all_fine = False
-                (
-                    print(
-                        f"Warning: Trials in metadata per trial json files do not match the trials in the data files for recording {rec}: {trials_diff}"
-                    )
-                    if verbose
-                    else None
-                )
-
-            if good_files.sum() != len(info[rec]["trials"]):
-                all_fine = False
-                (
-                    print(
-                        f"Warning: Number of valid metadata per trial json files does not match the number of trials in the data files for recording {rec}: {good_files.sum()} vs {len(info[rec]['trials'])}"
-                    )
-                    if verbose
-                    else None
-                )
-
-            # print if all fine for the recording
-            if all_fine:
-                (
-                    print(f" > Metadata per trial seems ok for recording {rec}.")
-                    if verbose
-                    else None
-                )
-
-            good_metadata_per_trial_per_recording[rec] = all_fine
-
-    return (
-        all(good_metadata_per_trial_per_recording.values()),
-        good_metadata_per_trial_per_recording,
-    )

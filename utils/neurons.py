@@ -22,7 +22,7 @@ class Neurons:
             Recording name.
         """
 
-        file = os.path.join(folder_metadata, recording, f"meta-neurons_{recording}.csv")
+        file = os.path.join(folder_metadata, recording, 'neurons', f"meta-neurons_{recording}.csv")
         try:
             df_neurons = pd.read_csv(file)
             self.coord_xyz = (

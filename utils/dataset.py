@@ -27,9 +27,9 @@ from utils.data_handling import (
 )
 from utils.metadata import (
     parse_info_from_recording_name,
-    validate_metadata_video_dict,
+    _json_to_dataframe,
+    _validate_metadata_video_dict,
     check_metadata_integrity,
-    check_metadata_per_trial_integrity,
 )
 from utils.videos_duplicates import (
     compute_dissimilarity_video_list,
@@ -193,12 +193,11 @@ class DataSet:
         self,
         folder_data: str | Path,
         folder_metadata: str | Path | None = None,
-        folder_metadata_per_trial: str | Path | None = None,
         recording: list[str] | str | None = None,
         check_data: bool = True,
         check_metadata: bool = True,
-        check_metadata_per_trial: bool = True,
         check: bool = True,
+        trials_metadata_file_type: str = "csv",
         verbose: bool = True,
     ):
         """Initialize dataset paths, integrity checks, and cached metadata.
@@ -209,18 +208,16 @@ class DataSet:
             Root data folder containing recording directories.
         folder_metadata : str or pathlib.Path or None, optional
             Root metadata folder.
-        folder_metadata_per_trial : str or pathlib.Path or None, optional
-            Root per-trial metadata folder.
         recording : list[str] or str or None, optional
             Recording names to include; if ``None``, all subfolders are used.
         check_data : bool, default=True
             If ``True``, perform data integrity checks.
         check_metadata : bool, default=True
             If ``True``, perform metadata integrity checks.
-        check_metadata_per_trial : bool, default=True
-            If ``True``, perform per-trial metadata integrity checks.
         check : bool, default=True
             If ``False``, skip all integrity checks. Overrides other check flags.
+        trials_metadata_file_type : str, default="csv"
+            File type for trials metadata files ('csv' or 'json').
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
@@ -230,8 +227,11 @@ class DataSet:
         if check==False:
             check_data = False
             check_metadata = False
-            check_metadata_per_trial = False
 
+        if trials_metadata_file_type not in {"csv", "json"}:
+            raise ValueError(f"Invalid trials_metadata_file_type: {trials_metadata_file_type}, expected 'csv' or 'json'")
+        self._trials_metadata_file_type = trials_metadata_file_type
+        
         # set data folders and check they exist
         self.folder_data = folder_data
         if not os.path.exists(folder_data):
@@ -251,7 +251,6 @@ class DataSet:
         
         # set metadata folders
         self.folder_metadata = folder_metadata
-        self.folder_metadata_per_trial = folder_metadata_per_trial
         self.set_metadata_folders()
 
         # check the metadata folders and files and their consistency with the data files
@@ -262,14 +261,6 @@ class DataSet:
             print(" > If you want to check it, set check and check_metadata to True when initializing the DataSet.") if verbose else None
             print(" > Metadata will be assumed to be valid for existing folders and invalid for missing folders.") if verbose else None
             self._check_metadata_folder_structure(verbose=False)
-
-        if check_metadata_per_trial:
-            self.check_metadata_per_trial(verbose=verbose)
-        else:
-            print_title("Metadata per trial integrity check skipped ", verbose)
-            print(" > If you want to check it, set check and check_metadata_per_trial to True when initializing the DataSet.") if verbose else None
-            print(" > Metadata per trial will be assumed to be valid for existing folders and invalid for missing folders.") if verbose else None
-            self._check_metadata_per_trial_folder_structure(verbose=False)
         
         # load neurons data for all recordings and store it in the info variable
         self.load_neurons(verbose=verbose)
@@ -305,16 +296,27 @@ class DataSet:
     def _check_metadata_folder_structure(self, verbose: bool = True):
 
         if self.folder_metadata is not None and self.folder_metadata.is_dir():
-            
-            all_meta_rec_directories_exist = all([Path(self.folder_metadata, rec).is_dir() for rec in self.recording]) if self.folder_metadata is not None else False
-            if all_meta_rec_directories_exist:
-                print("   - All metadata directories for recordings exist.") if verbose else None
-                self._good_metadata_per_recording = {rec: True for rec in self.recording}
+            # check the metadata per recording folders and files structure
+            good_structure_per_recording = {}
+            for rec in self.recording:
+                folder_exists = Path(self.folder_metadata, rec).is_dir()
+                if Path(self.folder_metadata, rec).is_dir():
+                    exists_trials_folder = Path(self.folder_metadata, rec, 'trials').is_dir()
+                    exists_neurons_folder = Path(self.folder_metadata, rec, 'neurons').is_dir()
+                    exists_basic_meta_file = Path(self.folder_metadata, rec, f'meta-basic_{rec}.json').is_file()
+                    if exists_trials_folder and exists_neurons_folder and exists_basic_meta_file:
+                        good_structure_per_recording[rec] = True
+                    else:
+                        good_structure_per_recording[rec] = False
+                else:
+                    good_structure_per_recording[rec] = False
+            self._good_metadata_per_recording = good_structure_per_recording
+            if all(good_structure_per_recording.values()):
+                print("   - All metadata directories for recordings have a good structure.") if verbose else None
             else:
-                print("   - Some metadata directories for recordings are missing.") if verbose else None
-                print("     Metadata for recordings is assumed to be valid for the existing directories.") if verbose else None
-                self._good_metadata_per_recording = {rec: Path(self.folder_metadata, rec).is_dir() for rec in self.recording}
-            
+                print("   - Some metadata directories for recordings are missing or do not have a good structure.") if verbose else None
+                print("     Metadata for recordings is assumed to be valid for the directories having a good structure.") if verbose else None
+            # check the metadata global for videos folder structure
             if (self.folder_globalmetadata_videos is not None) and (self.folder_globalmetadata_videos.is_dir()):
                 print("   - The metadata folders for global metadata videos exist.") if verbose else None
                 print("     Global metadata for videos is assumed to be valid.") if verbose else None
@@ -323,7 +325,7 @@ class DataSet:
                 print("   - The metadata folders for global metadata videos are not set or do not exist.") if verbose else None
                 print("     Global metadata for videos is invalid.") if verbose else None
                 self._good_global_meta_videos = False
-
+            # check the metadata global for segments folder structure
             if (self.folder_globalmetadata_segments is not None) and (self.folder_globalmetadata_segments.is_dir()):
                 print("   - The metadata folders for global metadata segments exist.") if verbose else None
                 print("     Global metadata for segments is assumed to be valid.") if verbose else None
@@ -338,25 +340,6 @@ class DataSet:
             self._good_metadata_per_recording = {rec: False for rec in self.recording}
             self._good_global_meta_videos = False
             self._good_global_meta_segments = False
-
-    def _check_metadata_per_trial_folder_structure(self, verbose: bool = True):
-
-        if self.folder_metadata_per_trial is not None and self.folder_metadata_per_trial.is_dir():
-
-            all_meta_per_trial_rec_directories_exist = all([Path(self.folder_metadata_per_trial, rec).is_dir() for rec in self.recording]) if self.folder_metadata_per_trial is not None else False
-            if all_meta_per_trial_rec_directories_exist:
-                print("   - All metadata per trial directories for recordings exist.") if verbose else None
-                self._good_metadata_per_trial_per_recording = {rec: True for rec in self.recording}
-            else:
-                print("   - Some metadata per trial directories for recordings are missing.") if verbose else None
-                print("     Metadata per trial for recordings is assumed to be valid for the existing directories.") if verbose else None
-                self._good_metadata_per_trial_per_recording = {rec: Path(self.folder_metadata_per_trial, rec).is_dir() for rec in self.recording}
-            
-        else:
-            print("   - The metadata per trial folder is not set or does not exist.") if verbose else None
-            print("     Metadata per trial for recordings is invalid.") if verbose else None
-            self._good_metadata_per_trial_per_recording = {rec: False for rec in self.recording}
-
 
 
     def load_neurons(
@@ -448,7 +431,7 @@ class DataSet:
 
         for rec in recording:
             if self._good_metadata_per_recording[rec]:
-                path_to_table = os.path.join(self.folder_metadata, rec)
+                path_to_table = os.path.join(self.folder_metadata, rec, 'trials')
                 file = os.path.join(path_to_table, f"meta-trials_{rec}.csv")
                 df = pd.read_csv(file)
                 self.info[rec]["trial_type"] = df["trial_type"].copy().to_list()
@@ -596,6 +579,7 @@ class DataSet:
                 self.folder_globalmetadata_videos,
                 self.folder_globalmetadata_segments,
                 self.info,
+                trials_metadata_file_type=self._trials_metadata_file_type,
                 verbose=True,
             )
         else:
@@ -621,38 +605,6 @@ class DataSet:
         else:
             print(" > INVALID metadata") if verbose else None
 
-    def check_metadata_per_trial(self, verbose: bool = True) -> None:
-        """Validate per-trial metadata folders and files.
-
-        Parameters
-        ----------
-        verbose : bool, default=True
-            If ``True``, print warnings and status messages.
-        """
-        # check that the metadata folder has the correct structure and that the files are consistent with the data files
-
-        print_title("Checking metadata per trial ", verbose)
-
-        if not hasattr(self, "info"):
-            raise ValueError(
-                "Data must be checked with check_data() before checking metadata"
-            )
-
-        is_valid, per_recording = check_metadata_per_trial_integrity(
-            self.folder_metadata_per_trial, self.recording, self.info, verbose=verbose
-        )
-
-        self._good_metadata_per_trial = is_valid
-        self._good_metadata_per_trial_per_recording = per_recording
-
-        if is_valid:
-            (
-                print(" > VALID metadata per trials for all recordings in the dataset")
-                if verbose
-                else None
-            )
-        else:
-            print(" > INVALID metadata per trials") if verbose else None
 
     def get_data_list(self, recording: str, what_data: str = "videos") -> list[Path]:
         """Return list of data files for one recording/data type.
@@ -671,65 +623,6 @@ class DataSet:
         """
         path_to_data = os.path.join(self.folder_data, recording, "data", what_data)
         return list(Path(path_to_data).glob("*.npy"))
-
-    def create_folders_metadata_per_trial(
-        self,
-        recording: str | list[str] | None = None,
-        what_data: str | list[str] = "videos",
-        verbose: bool = True,
-    ) -> None:
-        """Create per-trial metadata folders when missing.
-
-        Parameters
-        ----------
-        recording : str or list[str] or None, optional
-            Recordings to process.
-        what_data : str or list[str], default='videos'
-            Per-trial data categories.
-        verbose : bool, default=True
-            If ``True``, print created paths.
-        """
-        if self.folder_metadata_per_trial is None:
-            raise ValueError(
-                "folder_metadata_per_trial is None, cannot create folder for metadata per trial"
-            )
-
-        if recording is None:
-            recording = self.recording
-
-        if isinstance(recording, str):
-            recording = [recording]
-
-        if isinstance(what_data, str):
-            what_data = [what_data]
-
-        print_title("Creating metadata per trials folders if necessary ", verbose)
-
-        for rec in recording:
-            path_to_meta = Path(self.folder_metadata_per_trial) / rec
-            created = not path_to_meta.exists()
-            path_to_meta.mkdir(parents=True, exist_ok=True)
-            if created:
-                (
-                    print(
-                        f"- Metadata per trial folder for recording {rec} was created in {path_to_meta}"
-                    )
-                    if verbose
-                    else None
-                )
-
-            for w in what_data:
-                path_to_meta_whatdata = path_to_meta / w
-                created = not path_to_meta_whatdata.exists()
-                path_to_meta_whatdata.mkdir(parents=True, exist_ok=True)
-                if created:
-                    (
-                        print(
-                            f"- Metadata per trial folder for recording {rec} for {w} data was created in {path_to_meta_whatdata}"
-                        )
-                        if verbose
-                        else None
-                    )
 
     def create_folders_metadata(
         self,
@@ -768,27 +661,20 @@ class DataSet:
             path_to_meta = Path(self.folder_metadata) / rec
             created = not path_to_meta.exists()
             path_to_meta.mkdir(parents=True, exist_ok=True)
+            path_to_meta_trials = path_to_meta / 'trials'
+            path_to_meta_trials.mkdir(parents=True, exist_ok=True)
+            path_to_meta_neurons = path_to_meta / 'neurons'
+            path_to_meta_neurons.mkdir(parents=True, exist_ok=True)
             if created:
-                (
-                    print(
-                        f"- Metadata folder for recording {rec} was created in {path_to_meta}"
-                    )
-                    if verbose
-                    else None
-                )
-
+                print(f"- Metadata folder for recording {rec} was created in {path_to_meta}") if verbose else None
+                    
         for w in what_global_data:
             path_to_meta_global = Path(self.folder_metadata) / "global_meta" / w
             created = not path_to_meta_global.exists()
             path_to_meta_global.mkdir(parents=True, exist_ok=True)
             if created:
-                (
-                    print(
-                        f"- Metadata folder for global metadata {w} was created in {path_to_meta_global}"
-                    )
-                    if verbose
-                    else None
-                )
+                print(f"- Metadata folder for global metadata {w} was created in {path_to_meta_global}") if verbose else None
+                
         if "videos" in what_global_data:
             self.folder_globalmetadata_videos = os.path.join(
                 self.folder_metadata, "global_meta", "videos"
@@ -798,91 +684,11 @@ class DataSet:
                 self.folder_metadata, "global_meta", "segments"
             )
 
-    def get_trials_metadata_per_trials(
-        self,
-        what_data: str = "videos",
-        set_trials_df: bool = True,
-        verbose: bool = True,
-    ) -> pd.DataFrame:
-        """Creating trials metadata DataFrame from per-trial JSON files.
-
-        Parameters
-        ----------
-        what_data : str, default='videos'
-            Data category subfolder.
-        set_trials_df : bool, default=True
-            If ``True``, store result in ``self.trials_df``.
-        verbose : bool, default=True
-            If ``True``, print progress messages.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Combined trial metadata table.
-        """
-
-        if self.folder_metadata_per_trial is None:
-            raise ValueError(
-                "folder_metadata_per_trial is None, cannot load trials metadata"
-            )
-
-        s = f"Creating trials metadata DataFrame from per-trial JSON files for {what_data} in {self.folder_metadata_per_trial} "
-        print_title(s, verbose)
-        all_rows = []
-
-        for rec in self.recording:
-            path_to_results = os.path.join(
-                self.folder_metadata_per_trial, rec, what_data
-            )
-
-            if not os.path.exists(path_to_results):
-                print(f"Warning: Path does not exist: {path_to_results}")
-                continue
-
-            files = list(Path(path_to_results).glob("*.json"))
-
-            if len(files) == 0:
-                print(f"Warning: No JSON files found in {path_to_results}")
-                continue
-
-            for fff in files:
-                try:
-                    with open(fff, "r") as f:
-                        metadata = json.load(f)
-
-                    # Remove some fields that are not needed and that could be too heavy to store in the table, and add the recording name, then store the row
-                    # metadata_filtered = {k: v for k, v in metadata.items() if k != 'segments'}
-                    metadata_filtered = {
-                        k: v
-                        for k, v in metadata.items()
-                        if isinstance(v, (str, int, float, bool, type(None)))
-                    }
-                    metadata_filtered["recording"] = rec
-                    all_rows.append(metadata_filtered)
-
-                except (json.JSONDecodeError, IOError) as e:
-                    print(f"Error reading {fff}: {e}")
-                    continue
-
-        if len(all_rows) == 0:
-            print("Warning: No metadata rows collected")
-            return pd.DataFrame()
-
-        trials_df = pd.DataFrame(all_rows)
-        if "trial" in trials_df.columns:
-            trials_df["trial"] = trials_df["trial"].astype(str)
-
-        trials_df = trials_df.reset_index(drop=True)
-
-        if set_trials_df:
-            self.trials_df = trials_df
-
-        return trials_df
-
     def get_trials_metadata(
-        self, set_trials_df: bool = True, verbose: bool = True
-    ) -> pd.DataFrame:
-        """Load trial metadata from recording CSV tables.
+        self, 
+        set_trials_df: bool = True, 
+        verbose: bool = True) -> pd.DataFrame:
+        """Load trial metadata from recording CSV tables or JSON files.
 
         Parameters
         ----------
@@ -899,19 +705,27 @@ class DataSet:
 
         if self.folder_metadata is None:
             raise ValueError("folder_metadata is None, cannot load trials metadata")
-
-        print_title("Creating trials metadata DataFrame from meta-trials CSV files per recording ", verbose)
+        
+        print_title("Creating trials metadata DataFrame from meta-trials files per recording ", verbose)
         recording = self.recording
         trials_df = []
 
         for rec in recording:
+            
+            if self._trials_metadata_file_type == "csv":
+                file = self.folder_metadata / rec / "trials" / f"meta-trials_{rec}.csv"
+                df = pd.read_csv(file)
+                df["trial"] = df["trial"].astype(str)
+                df.insert(0, "recording", [rec] * len(df))
 
-            path_to_table = os.path.join(self.folder_metadata, rec)
-            file = os.path.join(path_to_table, f"meta-trials_{rec}.csv")
-
-            df = pd.read_csv(file)
-            df["trial"] = df["trial"].astype(str)
-            df.insert(0, "recording", [rec] * len(df))
+            elif self._trials_metadata_file_type == "json":
+                folder = self.folder_metadata / rec / "trials"
+                df, _ = _json_to_dataframe(folder, 
+                                           file_pattern="*.json", 
+                                           include_file_as_column=False, 
+                                           verbose=verbose)
+                if "recording" not in df.columns:
+                    df.insert(0, "recording", [rec] * len(df))
 
             if len(trials_df) == 0:
                 trials_df = df.copy()
@@ -1168,22 +982,19 @@ class DataSet:
                 if verbose:
                     print(f"load_metadata_from_id failed: {e}")
 
-        # fallback: try loading metadata from metadata per trials (if configured)
-        if self.folder_metadata_per_trial is not None:
-            path_to_metadata_file = os.path.join(
-                self.folder_metadata_per_trial, recording, "videos", f"{trial}.json"
-            )
-            if os.path.exists(path_to_metadata_file):
-                try:
-                    video.load_metadata(path_to_metadata_file)
-                except Exception as e:
-                    if verbose:
-                        print(f"Could not load metadata from metadata per trial: {e}")
-            else:
+        # fallback: try loading metadata from metadata per trials
+        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
+        if path_to_metadata_file.exists():
+            try:
+                video.load_metadata(path_to_metadata_file)
+            except Exception as e:
                 if verbose:
-                    print(
-                        f"Could not load metadata from metadata per trial: Metadata file not found: {path_to_metadata_file}"
-                    )
+                    print(f"Could not load metadata from JSON trial file: {e}")
+        else:
+            if verbose:
+                print(
+                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                )
 
         return video
 
@@ -1232,27 +1043,19 @@ class DataSet:
                         f"Loading metadata from {self.folder_globalmetadata_videos} failed: {e}"
                     )
 
-        # fallback: try loading metadata from metadata per trials (if configured)
-        if self.folder_metadata_per_trial is not None:
-            path_to_metadata_folder = os.path.join(
-                self.folder_metadata_per_trial, recording, "videos"
-            )
-            if os.path.exists(path_to_metadata_folder):
-                try:
-                    file = get_file_with_pattern(
-                        f"{trial}.json", path_to_metadata_folder
-                    )
-                    response.load_metadata(file)
-                except Exception as e:
-                    if verbose:
-                        print(
-                            f"Loading metadata from {path_to_metadata_folder} failed: {e}"
-                        )
-            else:
+        # fallback: try loading metadata from metadata per trials
+        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
+        if path_to_metadata_file.exists():
+            try:
+                response.load_metadata(path_to_metadata_file)
+            except Exception as e:
                 if verbose:
-                    print(
-                        f"Loading metadata from {path_to_metadata_folder} failed: folder does not exist"
-                    )
+                    print(f"Could not load metadata from JSON trial file: {e}")
+        else:
+            if verbose:
+                print(
+                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                )
 
         return response
 
@@ -1314,26 +1117,18 @@ class DataSet:
                     )
 
         # fallback: try loading metadata from metadata per trials (if configured)
-        if self.folder_metadata_per_trial is not None:
-            path_to_metadata_folder = os.path.join(
-                self.folder_metadata_per_trial, recording, "videos"
-            )
-            if os.path.exists(path_to_metadata_folder):
-                try:
-                    file = get_file_with_pattern(
-                        f"{trial}.json", path_to_metadata_folder
-                    )
-                    behavior.load_metadata(file)
-                except Exception as e:
-                    if verbose:
-                        print(
-                            f"Loading metadata from {path_to_metadata_folder} failed: {e}"
-                        )
-            else:
+        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
+        if path_to_metadata_file.exists():
+            try:
+                behavior.load_metadata(path_to_metadata_file)
+            except Exception as e:
                 if verbose:
-                    print(
-                        f"Loading metadata from {path_to_metadata_folder} failed: folder does not exist"
-                    )
+                    print(f"Could not load metadata from JSON trial file: {e}")
+        else:
+            if verbose:
+                print(
+                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                )
 
         return behavior
 
@@ -1790,10 +1585,9 @@ class DataSet:
                 meta_neurons = pd.concat([df_id, df_coord, stats], axis=1)
 
                 # save
-                folder_recording_meta = Path(self.folder_metadata) / rec
-                out_path = os.path.join(
-                    folder_recording_meta, f"meta-neurons_{rec}.csv"
-                )
+                folder_recording_meta_neurons = Path(self.folder_metadata) / rec / "neurons"
+                folder_recording_meta_neurons.mkdir(parents=True, exist_ok=True)
+                out_path = folder_recording_meta_neurons / f"meta-neurons_{rec}.csv"
                 meta_neurons.to_csv(out_path, index=False)
                 print(f"Saved neurons metadata: {out_path}") if verbose else None
 
@@ -1812,7 +1606,8 @@ class DataSet:
             keys = ['animal_id', 'session', 'scan_idx', 'n_trials', 'samples_per_trial', 'n_neurons']
             info_save = {k: self.info[rec][k] for k in keys if k in self.info[rec]}
             info_save['sampling_freq'] = sampling_freq
-            save_json(info_save, os.path.join(self.folder_metadata, rec, f"meta-basic_{rec}.json"))
+            file_out = self.folder_metadata / rec / f"meta-basic_{rec}.json"
+            save_json(info_save, file_out)
 
 
     def classify_videos(
@@ -1835,7 +1630,7 @@ class DataSet:
             recording = [recording]
 
         # create a folder for the outputs if it doesn't exists
-        self.create_folders_metadata_per_trial(what_data="videos")
+        self.create_folders_metadata(what_global_data=[])
 
         print_title("Classifying videos ", verbose)
         for rec in recording:
@@ -1850,9 +1645,8 @@ class DataSet:
             )
 
             # folder for the outputs
-            path_to_results_metavideos = os.path.join(
-                self.folder_metadata_per_trial, rec, "videos"
-            )
+            path_to_results_metavideos = Path(self.folder_metadata) / rec / "trials"
+            path_to_results_metavideos.mkdir(parents=True, exist_ok=True)
 
             # load the trials descriptor
             trial_types = self.info[rec]["trial_type"]
@@ -1946,9 +1740,7 @@ class DataSet:
         self.create_folders_metadata(what_global_data=["videos"])
 
         # Load the classification tables for all recordings
-        videos_df = self.get_trials_metadata_per_trials(
-            what_data="videos", set_trials_df=True
-        )
+        videos_df = self.get_trials_metadata()
         if "ID" not in videos_df.columns:
             videos_df["ID"] = None
 
@@ -1958,9 +1750,8 @@ class DataSet:
             print(f"\nComputing for recording {rec}...") if verbose else None
 
             path_to_data = os.path.join(self.folder_data, rec)
-            path_to_results_metavideos = os.path.join(
-                self.folder_metadata_per_trial, rec, "videos"
-            )
+            path_to_results_metavideos = Path(self.folder_metadata) / rec / "trials"
+            path_to_results_metavideos.mkdir(parents=True, exist_ok=True)
 
             try:
 
@@ -2036,8 +1827,9 @@ class DataSet:
                     ]
                 ]
 
-                folder_recording_meta = os.path.join(self.folder_metadata, rec)
-                filename = os.path.join(folder_recording_meta, f"meta-trials_{rec}.csv")
+                folder_recording_meta = Path(self.folder_metadata) / rec / "trials"
+                folder_recording_meta.mkdir(parents=True, exist_ok=True)
+                filename = folder_recording_meta / f"meta-trials_{rec}.csv"
                 df_meta_trials_rec.to_csv(filename, index=False)
                 print(f"Saved: {filename}")
 
@@ -2237,7 +2029,7 @@ class DataSet:
                 ]
 
                 # validate the video metadata and save
-                is_valid = validate_metadata_video_dict(metadata_video)
+                is_valid = _validate_metadata_video_dict(metadata_video)
 
                 if is_valid:
                     save_json(metadata_video, file_path)

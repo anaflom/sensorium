@@ -1,0 +1,8 @@
+{
+    "num_grid": [
+        15,
+        15,
+        10
+    ],
+    "normalization": "by_minmax"
+}
