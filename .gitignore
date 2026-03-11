@@ -10,6 +10,9 @@ my-python-env/
 # Tests
 tests/
 
+# TDA
+tda/
+
 # IDE
 .vscode/
 .idea/
@@ -20,6 +23,7 @@ tests/
 
 # Large generated data
 data/
+derivatives/
 
 # Figures
 figures/
