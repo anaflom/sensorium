@@ -801,7 +801,7 @@ class DataSet:
         # check if a table with trials metadata is loaded, if not raise an error
         if not hasattr(self, "trials_df"):
             raise ValueError(
-                "trials_df is not loaded, please run get_trials_metadata() or get_trials_metadata_per_trials() first"
+                "trials_df is not loaded, please run get_trials_metadata() first"
             )
         df = self.trials_df.copy()
 
@@ -858,10 +858,14 @@ class DataSet:
         if not isinstance(subset, (list, tuple)):
             subset = sorted(list(subset))
 
-        # get a table with trials metadata if not loaded yet
+        # check the subset is included in the columns of the trials_df, if not raise an error
         if not hasattr(self, "trials_df"):
             raise ValueError(
-                "trials_df is not loaded, please run get_trials_metadata() or get_trials_metadata_per_trials() first"
+                "trials_df is not loaded, please run get_trials_metadata() first"
+            )
+        if not set(subset) <= set(self.trials_df.columns):
+            raise ValueError(
+                f"The subset must be included in the columns of trials_df, but {set(subset) - set(self.trials_df.columns)} are not"
             )
         all_trials_df = self.trials_df.copy()
 
