@@ -2,7 +2,9 @@ __pycache__/
 *.py[cod]
 
 # Virtual environment
-my-python-env/
+.venv/
+venv/
+env/
 
 # Notebooks
 .ipynb_checkpoints/
