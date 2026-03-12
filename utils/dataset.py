@@ -1446,7 +1446,7 @@ class DataSet:
         )
 
     def compute_neurons_stats(
-        self, recording: str, idx_trials_stats: np.ndarray | None = None
+        self, recording: str, trials_for_stats: list[str] | None = None
     ) -> pd.DataFrame:
         """Compute per-neuron descriptive statistics across selected trials.
 
@@ -1454,8 +1454,70 @@ class DataSet:
         ----------
         recording : str
             Recording name.
-        idx_trials_stats : array-like of bool or None, optional
-            Boolean trial selector. If ``None``, use all trials.
+        trials_for_stats : list or None, optional
+            List of trial to include in the statistics. If ``None``, use all trials.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns include mean, std, median, min, and max activation.
+        """
+
+        # get the number of neurons
+        if trials_for_stats is None:
+            trials_for_stats = self.info[recording]["trials"]
+        n_neurons = self.info[recording]["n_neurons"]
+
+        # initialize
+        stats = {}
+        val_sum = np.zeros(n_neurons)
+        n = 0
+        val_min = np.full(n_neurons, np.inf)
+        val_max = np.full(n_neurons, -np.inf)
+        trials_included = []
+        for trial in tqdm(trials_for_stats, desc="MEAN, MAX, MIN computation", unit="trial",total=len(trials_for_stats), disable=False):
+            try:
+                resp = self.load_response_by_trial(recording, trial)
+                trials_included.append(trial)
+            except Exception as e:
+                print(f"Could not load responses for trial {trial} in recording {recording}: {e}")
+                continue
+
+            data = resp.get_data()
+            val_sum += np.nansum(data, axis=-1)
+            n += data.shape[-1]
+            val_min = np.minimum(val_min, data.min(axis=-1))
+            val_max = np.maximum(val_max, data.max(axis=-1))
+
+        stats["mean_activation"] = val_sum / n
+        stats["min_activation"] = val_min
+        stats["max_activation"] = val_max
+
+        val_sum_squared = np.zeros(n_neurons)
+        for trial in tqdm(trials_for_stats, desc="STD computation", unit="trial",total=len(trials_for_stats), disable=False):
+            try:
+                resp = self.load_response_by_trial(recording, trial)
+            except Exception as e:
+                print(f"Could not load responses for trial {trial} in recording {recording}: {e}")
+                continue
+            data = resp.get_data()
+            val_sum_squared += ((data - stats["mean_activation"][:,np.newaxis]) ** 2).sum(axis=-1)
+        stats["std_activation"] = np.sqrt(val_sum_squared / n)
+
+        return pd.DataFrame.from_dict(stats)
+    
+
+    def compute_neurons_stats_per_neuron(
+        self, recording: str, trials_for_stats: list[str] | None = None
+    ) -> pd.DataFrame:
+        """Compute per-neuron descriptive statistics across selected trials.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        trials_for_stats : list[str] or None, optional
+            List of trial to include in the statistics. If ``None``, use all trials.
 
         Returns
         -------
@@ -1475,8 +1537,10 @@ class DataSet:
         stats["min_activation"] = np.full(n_neurons, np.nan)
         stats["max_activation"] = np.full(n_neurons, np.nan)
 
-        if idx_trials_stats is None:
-            idx_trials_stats = np.ones(n_trials, dtype=bool)
+        if trials_for_stats is None:
+            trials_for_stats = self.info[recording]["trials"]
+        
+        idx_trials_stats = np.isin(np.arange(n_trials), trials_for_stats)
 
         n_included = np.sum(idx_trials_stats)
         if n_included == 0:
@@ -1510,7 +1574,7 @@ class DataSet:
     def generates_neurons_metadata(
         self,
         recording: str | list[str] | None = None,
-        idx_trials_stats: np.ndarray | None = None,
+        trials_for_stats: list[str] | None = None,
         verbose: bool = True,
     ) -> None:
         """Generate and save neuron metadata tables per recording.
@@ -1519,8 +1583,8 @@ class DataSet:
         ----------
         recording : str or list[str] or None, optional
             Recordings to process.
-        idx_trials_stats : array-like of bool or None, optional
-            Trial selector used for neuron statistics.
+        trials_for_stats : list[str] or None, optional
+            List of trial to include in the statistics. If ``None``, use all trials.
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
@@ -1530,6 +1594,9 @@ class DataSet:
 
         if isinstance(recording, str):
             recording = [recording]
+
+        # load a dataframe with all trials metadata
+        trials_df = self.get_trials_metadata()
 
         # create a folder for the outputs if it doesn't exists
         self.create_folders_metadata(what_global_data=[])
@@ -1544,7 +1611,7 @@ class DataSet:
 
                 # compute the stats
                 stats = self.compute_neurons_stats(
-                    rec, idx_trials_stats=idx_trials_stats
+                    rec, trials_for_stats=trials_for_stats
                 )
 
                 # get neurons metadata
