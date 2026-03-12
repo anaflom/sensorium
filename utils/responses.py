@@ -188,6 +188,14 @@ class Responses:
                 raise ValueError(
                     "'min_activation' or 'max_activation' was not found in neurons.stats_activity"
                 )
+        elif normalization.lower() == "by_max":
+            if "max_activation" in self.neurons.stats_activity.keys():
+                max_val = self.neurons.stats_activity["max_activation"]
+                data = self.data[:, : self.valid_frames] / max_val[:, None]
+            else:
+                raise ValueError(
+                    "'max_activation' was not found in neurons.stats_activity"
+                )
         else:
             raise ValueError("Normalization can have values: None, by_std, by_mean, or by_minmax")
 

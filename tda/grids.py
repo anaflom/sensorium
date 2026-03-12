@@ -36,16 +36,19 @@ def create_grid_3D(xyz_ranges, num_grid):
     x_step = (x_range[1] - x_range[0]) / num_grid[0]
     x_lin = np.linspace(x_range[0], x_range[1], num_grid[0]+1)
     x_grid_coordinates = np.array([x+x_step/2 for x in x_lin[:-1]])
+    # x_grid_coordinates = np.array([x for x in x_lin[:-1]])
     
     y_range = xyz_ranges[1]
     y_step = (y_range[1] - y_range[0]) / num_grid[1]
     y_lin = np.linspace(y_range[0], y_range[1], num_grid[1]+1)
     y_grid_coordinates = np.array([y+y_step/2 for y in y_lin[:-1]])
+    # y_grid_coordinates = np.array([y for y in y_lin[:-1]])
     
     z_range = xyz_ranges[2]
     z_step = (z_range[1] - z_range[0]) / num_grid[2]
     z_lin = np.linspace(z_range[0], z_range[1], num_grid[2]+1)
     z_grid_coordinates = np.array([z+z_step/2 for z in z_lin[:-1]])
+    # z_grid_coordinates = np.array([z for z in z_lin[:-1]])
 
     X, Y, Z = np.meshgrid(x_grid_coordinates, y_grid_coordinates, z_grid_coordinates, indexing='ij')
 
@@ -117,38 +120,61 @@ class Grid3D:
     def save(self, folder):
         np.save(folder / 'num_grid.npy', self.num_grid)
         np.save(folder / 'xyz_ranges.npy', self.xyz_ranges)
+
+    def plot_activity_in_cell(self, cell_index, positions=None, activities=None, grid_activity=None):
+
+        if positions is None and activities is None and grid_activity is None:
+            raise ValueError("At least one of positions, activities, or grid_activity must be provided.")
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7, 5))
+        if positions is not None and activities is not None:
+            neurons_idx = self.neurons_in_cell(positions, cell_index)
+            ax.plot(activities[neurons_idx,:].T, linewidth=1, label=[f'neuron {i}' for i in neurons_idx])
+        if grid_activity is not None:
+            ax.plot(grid_activity[cell_index[0], cell_index[1], cell_index[2], :].flatten(), color='k', linewidth=2, label='grid activity')
+        ax.set_xlabel('frames')
+        ax.set_ylabel('activity')
+        ax.legend(loc='upper right', fontsize='small')
+        plt.tight_layout()
+        plt.show()
+        return fig, ax
     
     def plot_bar_neurons_activity(self, axis, plane_idx, frame, positions, activities, ax = None):
         
         neurons_idx, lines_plane, plane_axis_idx = self.neurons_in_plane(positions, axis, plane_idx)
 
-        coord1_flat = positions[neurons_idx, plane_axis_idx[0]]
-        coord2_flat = positions[neurons_idx, plane_axis_idx[1]]
-        act_flat = activities[neurons_idx, frame]
-
         if ax is None:
-            fig = plt.figure(figsize=(10, 7))
+            fig = plt.figure(figsize=(7,8))
             ax = fig.add_subplot(111, projection='3d')
 
-        d_x = 10   # bar width/depth
-        d_y = 10   # bar width/depth
-        d_z = act_flat     # bar height = z value
+        dx = 10   # bar width/depth
+        dy = 10   # bar width/depth
+        dz = activities[neurons_idx, frame]     # bar height = z value
+
+        coord1 = positions[neurons_idx, plane_axis_idx[0]]
+        coord2 = positions[neurons_idx, plane_axis_idx[1]]
+        # coord1 = coord1 - dx/2
+        # coord2 = coord2 - dy/2
+        coord1 = coord1
+        coord2 = coord2 - dy
+
 
         ax.bar3d(
-            coord1_flat,  # center the bars on x
-            coord2_flat,  # center the bars on y
-            np.zeros_like(act_flat),  # bars start at z=0
-            d_x, d_y, d_z,
+            coord1,  
+            coord2,  
+            np.zeros_like(dz),  
+            dx, dy, dz,
             shade=True,
-            color=plt.cm.viridis(d_z / d_z.max()),  # color by height
+            color=plt.cm.viridis(dz / dz.max()),  # color by height
             alpha=0.9
         )
 
         coord_names = ['X', 'Y', 'Z']
-        ax.set_xlim(self.xyz_ranges[plane_axis_idx[0]])
-        ax.set_ylim(self.xyz_ranges[plane_axis_idx[1]])
+        ax.set_xlim(self.xyz_ranges[plane_axis_idx[0]][0]-dx, self.xyz_ranges[plane_axis_idx[0]][1]+dx)
+        ax.set_ylim(self.xyz_ranges[plane_axis_idx[1]][0]-dy, self.xyz_ranges[plane_axis_idx[1]][1]+dy)
         ax.set_xticks(np.linspace(self.xyz_ranges[plane_axis_idx[0]][0], self.xyz_ranges[plane_axis_idx[0]][1], self.num_grid[plane_axis_idx[0]]+1))
         ax.set_yticks(np.linspace(self.xyz_ranges[plane_axis_idx[1]][0], self.xyz_ranges[plane_axis_idx[1]][1], self.num_grid[plane_axis_idx[1]]+1))
+        ax.set_xticklabels(np.linspace(0, self.num_grid[plane_axis_idx[0]], self.num_grid[plane_axis_idx[0]]+1).astype(int))
+        ax.set_yticklabels(np.linspace(0, self.num_grid[plane_axis_idx[1]], self.num_grid[plane_axis_idx[1]]+1).astype(int))
         ax.set_xlabel(coord_names[plane_axis_idx[0]])
         ax.set_ylabel(coord_names[plane_axis_idx[1]])
         ax.set_zlabel('Neurons activity')
@@ -161,47 +187,59 @@ class Grid3D:
     def plot_bar_grid_activity(self, axis, plane_idx, frame, grid_activity, ax = None):
 
         if axis==2:
-            coord1 = self.xyz_coordinates[0][:,:,plane_idx]
-            coord2 = self.xyz_coordinates[1][:,:,plane_idx]
             act = grid_activity[:,:,plane_idx,frame]
             plane_axis_idx = (0, 1)
+            step_coord1 = (self.xyz_ranges[0][1] - self.xyz_ranges[0][0]) / self.num_grid[0]
+            step_coord2 = (self.xyz_ranges[1][1] - self.xyz_ranges[1][0]) / self.num_grid[1]
         elif axis==1:
-            coord1 = self.xyz_coordinates[0][:,plane_idx,:]
-            coord2 = self.xyz_coordinates[2][:,plane_idx,:]
             act = grid_activity[:,plane_idx,:,frame]
             plane_axis_idx = (0, 2)
+            step_coord1 = (self.xyz_ranges[0][1] - self.xyz_ranges[0][0]) / self.num_grid[0]
+            step_coord2 = (self.xyz_ranges[2][1] - self.xyz_ranges[2][0]) / self.num_grid[2]
         elif axis==0:
-            coord1 = self.xyz_coordinates[1][plane_idx,:,:]
-            coord2 = self.xyz_coordinates[2][plane_idx,:,:]
             act = grid_activity[plane_idx,:,:,frame]
             plane_axis_idx = (1, 2)
+            step_coord1 = (self.xyz_ranges[1][1] - self.xyz_ranges[1][0]) / self.num_grid[1]
+            step_coord2 = (self.xyz_ranges[2][1] - self.xyz_ranges[2][0]) / self.num_grid[2]
 
         if ax is None:
-            fig = plt.figure(figsize=(10, 7))
+            fig = plt.figure(figsize=(7, 8))
             ax = fig.add_subplot(111, projection='3d')
 
-        coord1_flat = coord1.ravel()
-        coord2_flat = coord2.ravel()
-        act_flat = act.ravel()
-
-        dx = 0.6 * (coord1[1,0] - coord1[0,0])   # bar width/depth
-        dy = 0.6 * (coord2[0,1] - coord2[0,0])   # bar width/depth
-        dz = act_flat     # bar height = z value
+        
+        dx = 0.5 * step_coord1   # bar width/depth
+        dy = 0.5 * step_coord2   # bar width/depth
+        
+        coord1_lines = self.xyz_lines[plane_axis_idx[0]][:-1] + step_coord1/2
+        coord2_lines = self.xyz_lines[plane_axis_idx[1]][:-1] + step_coord2/2
+        coord1, coord2 = np.meshgrid(coord1_lines, coord2_lines, indexing="ij")
+        
+        # coord1 = coord1.ravel() - dx/2
+        # coord2 = coord2.ravel() - dy/2
+        coord1 = coord1.ravel()
+        coord2 = coord2.ravel() - dy
+        dz = act.ravel() # bar height = z value
 
         ax.bar3d(
-            coord1_flat,  # center the bars on x
-            coord2_flat,  # center the bars on y
-            np.zeros_like(dz),  # bars start at z=0
+            coord1,  
+            coord2,  
+            np.zeros_like(dz), 
             dx, dy, dz,
             shade=True,
-            color=plt.cm.viridis(dz / dz.max()),  # color by height
+            color=plt.cm.viridis(dz / dz.max()),  
             alpha=0.9
         )
 
         coord_names = ['X', 'Y', 'Z']
+        ax.set_xlim(self.xyz_ranges[plane_axis_idx[0]][0]-dx, self.xyz_ranges[plane_axis_idx[0]][1]+dx)
+        ax.set_ylim(self.xyz_ranges[plane_axis_idx[1]][0]-dy, self.xyz_ranges[plane_axis_idx[1]][1]+dy)
+        ax.set_xticks(np.linspace(self.xyz_ranges[plane_axis_idx[0]][0], self.xyz_ranges[plane_axis_idx[0]][1], self.num_grid[plane_axis_idx[0]]+1))
+        ax.set_yticks(np.linspace(self.xyz_ranges[plane_axis_idx[1]][0], self.xyz_ranges[plane_axis_idx[1]][1], self.num_grid[plane_axis_idx[1]]+1))
+        ax.set_xticklabels(np.linspace(0, self.num_grid[plane_axis_idx[0]], self.num_grid[plane_axis_idx[0]]+1).astype(int))
+        ax.set_yticklabels(np.linspace(0, self.num_grid[plane_axis_idx[1]], self.num_grid[plane_axis_idx[1]]+1).astype(int))
+        ax.set_zlabel('Grid activity')
         ax.set_xlabel(coord_names[plane_axis_idx[0]])
         ax.set_ylabel(coord_names[plane_axis_idx[1]])
-        ax.set_zlabel('Grid activity')
         ax.set_title(f'Grid activity at {coord_names[axis]} plane {plane_idx}, frame {frame}')
 
         plt.tight_layout()
@@ -217,7 +255,7 @@ class Grid3D:
         act_flat = activities[neurons_idx, frame]
 
         if ax is None:
-            fig = plt.figure(figsize=(7, 5))
+            fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(111)
 
         scatter = ax.scatter(coord1_flat, coord2_flat, c=act_flat, cmap='viridis')
@@ -228,6 +266,8 @@ class Grid3D:
         ax.set_ylim(self.xyz_ranges[plane_axis_idx[1]])
         ax.set_xticks(np.linspace(self.xyz_ranges[plane_axis_idx[0]][0], self.xyz_ranges[plane_axis_idx[0]][1], self.num_grid[plane_axis_idx[0]]+1))
         ax.set_yticks(np.linspace(self.xyz_ranges[plane_axis_idx[1]][0], self.xyz_ranges[plane_axis_idx[1]][1], self.num_grid[plane_axis_idx[1]]+1))
+        ax.set_xticklabels(np.linspace(0, self.num_grid[plane_axis_idx[0]], self.num_grid[plane_axis_idx[0]]+1).astype(int))
+        ax.set_yticklabels(np.linspace(0, self.num_grid[plane_axis_idx[1]], self.num_grid[plane_axis_idx[1]]+1).astype(int))
         ax.set_box_aspect(1)
         ax.set_xlabel(coord_names[plane_axis_idx[0]])
         ax.set_ylabel(coord_names[plane_axis_idx[1]])
@@ -262,6 +302,10 @@ class Grid3D:
         coord_names = ['X', 'Y', 'Z']
         c = ax.pcolormesh(coord1, coord2, act.T, shading='auto', cmap='viridis')
         fig.colorbar(c, ax=ax)
+        ax.set_xticks(np.linspace(self.xyz_ranges[plane_axis_idx[0]][0], self.xyz_ranges[plane_axis_idx[0]][1], self.num_grid[plane_axis_idx[0]]+1))
+        ax.set_yticks(np.linspace(self.xyz_ranges[plane_axis_idx[1]][0], self.xyz_ranges[plane_axis_idx[1]][1], self.num_grid[plane_axis_idx[0]]+1))
+        ax.set_xticklabels(np.linspace(0, self.num_grid[plane_axis_idx[0]], self.num_grid[plane_axis_idx[0]]+1).astype(int))
+        ax.set_yticklabels(np.linspace(0, self.num_grid[plane_axis_idx[1]], self.num_grid[plane_axis_idx[1]]+1).astype(int))
         ax.set_xlabel(coord_names[plane_axis_idx[0]])
         ax.set_ylabel(coord_names[plane_axis_idx[1]])
         ax.set_box_aspect(1)
@@ -422,6 +466,11 @@ class GridActivity:
             raise ValueError("Grid metadata not set. Call set_grid() first.")
         self.grid.plot_colormesh_grid_activity(axis, plane_idx, frame, self.get_data(), ax = ax)
 
+    def plot_activity_in_cell(self, cell_idx, positions=None, activities=None, normalization=None):
+        if self.grid is None:
+            raise ValueError("Grid metadata not set. Call set_grid() first.")
+        fig, ax = self.grid.plot_activity_in_cell(cell_idx, positions=positions, activities=activities, grid_activity=self.get_data(normalization=normalization))
+
     
 class GridActivityData(GridActivity):
     def __init__(self, data, recording: str, trial: str) -> None:
@@ -550,3 +599,61 @@ class DataSetGrid(DataSet):
             gridactivities.append(act)
 
         return gridactivities, trials_df
+
+
+    def compute_grid_stats(self, recording: str, trials_for_stats: list | None = None):
+        """Compute statistics of the grid activity for a given recording and trials.
+
+        Parameters
+        ----------
+        recording : str
+            Recording name.
+        trials_for_stats : list or None, optional
+            List of trial indices to include in the statistics. If None, include all trials.
+
+        Returns
+        -------
+        dict
+            Dictionary containing the computed statistics.
+        """
+        if self.folder_derivatives is None:
+            raise ValueError("folder_derivatives must be set to compute grid stats.")
+
+        if trials_for_stats is None:
+            trials_for_stats = self.info[recording]["trials"]
+        
+        stats = {}
+        val_sum = np.zeros(self.info[recording]["grid"].num_grid)
+        n = 0
+        val_min = np.full(self.info[recording]["grid"].num_grid, np.inf)
+        val_max = np.full(self.info[recording]["grid"].num_grid, -np.inf)
+        trials_included = []
+        for trial in trials_for_stats:
+            try:
+                grid_activity = self.load_gridactivity_by_trial(recording=recording, trial=trial, verbose=False)
+                trials_included.append(trial)
+            except Exception as e:
+                print(f"Could not load grid activity for trial {trial}: {e}")
+                continue
+            data = grid_activity.get_data()
+            val_sum += data.sum(axis=-1)
+            n += data.shape[-1]
+            val_min = np.minimum(val_min, data.min(axis=-1))
+            val_max = np.maximum(val_max, data.max(axis=-1))
+        stats["mean_activation"] = val_sum / n
+        stats["min_activation"] = val_min
+        stats["max_activation"] = val_max
+        stats["trials_in_stats"] = trials_included
+
+        val_sum_squared = np.zeros(self.info[recording]["grid"].num_grid)
+        for trial in trials_included:
+            try:
+                grid_activity = self.load_gridactivity_by_trial(recording=recording, trial=trial, verbose=False)
+            except Exception as e:
+                print(f"Could not load grid activity for trial {trial}: {e}")
+                continue
+            data = grid_activity.get_data()
+            val_sum_squared += ((data - stats["mean_activation"][:,:,:,np.newaxis]) ** 2).sum(axis=-1)
+        stats["std_activation"] = np.sqrt(val_sum_squared / n)
+
+        return stats
