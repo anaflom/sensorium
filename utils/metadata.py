@@ -668,6 +668,8 @@ def validate_metadata_recording(
     trials: list[str],
     n_neurons: int,
     trials_metadata_file_type: str = "csv",
+    trials_metadata_subfolder: str = "trials",
+    neurons_metadata_subfolder: str = "neurons",
     verbose: bool = True,
 ) -> bool:
     """Validate recording-level metadata and consistency with data inventory.
@@ -684,6 +686,10 @@ def validate_metadata_recording(
         Expected neuron count from response data.
     trials_metadata_file_type : str (csv or json), default="csv"
         File type for trials metadata files.
+    trials_metadata_subfolder : str, default="trials"
+        Subfolder name for trials metadata.
+    neurons_metadata_subfolder : str, default="neurons"
+        Subfolder name for neurons metadata.
     verbose : bool, default=True
         If ``True``, print warnings.
 
@@ -705,7 +711,7 @@ def validate_metadata_recording(
         return False
 
     # check the trials metadata
-    folder_meta_trials = folder_metadata_rec / "trials"
+    folder_meta_trials = folder_metadata_rec / trials_metadata_subfolder
     mandatory_columns = {"trial", "ID", "label", "trial_type", "valid_trial"}
     optional_columns = {"valid_frames"}   
     optional_columns = {"recording",
@@ -780,7 +786,7 @@ def validate_metadata_recording(
                             )
 
     # check the neurons metadata file
-    folder_meta_neurons = folder_metadata_rec / "neurons"
+    folder_meta_neurons = folder_metadata_rec / neurons_metadata_subfolder
     file = os.path.join(folder_meta_neurons, f"meta-neurons_{rec}.csv")
     mandatory_columns = {"ID", "coord_x", "coord_y", "coord_z"}
     optional_columns = {"mean_activation",
@@ -819,6 +825,8 @@ def check_metadata_integrity(
     folder_globalmetadata_segments: str | Path,
     info: dict[str, Any],
     trials_metadata_file_type: str = "csv",
+    trials_metadata_subfolder: str = "trials",
+    neurons_metadata_subfolder: str = "neurons",
     verbose: bool = True,
 ) -> tuple[bool, dict[str, Any] | None]:
     """Run full metadata integrity checks for a dataset.
@@ -837,6 +845,10 @@ def check_metadata_integrity(
         Per-recording data summary from integrity checks.
     trials_metadata_file_type : str, default="csv"
         File type for trials metadata files ('csv' or 'json').
+    trials_metadata_subfolder : str, default="trials"
+        Subfolder name for trials metadata.
+    neurons_metadata_subfolder : str, default="neurons"
+        Subfolder name for neurons metadata.
     verbose : bool, default=True
         If ``True``, print warnings.
 
@@ -877,6 +889,8 @@ def check_metadata_integrity(
             trials=info[rec]["trials"],
             n_neurons=info[rec]["n_neurons"],
             trials_metadata_file_type=trials_metadata_file_type,
+            trials_metadata_subfolder=trials_metadata_subfolder,
+            neurons_metadata_subfolder=neurons_metadata_subfolder,
             verbose=verbose,
         )
         good_metadata_per_recording[rec] = good_metadata_rec

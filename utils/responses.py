@@ -9,15 +9,22 @@ import json
 import copy
 import matplotlib.pyplot as plt
 from typing import Any, Self
-import pathlib
+from pathlib import Path
 
 
+from utils.data_handling import load_metadata_json_to_obj
 from utils.neurons import Neurons
 
 
 class Responses:
 
-    def __init__(self, recording_folder: str | pathlib.Path, trial: str) -> None:
+    def __init__(self, 
+                 recording_folder: str | Path, 
+                 trial: str,
+                 sampling_freq: float | int = 30,
+                 label: str | None = None,
+                 ID: str | None = None,
+                 ) -> None:
         """Load responses for one recording/trial.
 
         Parameters
@@ -35,13 +42,13 @@ class Responses:
         self.data = np.load(
             os.path.join(recording_folder, "data", "responses", trial + ".npy")
         )
-        self.sampling_freq = 30
+        self.sampling_freq = sampling_freq
 
         n_emptyframes = np.sum(np.all(np.isnan(self.data), axis=0))
         self.valid_frames = np.shape(self.data)[-1] - n_emptyframes
 
-        self.label = None
-        self.ID = None
+        self.label = label
+        self.ID = ID
         self.neurons = None
 
     def __copy__(self) -> Self:
@@ -90,41 +97,34 @@ class Responses:
         """
         return copy.deepcopy(self) if deep else copy.copy(self)
 
-    def load_metadata(self, file_metadata: str | pathlib.Path, verbose=True) -> None:
+    def load_metadata(self, 
+                      path_to_metadata_file: str | Path,
+                      attributes_to_check_match: list[str] = ["label", "ID", "valid_frames","sampling_freq"],
+                      attributes_to_add: list[str] = ["segments","duplicates"],
+                      raise_on_mismatch: bool = True,
+                      verbose: bool = True) -> None:
         """Load metadata for current response.
 
         Parameters
         ----------
-        file_metadata : str or pathlib.Path
+        path_to_metadata_file : str or pathlib.Path
             Path to a JSON file with the metadata.
+        attributes_to_check_match : list of str, default=["label", "ID", "valid_frames","sampling_freq"]
+            List of attributes to check for consistency between the object and the metadata file. If an attribute in this list is not set in the object, it will be set from the metadata file. If it is already set in the object, it will be checked that it matches the value in the metadata file. If there is a mismatch, a ValueError will be raised.
+        attributes_to_add : list of str, optional
+            List of additional attributes to add from the metadata file. If None, all attributes not in attributes_to_check_match will be added.
+        verbose : bool, default=True
+            If True, print warnings.
         """
 
-        try:
-            with open(file_metadata, "r", encoding="utf-8") as f:
-                metadata = json.load(f)
-        except Exception as e:
-            if verbose:
-                print(f"Warning. load_metadata: Could not load metadata: {e}")
+        self = load_metadata_json_to_obj(self, 
+                                  path_to_metadata_file, 
+                                  attributes_to_check_match=attributes_to_check_match,
+                                  attributes_to_add=attributes_to_add,
+                                  raise_on_mismatch=raise_on_mismatch,
+                                  verbose=verbose)
 
-        # check the metadata
-        if self.label is not None and metadata["label"] != self.label:
-            raise ValueError(
-                "The metadata file contains a label different from the video"
-            )
-        if self.ID is not None and metadata["ID"] != self.ID:
-            raise ValueError(
-                "The metadata file contains an ID different from the video"
-            )
-
-        # add some other metadata
-        if "valid_frames" in metadata.keys():
-            self.valid_frames = metadata["valid_frames"]
-        if "segments" in metadata.keys():
-            self.segments = {}
-            for k in metadata["segments"].keys():
-                self.segments[k] = np.asarray(metadata["segments"][k])
-
-    def load_metadata_neurons(self, folder_metadata: str | pathlib.Path) -> None:
+    def load_metadata_neurons(self, folder_metadata: str | Path) -> None:
         """Load neuron metadata for current recording.
 
         Parameters
@@ -135,25 +135,35 @@ class Responses:
 
         self.neurons = Neurons(folder_metadata, self.recording)
 
-    def get_data(self, normalization: str | None = None) -> np.ndarray:
+    def get_data(self, normalization: str | None = None, raise_on_nan: bool = True) -> np.ndarray:
         """Return response matrix with optional normalization.
 
         Parameters
         ----------
         normalization : {None, 'by_std', 'by_mean'}, optional
             Normalization strategy.
+        raise_on_nan : bool, default=True
+            If True, raise an error if NaN values are found.
 
         Returns
         -------
         numpy.ndarray
             Response array of shape ``(n_neurons, valid_frames)``.
         """
+        data = self.data[:, : self.valid_frames].copy()
+        if np.isnan(data).any():
+            if raise_on_nan:
+                raise ValueError(f"Warning: NaN values found in responses")
+            else:
+                print(f"Warning: NaN values found in responses")
+        
         if normalization is None:
-            data = self.data[:, : self.valid_frames].copy()
-        elif normalization == "by_std":
+            return data
+        
+        if normalization == "by_std":
             if "std_activation" in self.neurons.stats_activity.keys():
                 std = self.neurons.stats_activity["std_activation"]
-                data = np.divide(self.data[:, : self.valid_frames], std[:, None])
+                data = np.divide(data, std[:, None])
             else:
                 raise ValueError(
                     "'std_activation' was not found in neurons.stats_activity"
@@ -161,9 +171,7 @@ class Responses:
         elif normalization == "by_mean":
             if "mean_activation" in self.neurons.stats_activity.keys():
                 mu = self.neurons.stats_activity["mean_activation"]
-                data = np.divide(
-                    self.data[:, : self.valid_frames] - mu[:, None], mu[:, None]
-                )
+                data = np.divide(data - mu[:, None], mu[:, None])
             else:
                 raise ValueError(
                     "'mean_activation' was not found in neurons.stats_activity"

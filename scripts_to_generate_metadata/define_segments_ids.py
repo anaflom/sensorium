@@ -4,24 +4,59 @@
 
 from pathlib import Path
 import sys
+import argparse
 
-repo_root = Path(__file__).resolve().parent.parent
-if str(repo_root) not in sys.path:
-    sys.path.insert(0, str(repo_root))
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Obtain neurons metadata for selected recordings."
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent,
+        help="Repository root path containing the code.",
+    )
+    parser.add_argument(
+        "--folder-data",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "data",
+        help="Data path.",
+    )
+    parser.add_argument(
+        "--folder-metadata",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "metadata",
+        help="Metadata path.",
+    )
+    parser.add_argument(
+        "--limit-dissimilarity",
+        type=int,
+        default=20,
+        help="Limit to decide that two segments are the same or different.",
+    )
+    parser.add_argument(
+        "--labels",
+        type=str,
+        nargs="+",
+        default=["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"],
+        help="Labels to use for the segments IDs definition (space-separated).",
+    )
+    return parser.parse_args()
 
-from utils.dataset import DataSet
 
+def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"]):
 
-def main(folder_data, folder_meta):
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
 
-    # the labels to check
-    labels = ["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"]
-
-    # set the limit to decide that two segments are the same or different
-    limit_dissimilarity = 20
+    from utils.dataset import DataSet
 
     # initialize a datset object to handle the data and metadata
-    dataset = DataSet(folder_data, folder_metadata=folder_meta)
+    dataset = DataSet(folder_data, 
+                      folder_metadata=folder_meta,
+                      trials_metadata_file_type = "csv",
+                      trials_metadata_subfolder = "trials",
+                      )
 
     # define segments IDs
     dataset.define_segments_id(labels, limit_dissimilarity=limit_dissimilarity)
@@ -32,13 +67,9 @@ def main(folder_data, folder_meta):
 
 if __name__ == "__main__":
 
-    # path to the folder with the data as downloaded
-    folder_data = repo_root / "data"
-    # path to the metadata folder
-    folder_meta = repo_root / "metadata"
-
+    args = parse_args()
     try:
-        main(folder_data, folder_meta)
+        main(args.repo_root, args.folder_data, args.folder_metadata, limit_dissimilarity=args.limit_dissimilarity, labels=args.labels)
         print("\nSegment ID definition completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")

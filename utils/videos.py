@@ -20,6 +20,7 @@ from typing import Any, Self
 from utils.data_handling import (
     load_metadata_from_id,
     to_json_safe,
+    load_metadata_json_to_obj,
 )
 
 
@@ -1686,60 +1687,55 @@ class Video:
         with open(full_file_name, "w") as f:
             json.dump(meta_video, f, indent=4)
 
-    def load_metadata(self, path_to_metadata_file: str | Path):
+    def load_metadata(self, 
+                      path_to_metadata_file: str | Path,
+                      attributes_to_check_match: list[str] = ["label", "ID", "valid_frames","sampling_freq"],
+                      attributes_to_add: list[str] | None = None,
+                      raise_on_mismatch: bool = True,
+                      verbose: bool = True,
+                      ) -> None:
         """Load video metadata from a JSON file into object attributes.
 
         Parameters
         ----------
         path_to_metadata_file : str or pathlib.Path
             Path to a video metadata JSON file.
+        attributes_to_check_match : list of str, default=["label", "ID", "valid_frames","sampling_freq"]
+            List of attributes to check for consistency between the object and the metadata file. If an attribute in this list is not set in the object, it will be set from the metadata file. If it is already set in the object, it will be checked that it matches the value in the metadata file. If there is a mismatch, a ValueError will be raised.
+        attributes_to_add : list of str, optional
+            List of additional attributes to add from the metadata file. If None, all attributes not in attributes_to_check_match will be added.
+        verbose : bool, default=True
+            If True, print warnings.
+
         """
+        self = load_metadata_json_to_obj(self, 
+                                  path_to_metadata_file, 
+                                  attributes_to_check_match=attributes_to_check_match,
+                                  attributes_to_add=attributes_to_add,
+                                  raise_on_mismatch=raise_on_mismatch,
+                                  verbose=verbose)
 
-        # load metadata
-        with open(path_to_metadata_file, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-
-        # set attributes
-        for k, v in metadata.items():
-            setattr(self, k, v)
-        if hasattr(self, "segments"):
-            for k in self.segments.keys():
-                self.segments[k] = np.asarray(self.segments[k])
-
-    def load_metadata_from_id(self, folder_metadata: Path | str, verbose: bool = True) -> None:
+    def load_metadata_from_id(self, 
+                              path_to_metadata_file: Path | str, 
+                              raise_on_mismatch: bool = True,
+                              verbose: bool = True,
+                              ) -> None:
         """Load metadata by ``self.ID`` and update core video attributes.
 
         Parameters
         ----------
-        folder_metadata : str or pathlib.Path
-            Directory containing video metadata files.
+        path_to_metadata_file : str or pathlib.Path
+            Path to a video metadata JSON file.
         verbose : bool, default=True
-            If ``True``, print warnings.
+            If True, print warnings.
 
-        Raises
-        ------
-        ValueError
-            If loaded metadata label or ID does not match the current object.
         """
-
-        # load metadata
-        metadata, _ = load_metadata_from_id(self.ID, folder_metadata, verbose=verbose)
-        if len(metadata) == 0:
-            raise ValueError(f"No metadata found for video ID {self.ID} in {folder_metadata}")
-
-        # check it is compatible
-        if metadata["label"] != self.label:
-            raise ValueError(
-                "The metadata file contains a label different from the video"
-            )
-        if metadata["ID"] != self.ID:
-            raise ValueError("The metadata file contains a ID different from the video")
-
-        # set attributes
-        self.valid_frames = metadata["valid_frames"]
-        self.segments = {}
-        for k in metadata["segments"].keys():
-            self.segments[k] = np.asarray(metadata["segments"][k])
+        self = load_metadata_json_to_obj(self, 
+                                  path_to_metadata_file, 
+                                  attributes_to_check_match=["label", "ID", "valid_frames","sampling_freq"],
+                                  attributes_to_add=["segments","duplicates"],
+                                  raise_on_mismatch=raise_on_mismatch,
+                                  verbose=verbose)
 
     def add_duplicates(self, recording: str, trials: list[str]) -> None:
         """Register duplicate trials associated with one recording.

@@ -11,7 +11,7 @@ from pathlib import Path
 
 class Neurons:
 
-    def __init__(self, folder_metadata: str | Path, recording: str) -> None:
+    def __init__(self, folder_metadata: str | Path, recording: str, subfolder: str ="neurons") -> None:
         """Load neurons metadata for one recording.
 
         Parameters
@@ -22,7 +22,7 @@ class Neurons:
             Recording name.
         """
 
-        file = os.path.join(folder_metadata, recording, 'neurons', f"meta-neurons_{recording}.csv")
+        file = os.path.join(folder_metadata, recording, subfolder, f"meta-neurons_{recording}.csv")
         try:
             df_neurons = pd.read_csv(file)
             self.coord_xyz = (

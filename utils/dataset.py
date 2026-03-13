@@ -198,6 +198,8 @@ class DataSet:
         check_metadata: bool = True,
         check: bool = True,
         trials_metadata_file_type: str = "csv",
+        trials_metadata_subfolder: str = "trials",
+        neurons_metadata_subfolder: str = "neurons",
         verbose: bool = True,
     ):
         """Initialize dataset paths, integrity checks, and cached metadata.
@@ -218,6 +220,8 @@ class DataSet:
             If ``False``, skip all integrity checks. Overrides other check flags.
         trials_metadata_file_type : str, default="csv"
             File type for trials metadata files ('csv' or 'json').
+        trials_metadata_subfolder : str, default="trials"
+            Subfolder name for trials metadata files.
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
@@ -251,7 +255,9 @@ class DataSet:
         
         # set metadata folders
         self.folder_metadata = folder_metadata
-        self.set_metadata_folders()
+        self._trials_metadata_subfolder = trials_metadata_subfolder
+        self._neurons_metadata_subfolder = neurons_metadata_subfolder
+        self.set_globalmetadata_folders()
 
         # check the metadata folders and files and their consistency with the data files
         if check_metadata:
@@ -299,10 +305,9 @@ class DataSet:
             # check the metadata per recording folders and files structure
             good_structure_per_recording = {}
             for rec in self.recording:
-                folder_exists = Path(self.folder_metadata, rec).is_dir()
                 if Path(self.folder_metadata, rec).is_dir():
-                    exists_trials_folder = Path(self.folder_metadata, rec, 'trials').is_dir()
-                    exists_neurons_folder = Path(self.folder_metadata, rec, 'neurons').is_dir()
+                    exists_trials_folder = Path(self.folder_metadata, rec, self._trials_metadata_subfolder).is_dir()
+                    exists_neurons_folder = Path(self.folder_metadata, rec, self._neurons_metadata_subfolder).is_dir()
                     exists_basic_meta_file = Path(self.folder_metadata, rec, f'meta-basic_{rec}.json').is_file()
                     if exists_trials_folder and exists_neurons_folder and exists_basic_meta_file:
                         good_structure_per_recording[rec] = True
@@ -369,7 +374,7 @@ class DataSet:
                     if verbose
                     else None
                 )
-                self.info[rec]["neurons"] = Neurons(self.folder_metadata, rec)
+                self.info[rec]["neurons"] = Neurons(self.folder_metadata, rec, subfolder=self._neurons_metadata_subfolder)
                 if (
                     self.info[rec]["neurons"].coord_xyz.shape[0]
                     != self.info[rec]["n_neurons"]
@@ -430,12 +435,23 @@ class DataSet:
             recording = [recording]
 
         for rec in recording:
-            if self._good_metadata_per_recording[rec]:
-                path_to_table = os.path.join(self.folder_metadata, rec, 'trials')
-                file = os.path.join(path_to_table, f"meta-trials_{rec}.csv")
-                df = pd.read_csv(file)
-                self.info[rec]["trial_type"] = df["trial_type"].copy().to_list()
-            else:
+            loaded = False
+            if self._good_metadata_per_recording[rec] and self._trials_metadata_file_type=='csv':
+                try:
+                    path_to_table = os.path.join(self.folder_metadata, rec, self._trials_metadata_subfolder)
+                    file = os.path.join(path_to_table, f"meta-trials_{rec}.csv")
+                    df = pd.read_csv(file)
+                    if "trial_type" in df.columns:
+                        self.info[rec]["trial_type"] = df["trial_type"].copy().to_list()
+                        loaded = True
+                    else: 
+                        print("trial_type not found in the trials metadata. It will be loaded from the data folder.")
+                except Exception as e:
+                    print(
+                        f"Error loading trial types for recording {rec} from metadata: {e}. It will be loaded from the data folder."
+                    ) if verbose else None
+                    
+            if not loaded:
                 try:
                     path_to_meta_trials = os.path.join(
                         self.folder_data, rec, "meta", "trials"
@@ -527,7 +543,7 @@ class DataSet:
         else:
             print(" > INVALID data") if verbose else None
 
-    def set_metadata_folders(self):
+    def set_globalmetadata_folders(self, verbose: bool = True) -> None:
         '''Set paths for global metadata folders based on the main metadata folder.'''
 
         if self.folder_metadata is None:
@@ -580,6 +596,8 @@ class DataSet:
                 self.folder_globalmetadata_segments,
                 self.info,
                 trials_metadata_file_type=self._trials_metadata_file_type,
+                trials_metadata_subfolder=self._trials_metadata_subfolder,
+                neurons_metadata_subfolder=self._neurons_metadata_subfolder,
                 verbose=True,
             )
         else:
@@ -658,13 +676,17 @@ class DataSet:
 
         print_title("Creating metadata folders if necessary ", verbose)
         for rec in recording:
+
             path_to_meta = Path(self.folder_metadata) / rec
             created = not path_to_meta.exists()
             path_to_meta.mkdir(parents=True, exist_ok=True)
-            path_to_meta_trials = path_to_meta / 'trials'
+            
+            path_to_meta_trials = path_to_meta / self._trials_metadata_subfolder
             path_to_meta_trials.mkdir(parents=True, exist_ok=True)
-            path_to_meta_neurons = path_to_meta / 'neurons'
+            
+            path_to_meta_neurons = path_to_meta / self._neurons_metadata_subfolder
             path_to_meta_neurons.mkdir(parents=True, exist_ok=True)
+            
             if created:
                 print(f"- Metadata folder for recording {rec} was created in {path_to_meta}") if verbose else None
                     
@@ -713,17 +735,21 @@ class DataSet:
         for rec in recording:
             
             if self._trials_metadata_file_type == "csv":
-                file = self.folder_metadata / rec / "trials" / f"meta-trials_{rec}.csv"
+                file = self.folder_metadata / rec / self._trials_metadata_subfolder / f"meta-trials_{rec}.csv"
+                if not file.is_file():
+                    print(f"Warning: Trials metadata file not found for recording {rec} at expected path {file}, skipping this recording.") if verbose else None
+                    continue
                 df = pd.read_csv(file)
                 df["trial"] = df["trial"].astype(str)
-                df.insert(0, "recording", [rec] * len(df))
+                if "recording" not in df.columns:
+                    df.insert(0, "recording", [rec] * len(df))
 
             elif self._trials_metadata_file_type == "json":
-                folder = self.folder_metadata / rec / "trials"
+                folder = self.folder_metadata / rec / self._trials_metadata_subfolder
                 df, _ = _json_to_dataframe(folder, 
-                                           file_pattern="*.json", 
-                                           include_file_as_column=False, 
-                                           verbose=verbose)
+                                        file_pattern="*.json", 
+                                        include_file_as_column=False, 
+                                        verbose=verbose)
                 if "recording" not in df.columns:
                     df.insert(0, "recording", [rec] * len(df))
 
@@ -739,6 +765,8 @@ class DataSet:
 
         if set_trials_df:
             self.trials_df = trials_df
+                
+
 
         return trials_df
     
@@ -943,7 +971,9 @@ class DataSet:
         recording: str,
         trial: str,
         verbose: bool = True,
-        try_global_first: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
     ) -> Video:
         """Load one trial video and attach available metadata.
 
@@ -964,41 +994,52 @@ class DataSet:
             Loaded video object.
         """
 
-        # load the data
-        recording_folder = os.path.join(self.folder_data, recording)
-        video = Video(recording_folder, trial)
-
         # lookup trial metadata
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
         if "ID" in trials_meta.columns:
-            video.ID = trials_meta["ID"].iloc[0]
+            ID = trials_meta["ID"].iloc[0]
+        else:
+            ID = None
         if "label" in trials_meta.columns:
-            video.label = trials_meta["label"].iloc[0]
+            label = trials_meta["label"].iloc[0]
+        else:
+            label = None
+
+        # load the data
+        recording_folder = os.path.join(self.folder_data, recording)
+        video = Video(recording_folder, trial, ID=ID, label=label)
 
         # try loading metadata from global metadata folder (if configured)
-        if self.folder_globalmetadata_videos is not None and try_global_first:
+        if self._good_global_meta_videos and load_metadata_from_global_video:
             try:
-                video.load_metadata_from_id(self.folder_globalmetadata_videos, verbose=verbose)
+                video.load_metadata_from_id(self.folder_globalmetadata_videos, 
+                                            raise_on_mismatch = raise_on_mismatch, 
+                                            verbose = verbose)
                 return video
             except Exception as e:
                 if verbose:
                     print(f"load_metadata_from_id failed: {e}")
 
         # fallback: try loading metadata from metadata per trials
-        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
-        if path_to_metadata_file.exists():
-            try:
-                video.load_metadata(path_to_metadata_file)
-            except Exception as e:
+        if self._good_metadata_per_recording and self._trials_metadata_file_type == "json" and load_metadata_from_trials:
+            path_to_metadata_file = self.folder_metadata / recording / self._trials_metadata_subfolder / f"{trial}.json"
+            if path_to_metadata_file.exists():
+                try:
+                    video.load_metadata(path_to_metadata_file,
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_add = None,
+                                           raise_on_mismatch = raise_on_mismatch,
+                                           verbose = verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"Could not load metadata from JSON trial file: {e}")
+            else:
                 if verbose:
-                    print(f"Could not load metadata from JSON trial file: {e}")
-        else:
-            if verbose:
-                print(
-                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
-                )
+                    print(
+                        f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                    )
 
         return video
 
@@ -1007,7 +1048,9 @@ class DataSet:
         recording: str,
         trial: str,
         verbose: bool = True,
-        try_global_first: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
     ) -> Responses:
         """Load one trial responses object and attach metadata.
 
@@ -1017,30 +1060,37 @@ class DataSet:
             Loaded responses object.
         """
 
-        # load the data
-        recording_folder = os.path.join(self.folder_data, recording)
-        response = Responses(recording_folder, trial)
-
         # lookup trial metadata
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
         if "ID" in trials_meta.columns:
-            response.ID = trials_meta["ID"].iloc[0]
+            ID = trials_meta["ID"].iloc[0]
+        else:
+            ID = None
         if "label" in trials_meta.columns:
-            response.label = trials_meta["label"].iloc[0]
+            label = trials_meta["label"].iloc[0]
+        else:
+            label = None
+
+        # load the data
+        recording_folder = os.path.join(self.folder_data, recording)
+        response = Responses(recording_folder, trial, ID=ID, label=label)
 
         # load neurons metadata
         response.neurons = self.info[recording]["neurons"]
 
         # try loading metadata from global metadata folder (if configured)
-        if self.folder_globalmetadata_videos is not None and try_global_first:
+        if self._good_global_meta_videos and load_metadata_from_global_video:
             try:
                 file = get_file_with_pattern(
                     f"*-{response.ID}.json", self.folder_globalmetadata_videos
                 )
-                response.load_metadata(file)
-                return response
+                response.load_metadata(file,
+                                       attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                       attributes_to_add = ["segments","duplicates"],
+                                       raise_on_mismatch = raise_on_mismatch,
+                                       verbose = verbose)
             except Exception as e:
                 if verbose:
                     print(
@@ -1048,18 +1098,23 @@ class DataSet:
                     )
 
         # fallback: try loading metadata from metadata per trials
-        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
-        if path_to_metadata_file.exists():
-            try:
-                response.load_metadata(path_to_metadata_file)
-            except Exception as e:
+        if self._good_metadata_per_recording and self._trials_metadata_file_type == "json" and load_metadata_from_trials:
+            path_to_metadata_file = self.folder_metadata / recording / self._trials_metadata_subfolder / f"{trial}.json"
+            if path_to_metadata_file.exists():
+                try:
+                    response.load_metadata(path_to_metadata_file,
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_add = None,
+                                           raise_on_mismatch = raise_on_mismatch,
+                                           verbose = verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"Could not load metadata from JSON trial file: {e}")
+            else:
                 if verbose:
-                    print(f"Could not load metadata from JSON trial file: {e}")
-        else:
-            if verbose:
-                print(
-                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
-                )
+                    print(
+                        f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                    )
 
         return response
 
@@ -1069,7 +1124,9 @@ class DataSet:
         trial: str,
         behavior_type: str = "pupil",
         verbose: bool = True,
-        try_global_first: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
     ) -> Pupil | Gaze | Locomotion:
         """Load one trial behavior object and attach metadata.
 
@@ -1084,36 +1141,45 @@ class DataSet:
             Loaded behavior object.
         """
 
-        # load the data
-        recording_folder = os.path.join(self.folder_data, recording)
-        if behavior_type.lower() == "pupil":
-            behavior = Pupil(recording_folder, trial)
-        elif behavior_type.lower() == "gaze":
-            behavior = Gaze(recording_folder, trial)
-        elif behavior_type.lower() == "locomotion":
-            behavior = Locomotion(recording_folder, trial)
-        else:
-            raise ValueError(
-                f"behavior_type must be 'pupil', 'gaze', or 'locomotion', got {behavior_type}"
-            )
-
         # lookup trial metadata
         trials_meta = self.filter_trials(recording=recording, trial=trial)
         if len(trials_meta) != 1:
             raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
         if "ID" in trials_meta.columns:
-            behavior.ID = trials_meta["ID"].iloc[0]
+            ID = trials_meta["ID"].iloc[0]
+        else:
+            ID = None
         if "label" in trials_meta.columns:
-            behavior.label = trials_meta["label"].iloc[0]
+            label = trials_meta["label"].iloc[0]
+        else:
+            label = None
 
+
+        # load the data
+        recording_folder = os.path.join(self.folder_data, recording)
+        if behavior_type.lower() == "pupil":
+            behavior = Pupil(recording_folder, trial, ID=ID, label=label)
+        elif behavior_type.lower() == "gaze":
+            behavior = Gaze(recording_folder, trial, ID=ID, label=label)
+        elif behavior_type.lower() == "locomotion":
+            behavior = Locomotion(recording_folder, trial, ID=ID, label=label)
+        else:
+            raise ValueError(
+                f"behavior_type must be 'pupil', 'gaze', or 'locomotion', got {behavior_type}"
+            )
+
+        
         # try loading metadata from global metadata folder (if configured)
-        if self.folder_globalmetadata_videos is not None and try_global_first:
+        if self._good_global_meta_videos and load_metadata_from_global_video:
             try:
                 file = get_file_with_pattern(
                     f"*-{behavior.ID}.json", self.folder_globalmetadata_videos
                 )
-                behavior.load_metadata(file)
-                return behavior
+                behavior.load_metadata(file,
+                                       attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                       attributes_to_add = ["segments","duplicates"],
+                                       raise_on_mismatch = raise_on_mismatch,
+                                       verbose = verbose)
             except Exception as e:
                 if verbose:
                     print(
@@ -1121,24 +1187,32 @@ class DataSet:
                     )
 
         # fallback: try loading metadata from metadata per trials (if configured)
-        path_to_metadata_file = self.folder_metadata / recording / "trials" / f"{trial}.json"
-        if path_to_metadata_file.exists():
-            try:
-                behavior.load_metadata(path_to_metadata_file)
-            except Exception as e:
+        if self._good_metadata_per_recording and self._trials_metadata_file_type == "json" and load_metadata_from_trials:
+            path_to_metadata_file = self.folder_metadata / recording / self._trials_metadata_subfolder / f"{trial}.json"
+            if path_to_metadata_file.exists():
+                try:
+                    behavior.load_metadata(path_to_metadata_file,
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_add = None,
+                                           raise_on_mismatch = raise_on_mismatch,
+                                           verbose = verbose)
+                except Exception as e:
+                    if verbose:
+                        print(f"Could not load metadata from JSON trial file: {e}")
+            else:
                 if verbose:
-                    print(f"Could not load metadata from JSON trial file: {e}")
-        else:
-            if verbose:
-                print(
-                    f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
-                )
+                    print(
+                        f"Could not load metadata from JSON trial file: Metadata file not found: {path_to_metadata_file}"
+                    )
 
         return behavior
 
     def load_responses_by(
         self,
         verbose: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
         query: str | None = None,
         **conditions,
     ) -> tuple[list[Responses], pd.DataFrame]:
@@ -1154,8 +1228,13 @@ class DataSet:
         responses = []
         for index, row in trials_df.iterrows():
             resp = self.load_response_by_trial(
-                recording=row["recording"], trial=row["trial"], verbose=verbose
-            )
+                                            recording=row["recording"], 
+                                            trial=row["trial"], 
+                                            raise_on_mismatch=raise_on_mismatch,
+                                            load_metadata_from_global_video=load_metadata_from_global_video,
+                                            load_metadata_from_trials=load_metadata_from_trials,
+                                            verbose=verbose
+                                        )
             responses.append(resp)
 
         return responses, trials_df
@@ -1163,6 +1242,9 @@ class DataSet:
     def load_videos_by(
         self,
         verbose: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
         query: str | None = None,
         **conditions,
     ) -> tuple[list[Video], pd.DataFrame]:
@@ -1178,8 +1260,13 @@ class DataSet:
         videos = []
         for index, row in trials_df.iterrows():
             vi = self.load_video_by_trial(
-                recording=row["recording"], trial=row["trial"], verbose=verbose
-            )
+                                        recording=row["recording"], 
+                                        trial=row["trial"], 
+                                        raise_on_mismatch=raise_on_mismatch,
+                                        load_metadata_from_global_video=load_metadata_from_global_video,
+                                        load_metadata_from_trials=load_metadata_from_trials,
+                                        verbose=verbose
+                                    )
             videos.append(vi)
 
         return videos, trials_df
@@ -1188,6 +1275,9 @@ class DataSet:
         self,
         behavior_type: str,
         verbose: bool = True,
+        raise_on_mismatch: bool = False,
+        load_metadata_from_global_video: bool = True,
+        load_metadata_from_trials: bool = True,
         query: str | None = None,
         **conditions,
     ) -> tuple[list[Pupil | Gaze | Locomotion], pd.DataFrame]:
@@ -1203,11 +1293,14 @@ class DataSet:
         behavior = []
         for index, row in trials_df.iterrows():
             beh = self.load_behavior_by_trial(
-                recording=row["recording"],
-                trial=row["trial"],
-                behavior_type=behavior_type,
-                verbose=verbose,
-            )
+                                        recording=row["recording"],
+                                        trial=row["trial"],
+                                        behavior_type=behavior_type,
+                                        raise_on_mismatch=raise_on_mismatch,
+                                        load_metadata_from_global_video=load_metadata_from_global_video,
+                                        load_metadata_from_trials=load_metadata_from_trials,
+                                        verbose=verbose,
+                                    )
             behavior.append(beh)
 
         return behavior, trials_df
@@ -1481,17 +1574,20 @@ class DataSet:
         trials_included = []
         for trial in tqdm(trials_for_stats, desc="MEAN, MAX, MIN computation", unit="trial",total=len(trials_for_stats), disable=False):
             try:
-                resp = self.load_response_by_trial(recording, trial)
+                resp = self.load_response_by_trial(recording, 
+                                                   trial, 
+                                                   load_metadata_from_global_video=False, 
+                                                   load_metadata_from_trials=False)
                 trials_included.append(trial)
             except Exception as e:
                 print(f"Could not load responses for trial {trial} in recording {recording}: {e}")
                 continue
 
             data = resp.get_data()
-            val_sum += np.nansum(data, axis=-1)
+            val_sum += np.sum(data, axis=-1)
             n += data.shape[-1]
-            val_min = np.minimum(val_min, data.min(axis=-1))
-            val_max = np.maximum(val_max, data.max(axis=-1))
+            val_min = np.minimum(val_min, np.min(data, axis=-1))
+            val_max = np.maximum(val_max, np.max(data, axis=-1))
 
         stats["mean_activation"] = val_sum / n
         stats["min_activation"] = val_min
@@ -1500,7 +1596,10 @@ class DataSet:
         val_sum_squared = np.zeros(n_neurons)
         for trial in tqdm(trials_for_stats, desc="STD computation", unit="trial",total=len(trials_for_stats), disable=False):
             try:
-                resp = self.load_response_by_trial(recording, trial)
+                resp = self.load_response_by_trial(recording, 
+                                                   trial,
+                                                   load_metadata_from_global_video=False, 
+                                                   load_metadata_from_trials=False)
             except Exception as e:
                 print(f"Could not load responses for trial {trial} in recording {recording}: {e}")
                 continue
@@ -1598,9 +1697,6 @@ class DataSet:
 
         if isinstance(recording, str):
             recording = [recording]
-
-        # load a dataframe with all trials metadata
-        trials_df = self.get_trials_metadata()
 
         # create a folder for the outputs if it doesn't exists
         self.create_folders_metadata(what_global_data=[])
@@ -1716,7 +1812,7 @@ class DataSet:
             )
 
             # folder for the outputs
-            path_to_results_metavideos = Path(self.folder_metadata) / rec / "trials"
+            path_to_results_metavideos = Path(self.folder_metadata) / rec / self._trials_metadata_subfolder
             path_to_results_metavideos.mkdir(parents=True, exist_ok=True)
 
             # load the trials descriptor
@@ -1787,6 +1883,7 @@ class DataSet:
         self,
         recording: str | list[str] | None = None,
         limit_dissimilarity: float | int = 5,
+        output_subfolder: str = "trials",
         verbose: bool = True,
     ) -> None:
         """Assign unique video IDs by similarity grouping.
@@ -1797,6 +1894,8 @@ class DataSet:
             Recordings to process.
         limit_dissimilarity : float or int, default=5
             Maximum dissimilarity to treat videos as duplicates.
+        output_subfolder : str, default="trials"
+            Subfolder in the recording metadata folder where the trial metadata with IDs will be saved.
         verbose : bool, default=True
             If ``True``, print progress messages.
         """
@@ -1821,7 +1920,7 @@ class DataSet:
             print(f"\nComputing for recording {rec}...") if verbose else None
 
             path_to_data = os.path.join(self.folder_data, rec)
-            path_to_results_metavideos = Path(self.folder_metadata) / rec / "trials"
+            path_to_results_metavideos = Path(self.folder_metadata) / rec / self._trials_metadata_subfolder
             path_to_results_metavideos.mkdir(parents=True, exist_ok=True)
 
             try:
@@ -1898,7 +1997,7 @@ class DataSet:
                     ]
                 ]
 
-                folder_recording_meta = Path(self.folder_metadata) / rec / "trials"
+                folder_recording_meta = Path(self.folder_metadata) / rec / output_subfolder
                 folder_recording_meta.mkdir(parents=True, exist_ok=True)
                 filename = folder_recording_meta / f"meta-trials_{rec}.csv"
                 df_meta_trials_rec.to_csv(filename, index=False)
