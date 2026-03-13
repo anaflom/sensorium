@@ -668,7 +668,7 @@ class DataSetGrid(DataSet):
         stats["std_activation"] = np.sqrt(val_sum_squared / n)
 
         if save:
-            output_folder = self.folder_derivatives / recording / "grid_stats"
+            output_folder = self.folder_derivatives / recording / "gridactivity_stats"
             output_folder.mkdir(parents=True, exist_ok=True)
             for stat_name, stat_value in stats.items():
                 np.save(output_folder / f"{stat_name}.npy", stat_value)
@@ -717,7 +717,7 @@ class DataSetGrid(DataSet):
         for rec in recording:
             stats[rec] = {}
             for stat in stat_name:
-                files = list((self.folder_derivatives / rec / "grid_stats").glob(f"*{stat}.npy"))
+                files = list((self.folder_derivatives / rec / "gridactivity_stats").glob(f"*{stat}.npy"))
                 if len(files) == 0:
                     raise FileNotFoundError(f"No file found for statistic '{stat}' in {self.folder_derivatives / rec / 'grid_stats'}")
                 elif len(files) > 1:
