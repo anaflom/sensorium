@@ -612,7 +612,7 @@ class DataSetGrid(DataSet):
         return gridactivities, trials_df
 
 
-    def compute_grid_stats(self, recording: str, trials_for_stats: list | None = None):
+    def compute_grid_stats(self, recording: str, trials_for_stats: list | None = None, save: bool = False) -> dict:
         """Compute statistics of the grid activity for a given recording and trials.
 
         Parameters
@@ -667,4 +667,68 @@ class DataSetGrid(DataSet):
             val_sum_squared += ((data - stats["mean_activation"][:,:,:,np.newaxis]) ** 2).sum(axis=-1)
         stats["std_activation"] = np.sqrt(val_sum_squared / n)
 
+        if save:
+            output_folder = self.folder_derivatives / recording / "grid_stats"
+            output_folder.mkdir(parents=True, exist_ok=True)
+            for stat_name, stat_value in stats.items():
+                np.save(output_folder / f"{stat_name}.npy", stat_value)
+
         return stats
+    
+    def load_grid_stats(self, 
+                        stat_name: str | list[str] = ["mean_activation", "std_activation", "min_activation", "max_activation", "trials_in_stats"], 
+                        recording: str | list[str] | None = None,  
+                        keep_as_attribute: bool = True,
+                        verbose: bool = True,
+                        ) -> np.ndarray:
+        """Load precomputed grid statistics.
+
+        Parameters
+        ----------
+        stat_name : str | list[str]
+            Name(s) of the statistic(s) to load (e.g., 'mean_activation').
+        recording : str | list[str] | None, optional
+            Recording name.
+        keep_as_attribute : bool, optional
+            If True, keep the loaded statistics as attributes of the DataSetGrid object.
+        verbose : bool, optional
+            If True, print warnings if loading fails.
+
+        Returns
+        -------
+        numpy.ndarray
+            Loaded statistic array.
+        """
+
+        if recording is None:
+            recording = self.recording
+        elif isinstance(recording, str):
+            recording = [recording]
+        if isinstance(stat_name, str):
+            stat_name = [stat_name]
+
+        if self.folder_derivatives is None:
+            raise ValueError("folder_derivatives must be set to load grid stats.")
+
+        stats = {}
+        if keep_as_attribute:
+            if not hasattr(self, "stats"):
+                self.stats = {}
+        for rec in recording:
+            stats[rec] = {}
+            for stat in stat_name:
+                files = list((self.folder_derivatives / rec / "grid_stats").glob(f"*{stat}.npy"))
+                if len(files) == 0:
+                    raise FileNotFoundError(f"No file found for statistic '{stat}' in {self.folder_derivatives / rec / 'grid_stats'}")
+                elif len(files) > 1:
+                    raise ValueError(f"Multiple files found for statistic '{stat}' in {self.folder_derivatives / rec / 'grid_stats'}: {[str(f) for f in files]}")
+                stat_array = np.load(files[0])
+                stats[rec][stat] = stat_array
+                if keep_as_attribute:
+                    if rec not in self.stats:
+                        self.stats[rec] = {}
+                    self.stats[rec][stat] = stat_array
+        
+        return stats
+
+        

@@ -72,7 +72,7 @@ def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, fold
     return trial
 
 
-def main(repo_root, folder_data, folder_meta, folder_derivatives, normalization=None, num_grid=(15, 15, 10), recordings=None):       
+def main(repo_root, folder_data, folder_metadata, folder_derivatives, normalization=None, num_grid=(15, 15, 10), recordings=None):       
 
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
@@ -101,7 +101,7 @@ def main(repo_root, folder_data, folder_meta, folder_derivatives, normalization=
 
     # initialize the object to handle the dataset
     ds = DataSet(folder_data, 
-                folder_metadata=folder_meta, 
+                folder_metadata=folder_metadata, 
                 recording=recordings, 
                 check=False,
                 verbose=True)
