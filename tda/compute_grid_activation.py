@@ -177,9 +177,9 @@ if __name__ == "__main__":
     try:
         main(
             args.repo_root,
-            folder_data=args.folder_data,
-            folder_meta=args.folder_metadata,
-            folder_derivatives=args.folder_derivatives,
+            args.folder_data,
+            args.folder_metadata,
+            args.folder_derivatives,
             normalization=normalization,
             num_grid=tuple(args.num_grid),
             recordings=recordings,

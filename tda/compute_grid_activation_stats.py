@@ -77,7 +77,12 @@ if __name__ == "__main__":
     args = parse_args()
     recordings = None if str(args.recordings).lower() == "none" else args.recordings
     try:
-        main(args.repo_root, args.folder_data, args.folder_metadata, args.folder_derivatives, args.subfolder_derivatives, recordings=recordings)
+        main(args.repo_root, 
+             args.folder_data, 
+             args.folder_metadata, 
+             args.folder_derivatives, 
+             args.subfolder_derivatives, 
+             recordings=recordings)
         print("\nGrid activation stats computation completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
