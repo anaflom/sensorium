@@ -84,6 +84,8 @@ Run these scripts in order when regenerating metadata:
 3. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `metadata/<recording>/trials`.
 4. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/trials/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
 5. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
+6. `determine_valid_frames.py` — define the valid frames for each trial base on the minimun of valid frames between the video and the neural responses and saves it in `metadata/<recording>/trials/meta-trials_<recording>.csv`. Run after `define_videos_ids.py`.
+
 
 Notes and tips:
 - To regenerate from scratch, remove `metadata/` first:
@@ -102,6 +104,8 @@ python scripts_to_generate_metadata/generate_neurons_metadata.py
 python scripts_to_generate_metadata/classify_videos.py
 python scripts_to_generate_metadata/define_videos_ids.py
 python scripts_to_generate_metadata/define_segments_ids.py
+python scripts_to_generate_metadata/determine_valid_frames.py
+
 ```
 
 ## Metadata (expected layout)

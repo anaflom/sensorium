@@ -1006,15 +1006,23 @@ class DataSet:
             label = trials_meta["label"].iloc[0]
         else:
             label = None
+        if "valid_frames" in trials_meta.columns:
+            valid_frames = trials_meta["valid_frames"].iloc[0]
+            valid_frames = None if pd.isna(valid_frames) else valid_frames
+        else:
+            valid_frames = None
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
-        video = Video(recording_folder, trial, ID=ID, label=label)
+        video = Video(recording_folder, trial, ID=ID, label=label, valid_frames=valid_frames)
 
         # try loading metadata from global metadata folder (if configured)
         if self._good_global_meta_videos and load_metadata_from_global_video:
             try:
-                video.load_metadata_from_id(self.folder_globalmetadata_videos, 
+                file = get_file_with_pattern(
+                    f"*-{video.ID}.json", self.folder_globalmetadata_videos
+                )
+                video.load_metadata_from_id(file, 
                                             raise_on_mismatch = raise_on_mismatch, 
                                             verbose = verbose)
                 return video
@@ -1022,7 +1030,7 @@ class DataSet:
                 if verbose:
                     print(f"load_metadata_from_id failed: {e}")
 
-        # fallback: try loading metadata from metadata per trials
+        # try loading metadata from metadata per trials
         if self._good_metadata_per_recording and self._trials_metadata_file_type == "json" and load_metadata_from_trials:
             path_to_metadata_file = self.folder_metadata / recording / self._trials_metadata_subfolder / f"{trial}.json"
             if path_to_metadata_file.exists():
@@ -1072,10 +1080,15 @@ class DataSet:
             label = trials_meta["label"].iloc[0]
         else:
             label = None
+        if "valid_frames" in trials_meta.columns:
+            valid_frames = trials_meta["valid_frames"].iloc[0]
+            valid_frames = None if pd.isna(valid_frames) else valid_frames
+        else:
+            valid_frames = None
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
-        response = Responses(recording_folder, trial, ID=ID, label=label)
+        response = Responses(recording_folder, trial, ID=ID, label=label, valid_frames=valid_frames)
 
         # load neurons metadata
         response.neurons = self.info[recording]["neurons"]
@@ -1153,16 +1166,20 @@ class DataSet:
             label = trials_meta["label"].iloc[0]
         else:
             label = None
-
+        if "valid_frames" in trials_meta.columns:
+            valid_frames = trials_meta["valid_frames"].iloc[0]
+            valid_frames = None if pd.isna(valid_frames) else valid_frames
+        else:
+            valid_frames = None
 
         # load the data
         recording_folder = os.path.join(self.folder_data, recording)
         if behavior_type.lower() == "pupil":
-            behavior = Pupil(recording_folder, trial, ID=ID, label=label)
+            behavior = Pupil(recording_folder, trial, ID=ID, label=label, valid_frames=valid_frames)
         elif behavior_type.lower() == "gaze":
-            behavior = Gaze(recording_folder, trial, ID=ID, label=label)
+            behavior = Gaze(recording_folder, trial, ID=ID, label=label, valid_frames=valid_frames)
         elif behavior_type.lower() == "locomotion":
-            behavior = Locomotion(recording_folder, trial, ID=ID, label=label)
+            behavior = Locomotion(recording_folder, trial, ID=ID, label=label, valid_frames=valid_frames)
         else:
             raise ValueError(
                 f"behavior_type must be 'pupil', 'gaze', or 'locomotion', got {behavior_type}"
@@ -2221,3 +2238,81 @@ class DataSet:
                     else None
                 )
                 continue
+
+
+    def define_valid_frames(self, recording: str | list[str] | None = None) -> None:
+        """Define per-trial valid frames from video/response metadata.
+
+        The value is the minimum between ``video.valid_frames`` and
+        ``response.valid_frames``. Results are stored in ``self.trials_df`` under
+        the ``valid_frames`` column.
+
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process. If ``None``, process ``self.recording``.
+        """
+
+        if recording is None:
+            recording = self.recording
+
+        if isinstance(recording, str):
+            recording = [recording]
+
+        if "valid_frames" not in self.trials_df.columns:
+            self.trials_df["valid_frames"] = pd.NA
+
+        print_title("Defining valid frames for the videos and responses ", verbose)
+        
+        for rec in recording:
+            trials_df_rec = self.filter_trials(recording=rec)
+            iterator = tqdm(
+                trials_df_rec.iterrows(),
+                total=len(trials_df_rec),
+                desc=f"Recording {rec}",
+                unit="trial",
+                disable=False,
+            )
+            for _, row in iterator:
+                trial = row["trial"]
+                rec_row = row["recording"]
+                video = self.load_video_by_trial(rec_row, trial, load_metadata_from_global_video=False)
+                resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False)
+                video_valid = getattr(video, "valid_frames", None)
+                resp_valid = getattr(resp, "valid_frames", None)
+                if video_valid is None and resp_valid is None:
+                    valid_frames = pd.NA
+                elif video_valid is None:
+                    valid_frames = resp_valid
+                elif resp_valid is None:
+                    valid_frames = video_valid
+                else:
+                    valid_frames = min(video_valid, resp_valid)
+                self.trials_df.loc[
+                    (self.trials_df["recording"] == rec_row)
+                    & (self.trials_df["trial"] == trial),
+                    "valid_frames",
+                ] = valid_frames
+
+    def save_trials_metadata(self, 
+                             recording: str | list[str] | None = None, 
+                             output_subfolder: str | None = None, 
+                             verbose: bool = True) -> None:
+
+        if recording is None:
+            recording = self.recording
+
+        if isinstance(recording, str):
+            recording = [recording]
+
+        if output_subfolder is None:
+            output_subfolder = self._trials_metadata_subfolder
+
+        for rec in recording:
+            df_meta_trials_rec = self.trials_df[self.trials_df["recording"] == rec].copy()
+            folder_recording_meta = Path(self.folder_metadata) / rec / output_subfolder
+            folder_recording_meta.mkdir(parents=True, exist_ok=True)
+            filename = folder_recording_meta / f"meta-trials_{rec}.csv"
+            df_meta_trials_rec.to_csv(filename, index=False)
+            print(f"Saved: {filename}") if verbose else None
+
