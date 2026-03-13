@@ -64,7 +64,7 @@ def parse_args():
 
 
 def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, folder_output_rec_trials, file_prefix=""):
-    response = ds.load_response_by_trial(recording=rec, trial=trial)
+    response = ds.load_response_by_trial(recording=rec, trial=trial, load_metadata_from_global_video=False)
     activities = response.get_data(normalization=normalization)
     grid_activity = grid.compute_grid_activity(positions, activities)
     output_file = f"{file_prefix}rec-{rec}_trial-{trial}.npy"
