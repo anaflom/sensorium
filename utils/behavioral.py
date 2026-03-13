@@ -58,6 +58,7 @@ class Behavior:
         trial: str,
         behavior_type: str,
         sampling_freq: float | int = 30,
+        valid_frames: int | None = None,
         label: str | None = None,
         ID: str | None = None,
         indexes: list[int] | np.ndarray | None = None,
@@ -95,8 +96,11 @@ class Behavior:
         self.data = d.squeeze()
 
         self.sampling_freq = sampling_freq
-        n_emptyframes = np.sum(np.all(np.isnan(self.data), axis=0))
-        self.valid_frames = np.shape(self.data)[-1] - n_emptyframes
+        if valid_frames is None:
+            n_emptyframes = np.sum(np.all(np.isnan(self.data), axis=0))
+            self.valid_frames = np.shape(self.data)[-1] - n_emptyframes
+        else:
+            self.valid_frames = valid_frames
 
         self.label = label
         self.ID = ID
