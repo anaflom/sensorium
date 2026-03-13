@@ -143,8 +143,10 @@ class Grid3D:
         neurons_idx, lines_plane, plane_axis_idx = self.neurons_in_plane(positions, axis, plane_idx)
 
         if ax is None:
-            fig = plt.figure(figsize=(7,8))
+            fig = plt.figure(figsize=(15,7))
             ax = fig.add_subplot(111, projection='3d')
+        else:
+            fig = ax.get_figure()
 
         dx = 10   # bar width/depth
         dy = 10   # bar width/depth
@@ -180,7 +182,8 @@ class Grid3D:
         ax.set_zlabel('Neurons activity')
         ax.set_title(f'Neurons activity at {coord_names[axis]} plane {plane_idx}, frame {frame}')
 
-        plt.tight_layout()
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+        fig.tight_layout()
         plt.show()
         return ax
 
@@ -203,8 +206,10 @@ class Grid3D:
             step_coord2 = (self.xyz_ranges[2][1] - self.xyz_ranges[2][0]) / self.num_grid[2]
 
         if ax is None:
-            fig = plt.figure(figsize=(7, 8))
+            fig = plt.figure(figsize=(10, 7))
             ax = fig.add_subplot(111, projection='3d')
+        else:
+            fig = ax.get_figure()
 
         
         dx = 0.5 * step_coord1   # bar width/depth
@@ -242,7 +247,8 @@ class Grid3D:
         ax.set_ylabel(coord_names[plane_axis_idx[1]])
         ax.set_title(f'Grid activity at {coord_names[axis]} plane {plane_idx}, frame {frame}')
 
-        plt.tight_layout()
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+        fig.tight_layout()
         plt.show()
         return ax
 
@@ -311,7 +317,8 @@ class Grid3D:
         ax.set_box_aspect(1)
         ax.set_title(f'Grid activity at {coord_names[axis]} plane {plane_idx}, frame {frame}')
 
-        plt.tight_layout()
+        plt.subplots_adjust(left=0.1, right=0.8, top=0.9, bottom=0.15)
+        #plt.tight_layout()
         plt.show()
         return ax
     
@@ -333,9 +340,13 @@ class GridActivity:
 
         self.recording = os.path.basename(recording_folder)
         self.trial = trial
-        self.data = np.load(
-            os.path.join(recording_folder, "trials", trial + ".npy")
-        )
+        file_pattern = f"*rec-{self.recording}_trial-{self.trial}.npy"
+        files = list(Path(recording_folder, "trials").glob(file_pattern))
+        if len(files) == 0:
+            raise FileNotFoundError(f"No file found for pattern {file_pattern} in {recording_folder}")
+        elif len(files) > 1:
+            raise ValueError(f"Multiple files found for pattern {file_pattern} in {recording_folder}: {[str(f) for f in files]}")
+        self.data = np.load(files[0])
 
         self.sampling_freq = 30
         self.valid_frames = np.shape(self.data)[-1]

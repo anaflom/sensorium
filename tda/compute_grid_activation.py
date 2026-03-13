@@ -21,6 +21,24 @@ def parse_args():
         help="Repository root path containing data/, metadata/, and derivatives/.",
     )
     parser.add_argument(
+        "--folder-data",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "data",
+        help="Path to the folder containing the data.",
+    )
+    parser.add_argument(
+        "--folder-metadata",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "metadata",
+        help="Path to the folder containing the metadata.",
+    )
+    parser.add_argument(
+        "--folder-derivatives",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "derivatives",
+        help="Path to the folder containing the derivatives.",
+    )
+    parser.add_argument(
         "--normalization",
         type=str,
         default='by_minmax',
@@ -45,15 +63,16 @@ def parse_args():
 
 
 
-def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, folder_output_rec_trials):
+def _compute_and_save_trial(ds, rec, trial, normalization, grid, positions, folder_output_rec_trials, file_prefix=""):
     response = ds.load_response_by_trial(recording=rec, trial=trial)
     activities = response.get_data(normalization=normalization)
     grid_activity = grid.compute_grid_activity(positions, activities)
-    np.save(folder_output_rec_trials / f"{trial}.npy", grid_activity)
+    output_file = f"{file_prefix}rec-{rec}_trial-{trial}.npy"
+    np.save(folder_output_rec_trials / output_file, grid_activity)
     return trial
 
 
-def main(repo_root, normalization=None, num_grid=(15, 15, 10), recordings=None):       
+def main(repo_root, folder_data, folder_meta, folder_derivatives, normalization=None, num_grid=(15, 15, 10), recordings=None):       
 
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
@@ -61,14 +80,7 @@ def main(repo_root, normalization=None, num_grid=(15, 15, 10), recordings=None):
     from utils.dataset import DataSet
     from grids import Grid3D, get_ranges_from_positions
 
-    # path to the folder with the data as downloaded
-    folder_data = repo_root / 'data/'
-
-    # path to the metadata folder
-    folder_meta = repo_root / 'metadata'
-
     # path to the output folder for the grids activity per trial
-    folder_derivatives = repo_root / 'derivatives' 
     folder_derivatives.mkdir(exist_ok=True)
 
     # Number of workers for trial-level parallelism (set GRID_TRIAL_WORKERS env var to override)
@@ -81,7 +93,7 @@ def main(repo_root, normalization=None, num_grid=(15, 15, 10), recordings=None):
     folder_name = 'grid' 
     folder_name = folder_name + f"-{num_grid[0]}x{num_grid[1]}x{num_grid[2]}"
     if normalization is not None:
-        folder_name = folder_name + f"_normalization-{normalization}"
+        folder_name = folder_name + f"_norm-{normalization}"
     else:
         folder_name = folder_name + "_no-normalization"
     folder_output = folder_derivatives / folder_name
@@ -144,6 +156,7 @@ def main(repo_root, normalization=None, num_grid=(15, 15, 10), recordings=None):
                     grid,
                     positions,
                     folder_output_rec_trials,
+                    file_prefix=folder_name + "_",
                 )
                 for trial in all_trials
             ]
@@ -164,6 +177,9 @@ if __name__ == "__main__":
     try:
         main(
             args.repo_root,
+            folder_data=args.folder_data,
+            folder_meta=args.folder_metadata,
+            folder_derivatives=args.folder_derivatives,
             normalization=normalization,
             num_grid=tuple(args.num_grid),
             recordings=recordings,
