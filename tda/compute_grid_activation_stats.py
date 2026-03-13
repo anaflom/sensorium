@@ -32,6 +32,12 @@ def parse_args():
         help="Path to the folder containing the derivatives.",
     )
     parser.add_argument(
+        "--subfolder-derivatives",
+        type=Path,
+        default=Path("grid-15x15x10_norm-by_minmax"),
+        help="Subfolder name within the derivatives folder.",
+    )
+    parser.add_argument(
         "--recordings",
         type=str,
         nargs="+",
@@ -41,12 +47,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(repo_root, folder_data, folder_metadata, folder_derivatives, recordings=None):
+def main(repo_root, folder_data, folder_metadata, folder_derivatives, subfolder_derivatives, recordings=None):
 
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
     from grids import DataSetGrid
+
+    folder_derivatives = Path(folder_derivatives) / subfolder_derivatives
 
     # initialize the object to handle the dataset
     ds = DataSetGrid(folder_data, 
@@ -69,7 +77,7 @@ if __name__ == "__main__":
     args = parse_args()
     recordings = None if str(args.recordings).lower() == "none" else args.recordings
     try:
-        main(args.repo_root, args.folder_data, args.folder_metadata, args.folder_derivatives, recordings=recordings)
+        main(args.repo_root, args.folder_data, args.folder_metadata, args.folder_derivatives, args.subfolder_derivatives, recordings=recordings)
         print("\nGrid activation stats computation completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
