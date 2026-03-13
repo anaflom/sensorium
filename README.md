@@ -79,16 +79,16 @@ data/
 ## Regenerating metadata — recommended order
 Run these scripts in order when regenerating metadata:
 
-1. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `metadata/<recording>/trials`.
-2. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/trials/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
-3. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
-4. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/neurons/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
-5. `generate_basic_metadata.py` — creates a JSON file with basic information in `metadata/<recording>/meta-basic_<recording>.json` (animal_id, session, scan_idx, number of trials, neurons, sampling frequency). This script is independent and may be run anytime.
+1. `generate_basic_metadata.py` — creates a JSON file with basic information in `metadata/<recording>/meta-basic_<recording>.json` (animal_id, session, scan_idx, number of trials, neurons, sampling frequency). This script is independent and may be run anytime.
+2. `generate_neurons_metadata.py` — create per-recording neuron metadata `metadata/<recording>/neurons/meta-neurons_<recording>.csv` (neuron IDs, coordinates, activity stats). This script is independent and may be run anytime.
+3. `classify_videos.py` — classify/analyze trial videos. Outputs per-trial JSON in `metadata/<recording>/trials`.
+4. `define_videos_ids.py` — find equivalent videos and assign unique `videoID`s. Produces `metadata/global_meta/videos/<videoID>.json` and per-recording CSV summaries at `metadata/<recording>/trials/meta-trials_<recording>.csv`. Run after `classify_videos.py`.
+5. `define_segments_ids.py` — identify equivalent segments and produce `metadata/global_meta/segments/<segmentID>.json`. Run after `define_videos_ids.py`.
 
 Notes and tips:
-- To regenerate from scratch, remove `metadata/` and `intermediate_results/` first:
+- To regenerate from scratch, remove `metadata/` first:
 ```bash
-rm -rf metadata/ intermediate_results/
+rm -rf metadata/
 ```
 - Regenerating from scratch will assign new `videoID`/`segmentID` values; update downstream code that relies on stable IDs.
 - If the scripts `define_videos_ids.py` is run before removing the metadata folder, it will compare every trial against the existing video IDs (in `./metadata/global_meta/`), which significantly slows down execution.
@@ -97,17 +97,19 @@ rm -rf metadata/ intermediate_results/
 From the repository root:
 
 ```bash
+python scripts_to_generate_metadata/generate_basic_metadata.py
+python scripts_to_generate_metadata/generate_neurons_metadata.py
 python scripts_to_generate_metadata/classify_videos.py
 python scripts_to_generate_metadata/define_videos_ids.py
 python scripts_to_generate_metadata/define_segments_ids.py
-python scripts_to_generate_metadata/generate_neurons_metadata.py
-python scripts_to_generate_metadata/generate_basic_metadata.py
-
 ```
 
 ## Metadata (expected layout)
 The generated metadata will be placed under `./metadata/`. Expected layout (example):
 
+Note: `<recording>/videos` folders cotains JSON files with metadata for the videos of each trial.
+It is necessary to build the metadata structure. 
+However, it is not necessary to handle the dataset once the `global_meta` folder and the CSV files in the `<recording>/trials` folder are created
 ```
 metadata/
 ├── global_meta/
@@ -123,14 +125,22 @@ metadata/
 │   ├── meta-basic_dynamic29513-3-5-...json 
 │   ├── neurons/
 │   │   └── meta-neurons_dynamic29513-3-5-...csv
-│   └── trials/
-│       └── meta-trials_dynamic29513-3-5-...csv
+│   ├── trials/
+│   │   └── meta-trials_dynamic29513-3-5-...csv
+│   └── videos/
+│       ├── 0.json
+│       ├── 1.json
+│      ...
 ├── dynamic29514-2-9-.../
 │   ├── meta-basic_dynamic29514-2-9-...json 
 │   ├── neurons/
-│   │   └──meta-neurons_dynamic29514-2-9-...csv
-│   └── trials/
-│       └── meta-trials_dynamic29514-2-9-...csv
+│   │   └── meta-neurons_dynamic29514-2-9-...csv
+│   ├── trials/
+│   │   └── meta-trials_dynamic29514-2-9-...csv
+│   └── videos/
+│       ├── 0.json
+│       ├── 1.json
+│      ...
 ...
 ```
 

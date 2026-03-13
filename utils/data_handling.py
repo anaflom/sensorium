@@ -171,6 +171,70 @@ def get_file_with_pattern(file_pattern: str, folder: str | Path):
     return files[0]
 
 
+def load_metadata_json_to_obj(obj, 
+                    file_metadata: str | Path,
+                    attributes_to_check_match: list[str] = ["label", "ID", "valid_frames","sampling_freq"],
+                    attributes_to_add: list[str] = None,
+                    raise_on_mismatch: bool = True,
+                    verbose: bool = True) -> None:
+    """Load metadata from JSON file into an object.
+
+    Parameters
+    ----------
+    file_metadata : str or pathlib.Path
+        Path to a JSON file with the metadata.
+    attributes_to_check_match : list of str, default=["label", "ID", "valid_frames","sampling_freq"]
+        List of attributes to check for consistency between the object and the metadata file. If an attribute in this list is not set in the object, it will be set from the metadata file. If it is already set in the object, it will be checked that it matches the value in the metadata file. If there is a mismatch, a ValueError will be raised.
+    attributes_to_add : list of str, optional
+        List of additional attributes to add from the metadata file. If None, all attributes not in attributes_to_check_match will be added.
+    raise_on_mismatch : bool, default=True
+        If True, raise a ValueError if there is a mismatch between the object and the metadata file for any attribute in attributes_to_check_match. If False, just print a warning.
+    verbose : bool, default=True
+        If True, print warnings.
+
+    """
+
+    try:
+        with open(file_metadata, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+    except Exception as e:
+        if verbose:
+            print(f"Warning. load_metadata: Could not load metadata: {e}")
+
+    # check th input attributes
+    if attributes_to_add is None:
+        attributes_to_add = metadata.keys()
+    attributes_to_add = [attr for attr in attributes_to_add if attr not in attributes_to_check_match]
+
+    # for attributes in attributes_to_check_match if they are not set in the object, set them from the metadata, otherwise check they match
+    for attr in attributes_to_check_match:
+        if attr not in metadata.keys():
+            if verbose:
+                print(f"Warning. load_metadata: '{attr}' was not found in the metadata file.")
+            continue
+
+        if getattr(obj, attr) is None:
+            setattr(obj, attr, metadata[attr])
+        else:
+            if metadata[attr] != getattr(obj, attr):
+                if raise_on_mismatch:
+                    raise ValueError(
+                        f"The metadata file contains a {attr} different from the object"
+                    )
+                elif verbose:
+                    print(f"Warning. load_metadata: '{attr}' mismatch between object and metadata file.")
+    
+    # add some other metadata
+    for attr in attributes_to_add:
+        if attr not in metadata.keys():
+            if verbose:
+                print(f"Warning. load_metadata: '{attr}' was not found in the metadata file.")
+        else:
+            setattr(obj, attr, metadata[attr])
+            if attr == "segments":
+                for k in obj.segments.keys():
+                    obj.segments[k] = np.asarray(obj.segments[k])
+
 def load_metadata_from_id(id: str, folder: str | Path, verbose: bool = True) -> tuple[dict, Path]:
     """Load one metadata JSON matching an ID pattern.
 
