@@ -971,6 +971,7 @@ class DataSet:
         recording: str,
         trial: str,
         verbose: bool = True,
+        load_metadata_from_dataframe : bool = True,
         raise_on_mismatch: bool = False,
         load_metadata_from_global_video: bool = True,
         load_metadata_from_trials: bool = True,
@@ -995,21 +996,26 @@ class DataSet:
         """
 
         # lookup trial metadata
-        trials_meta = self.filter_trials(recording=recording, trial=trial)
-        if len(trials_meta) != 1:
-            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        if "ID" in trials_meta.columns:
-            ID = trials_meta["ID"].iloc[0]
+        if load_metadata_from_dataframe:
+            trials_meta = self.filter_trials(recording=recording, trial=trial)
+            if len(trials_meta) != 1:
+                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+            if "ID" in trials_meta.columns:
+                ID = trials_meta["ID"].iloc[0]
+            else:
+                ID = None
+            if "label" in trials_meta.columns:
+                label = trials_meta["label"].iloc[0]
+            else:
+                label = None
+            if "valid_frames" in trials_meta.columns:
+                valid_frames = trials_meta["valid_frames"].iloc[0]
+                valid_frames = None if pd.isna(valid_frames) else valid_frames
+            else:
+                valid_frames = None
         else:
             ID = None
-        if "label" in trials_meta.columns:
-            label = trials_meta["label"].iloc[0]
-        else:
             label = None
-        if "valid_frames" in trials_meta.columns:
-            valid_frames = trials_meta["valid_frames"].iloc[0]
-            valid_frames = None if pd.isna(valid_frames) else valid_frames
-        else:
             valid_frames = None
 
         # load the data
@@ -1056,6 +1062,7 @@ class DataSet:
         recording: str,
         trial: str,
         verbose: bool = True,
+        load_metadata_from_dataframe : bool = True,
         raise_on_mismatch: bool = False,
         load_metadata_from_global_video: bool = True,
         load_metadata_from_trials: bool = True,
@@ -1069,21 +1076,26 @@ class DataSet:
         """
 
         # lookup trial metadata
-        trials_meta = self.filter_trials(recording=recording, trial=trial)
-        if len(trials_meta) != 1:
-            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        if "ID" in trials_meta.columns:
-            ID = trials_meta["ID"].iloc[0]
+        if load_metadata_from_dataframe:
+            trials_meta = self.filter_trials(recording=recording, trial=trial)
+            if len(trials_meta) != 1:
+                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+            if "ID" in trials_meta.columns:
+                ID = trials_meta["ID"].iloc[0]
+            else:
+                ID = None
+            if "label" in trials_meta.columns:
+                label = trials_meta["label"].iloc[0]
+            else:
+                label = None
+            if "valid_frames" in trials_meta.columns:
+                valid_frames = trials_meta["valid_frames"].iloc[0]
+                valid_frames = None if pd.isna(valid_frames) else valid_frames
+            else:
+                valid_frames = None
         else:
             ID = None
-        if "label" in trials_meta.columns:
-            label = trials_meta["label"].iloc[0]
-        else:
             label = None
-        if "valid_frames" in trials_meta.columns:
-            valid_frames = trials_meta["valid_frames"].iloc[0]
-            valid_frames = None if pd.isna(valid_frames) else valid_frames
-        else:
             valid_frames = None
 
         # load the data
@@ -1137,6 +1149,7 @@ class DataSet:
         trial: str,
         behavior_type: str = "pupil",
         verbose: bool = True,
+        load_metadata_from_dataframe : bool = True,
         raise_on_mismatch: bool = False,
         load_metadata_from_global_video: bool = True,
         load_metadata_from_trials: bool = True,
@@ -1155,21 +1168,26 @@ class DataSet:
         """
 
         # lookup trial metadata
-        trials_meta = self.filter_trials(recording=recording, trial=trial)
-        if len(trials_meta) != 1:
-            raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-        if "ID" in trials_meta.columns:
-            ID = trials_meta["ID"].iloc[0]
+        if load_metadata_from_dataframe:
+            trials_meta = self.filter_trials(recording=recording, trial=trial)
+            if len(trials_meta) != 1:
+                raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
+            if "ID" in trials_meta.columns:
+                ID = trials_meta["ID"].iloc[0]
+            else:
+                ID = None
+            if "label" in trials_meta.columns:
+                label = trials_meta["label"].iloc[0]
+            else:
+                label = None
+            if "valid_frames" in trials_meta.columns:
+                valid_frames = trials_meta["valid_frames"].iloc[0]
+                valid_frames = None if pd.isna(valid_frames) else valid_frames
+            else:
+                valid_frames = None
         else:
             ID = None
-        if "label" in trials_meta.columns:
-            label = trials_meta["label"].iloc[0]
-        else:
             label = None
-        if "valid_frames" in trials_meta.columns:
-            valid_frames = trials_meta["valid_frames"].iloc[0]
-            valid_frames = None if pd.isna(valid_frames) else valid_frames
-        else:
             valid_frames = None
 
         # load the data
@@ -2261,6 +2279,10 @@ class DataSet:
 
         if "valid_frames" not in self.trials_df.columns:
             self.trials_df["valid_frames"] = pd.NA
+        if "valid_frames_video" not in self.trials_df.columns:
+            self.trials_df["valid_frames_video"] = pd.NA
+        if "valid_frames_response" not in self.trials_df.columns:
+            self.trials_df["valid_frames_response"] = pd.NA
 
         print_title("Defining valid frames for the videos and responses ", verbose)
         
@@ -2276,23 +2298,18 @@ class DataSet:
             for _, row in iterator:
                 trial = row["trial"]
                 rec_row = row["recording"]
-                video = self.load_video_by_trial(rec_row, trial, load_metadata_from_global_video=False)
-                resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False)
+                video = self.load_video_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
                 video_valid = getattr(video, "valid_frames", None)
                 resp_valid = getattr(resp, "valid_frames", None)
-                if video_valid is None and resp_valid is None:
+                if video_valid is None or resp_valid is None:
                     valid_frames = pd.NA
-                elif video_valid is None:
-                    valid_frames = resp_valid
-                elif resp_valid is None:
-                    valid_frames = video_valid
                 else:
                     valid_frames = min(video_valid, resp_valid)
-                self.trials_df.loc[
-                    (self.trials_df["recording"] == rec_row)
-                    & (self.trials_df["trial"] == trial),
-                    "valid_frames",
-                ] = valid_frames
+                idx = (self.trials_df["recording"] == rec_row) & (self.trials_df["trial"] == trial)
+                self.trials_df.loc[idx, "valid_frames"] = valid_frames
+                self.trials_df.loc[idx, "valid_frames_video"] = video_valid
+                self.trials_df.loc[idx, "valid_frames_response"] = resp_valid
 
     def save_trials_metadata(self, 
                              recording: str | list[str] | None = None, 
