@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--folder-derivatives",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "derivatives"/ "grid-15x15x10_norm-by_minmax",
+        default=Path(__file__).resolve().parent.parent / "derivatives",
         help="Path to the folder containing the derivatives.",
     )
     parser.add_argument(
@@ -57,7 +57,7 @@ def main(repo_root, folder_data, folder_metadata, folder_derivatives, subfolder_
     folder_derivatives = Path(folder_derivatives) / subfolder_derivatives
 
     # initialize the object to handle the dataset
-    ds = DataSetGrid(folder_data, 
+    ds = DataSetGrid(folder_data=folder_data, 
                      folder_metadata=folder_metadata, 
                      folder_derivatives=folder_derivatives,
                      recording=recordings, 
@@ -67,7 +67,7 @@ def main(repo_root, folder_data, folder_metadata, folder_derivatives, subfolder_
     # load a dataframe with all trials metadata
     trials_df = ds.get_trials_metadata()
     
-    for rec in recordings:
+    for rec in ds.recording:
 
         stats = ds.compute_grid_stats(rec, save=True)
 

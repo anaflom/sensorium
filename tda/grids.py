@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Self, Any
+from tqdm import tqdm
 
 import assign_grid as ag
 import numpy as np
@@ -14,8 +15,8 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator
 
 from utils.data_handling import get_file_with_pattern
-from utils.dataset import DataSet
 from utils.responses import Responses
+from tda.dataset_derivatives import DataSetDerivatives
 
 
 
@@ -494,11 +495,11 @@ class GridActivityData(GridActivity):
         self.ID = None
         self.grid = None
 
-class DataSetGrid(DataSet):
+class DataSetGrid(DataSetDerivatives):
 
     def __init__(
         self,
-        folder_data: str | Path,
+        folder_data: str | Path | None = None,
         folder_metadata: str | Path | None = None,
         folder_derivatives: str | Path | None = None,
         recording: list[str] | str | None = None,
@@ -506,16 +507,14 @@ class DataSetGrid(DataSet):
         check_metadata: bool = False,
         check: bool = False,
         verbose: bool = True,            ):
-        super().__init__(folder_data, 
+        super().__init__(folder_data=folder_data, 
                          folder_metadata=folder_metadata, 
+                         folder_derivatives=folder_derivatives, 
                          recording=recording, 
                          check=check, 
                          check_data=check_data, 
                          check_metadata=check_metadata, 
                          verbose=verbose)
-        
-        # path to the output folder for the grids activity per trial
-        self.folder_derivatives = Path(folder_derivatives) if folder_derivatives is not None else None
         
         # load the grids for each recording
         self.load_grids()
@@ -632,14 +631,14 @@ class DataSetGrid(DataSet):
 
         if trials_for_stats is None:
             trials_for_stats = self.info[recording]["trials"]
-        
+        print(f"Computing grid stats for recording {recording}")
         stats = {}
         val_sum = np.zeros(self.info[recording]["grid"].num_grid)
         n = 0
         val_min = np.full(self.info[recording]["grid"].num_grid, np.inf)
         val_max = np.full(self.info[recording]["grid"].num_grid, -np.inf)
         trials_included = []
-        for trial in trials_for_stats:
+        for trial in tqdm(trials_for_stats, desc="MEAN, MAX, MIN computation", unit="trial",total=len(trials_for_stats), disable=False):
             try:
                 grid_activity = self.load_gridactivity_by_trial(recording=recording, trial=trial, verbose=False)
                 trials_included.append(trial)
@@ -657,7 +656,7 @@ class DataSetGrid(DataSet):
         stats["trials_in_stats"] = trials_included
 
         val_sum_squared = np.zeros(self.info[recording]["grid"].num_grid)
-        for trial in trials_included:
+        for trial in tqdm(trials_included, desc="STD computation", unit="trial",total=len(trials_included), disable=False):
             try:
                 grid_activity = self.load_gridactivity_by_trial(recording=recording, trial=trial, verbose=False)
             except Exception as e:
