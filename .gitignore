@@ -11,8 +11,6 @@ env/
 
 # Tests
 tests/
-tda/*test*.py
-tda/*test*.ipynb
 
 # IDE
 .vscode/
@@ -31,3 +29,10 @@ figures/
 
 # Local arrays
 *.npy
+
+# .sh files
+tda/*.sh
+
+# Logs
+tda/logs/
+tda/*_logs/
