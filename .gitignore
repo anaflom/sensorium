@@ -31,7 +31,8 @@ figures/
 *.npy
 
 # .sh files
-tda/*.sh
+tda/script.sh
+script.sh
 
 # Logs
 tda/logs/
