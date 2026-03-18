@@ -36,3 +36,5 @@ tda/*.sh
 # Logs
 tda/logs/
 tda/*_logs/
+logs/
+*_logs/
