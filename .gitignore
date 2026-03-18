@@ -33,8 +33,8 @@ figures/
 *.npy
 
 # .sh files
-tda/*.sh
+script.sh
 
 # Logs
-tda/logs/
-tda/*_logs/
+logs/
+*_logs/
