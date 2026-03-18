@@ -713,11 +713,12 @@ def validate_metadata_recording(
     # check the trials metadata
     folder_meta_trials = folder_metadata_rec / trials_metadata_subfolder
     mandatory_columns = {"trial", "ID", "label", "trial_type", "valid_trial"}
-    optional_columns = {"valid_frames"}   
     optional_columns = {"recording",
                         "first_label",
                         "sampling_freq",
                         "valid_frames",
+                        "valid_frames_video",
+                        "valid_frames_response",
                         "n_peaks",
                         "segments_n_peaks",
                         "segments_bad_n",
