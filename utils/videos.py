@@ -342,6 +342,7 @@ def find_peaks(
     relative_threshold: bool = True,
     min_thresh: float | int = 4,
     threshold_outliers: float | int | None = 2,
+    peak_or_valley: str = "both",
 ) -> np.ndarray:
     """Detect local peaks in a 1-D signal using windowed thresholding.
 
@@ -361,6 +362,8 @@ def find_peaks(
         Lower bound for relative thresholds.
     threshold_outliers : float or int or None, default=2
         Outlier-removal cutoff for local windows.
+    peak_or_valley : str, default="both"
+        If "peak", detect local maxima. If "valley", detect local minima. If "both", detect both peaks and valleys.
 
     Returns
     -------
@@ -368,11 +371,14 @@ def find_peaks(
         One-dimensional array with peak indices.
     """
 
+    if peak_or_valley not in ["peak", "valley", "both"]:
+        raise ValueError("`peak_or_valley` must be 'peak', 'valley', or 'both'")
     if distance is not None and distance < 1:
         raise ValueError("`distance` must be greater or equal to 1")
 
     # loop over samples checking if they are peaks
     peaks = []
+    prominence = []
     for i in range(len(y)):
 
         if not np.isnan(y[i]):
@@ -424,23 +430,40 @@ def find_peaks(
 
                 # determine if it is peak
                 if threshold_pre is not None:
-                    is_pre = y[i] > (y_pre_est + threshold_pre)
+                    if peak_or_valley == "peak":
+                        is_pre = y[i] > (y_pre_est + threshold_pre)
+                    elif peak_or_valley == "valley":
+                        is_pre = y[i] < (y_pre_est - threshold_pre)
+                    elif peak_or_valley == "both":
+                        is_pre = (y[i] > (y_pre_est + threshold_pre)) or (y[i] < (y_pre_est - threshold_pre))
                 else:
                     is_pre = False
                 if threshold_post is not None:
-                    is_post = y[i] > (y_post_est + threshold_post)
+                    if peak_or_valley == "peak":
+                        is_post = y[i] > (y_post_est + threshold_post)
+                    elif peak_or_valley == "valley":
+                        is_post = y[i] < (y_post_est - threshold_post)
+                    elif peak_or_valley == "both":
+                        is_post = (y[i] > (y_post_est + threshold_post)) or (y[i] < (y_post_est - threshold_post))
                 else:
                     is_post = False
                 if is_pre and is_post:
                     peaks.append(i)
+                    if peak_or_valley == "peak":
+                        prominence_i = y[i] - max(y_pre_est, y_post_est)
+                    elif peak_or_valley == "valley":
+                        prominence_i = min(y_pre_est, y_post_est) - y[i]
+                    elif peak_or_valley == "both":
+                        prominence_i = max(y[i] - max(y_pre_est, y_post_est), min(y_pre_est, y_post_est) - y[i])
+                    prominence.append(prominence_i)
 
     # convert to array
     peaks = np.array(peaks)
+    prominence = np.array(prominence)
 
     # remove close peaks
     if distance is not None and len(peaks) > 1:
-        # keep = _select_by_peak_distance(peaks, np.float64(y[peaks]), np.float64(distance))
-        keep = select_peaks(peaks, y[peaks], distance)
+        keep = select_peaks(peaks, prominence, distance)
         peaks = peaks[keep]
 
     return peaks
