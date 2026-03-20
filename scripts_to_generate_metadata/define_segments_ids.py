@@ -38,13 +38,13 @@ def parse_args():
         "--labels",
         type=str,
         nargs="+",
-        default=["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"],
+        default=["Gabor", "NaturalImages", "GaussianDot", "PinkNoise", "RandomDots"],
         help="Labels to use for the segments IDs definition (space-separated).",
     )
     return parser.parse_args()
 
 
-def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["NaturalImages", "GaussianDot", "Gabor", "PinkNoise", "RandomDots"]):
+def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["Gabor", "NaturalImages", "GaussianDot", "PinkNoise", "RandomDots"]):
 
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
@@ -56,6 +56,7 @@ def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["N
                       folder_metadata=folder_meta,
                       trials_metadata_file_type = "csv",
                       trials_metadata_subfolder = "trials",
+                      check=False,
                       )
 
     # define segments IDs

@@ -1,7 +1,7 @@
 {
     "recording": "dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20",
     "trial": "680",
-    "trial_type": "oracle",
+    "trial_type": "final_test_bonus",
     "first_label": "GaussianDot",
     "label": "GaussianDot",
     "ID": null,

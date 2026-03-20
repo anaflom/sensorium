@@ -1,7 +1,7 @@
 {
     "recording": "dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce",
     "trial": "83",
-    "trial_type": "oracle",
+    "trial_type": "train",
     "first_label": "NaturalVideo",
     "label": "NaturalVideo",
     "ID": null,

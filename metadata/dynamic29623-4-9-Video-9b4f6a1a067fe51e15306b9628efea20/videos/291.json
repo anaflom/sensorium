@@ -1,7 +1,7 @@
 {
     "recording": "dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20",
     "trial": "291",
-    "trial_type": "final_test_main",
+    "trial_type": "train",
     "first_label": "NaturalVideo",
     "label": "NaturalVideo",
     "ID": null,

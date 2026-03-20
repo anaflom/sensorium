@@ -2041,6 +2041,118 @@ class DataSet:
                 print(f"Error processing recording {rec}: {e}")
                 continue
 
+    def compute_dissimilarity_segments(self, label: str, verbose: bool = True) -> np.ndarray:
+        """Compute pairwise segment dissimilarity for one label.
+
+        Parameters
+        ----------
+        label : str
+            Segment label to process.
+        verbose : bool, default=True
+            If ``True``, print progress messages.
+
+
+        Returns
+        -------
+        np.ndarray
+            Pairwise dissimilarity matrix for the segments.
+        """    
+        if label in ["NaturalImages", "GaussianDot"]:
+            try_shifting = False
+            join_key_frames = True
+        elif label in ["Gabor", "PinkNoise", "RandomDots"]:
+            try_shifting = True
+            join_key_frames = True
+        else:
+            try_shifting = True
+            join_key_frames = True
+
+        all_segments = []
+        folder = Path(self.folder_globalmetadata_videos)
+        json_files = list(folder.glob(f"{label}*.json"))
+        print(f"- {len(json_files)} distinct videos found") if verbose else None
+
+        if len(json_files) == 0:
+            print(f"Warning: No videos found for label {label}") if verbose else None
+            return np.array([])
+
+        # load all segments
+        for file_videoID in json_files:
+            video_id = None
+            try:
+                video_id = Path(file_videoID).stem.split("-")[1]
+                video = self.load_video_by_id(video_id)
+
+                if (
+                    not hasattr(video, "segments")
+                    or "frame_start" not in video.segments
+                ):
+                    (
+                        print(f"Warning: Video {video_id} has no valid segments")
+                        if verbose
+                        else None
+                    )
+                    continue
+
+                for seg_idx in range(len(video.segments["frame_start"])):
+                    try:
+                        segment = VideoSegment(video, seg_idx)
+                        segment.label_from_parentvideo()
+                        all_segments.append(segment)
+                    except Exception as e:
+                        (
+                            print(
+                                f"Warning: Could not load segment {seg_idx} from video {video_id}: {e}"
+                            )
+                            if verbose
+                            else None
+                        )
+                        continue
+
+            except Exception as e:
+                if video_id is None:
+                    print(f"Warning: Could not load video from {file_videoID}: {e}")
+                else:
+                    print(f"Warning: Could not load video {video_id}: {e}")
+                continue
+
+        (
+            print(f"- {len(all_segments)} segments were found and loaded")
+            if verbose
+            else None
+        )
+
+        if len(all_segments) == 0:
+            (
+                print(f"Warning: No segments found for label {label}")
+                if verbose
+                else None
+            )
+            return np.array([])
+
+        # compute dissimilarity
+        try:
+            (
+                print("Computing dissimilarity between segments...")
+                if verbose
+                else None
+            )
+            dissimilarity = compute_dissimilarity_video_list(
+                all_segments, dissimilarity_measure="mse", 
+                check_edges_first=False,
+                join_key_frames=join_key_frames,
+                try_shifting = try_shifting,
+            )
+        except Exception as e:
+            (
+                print(f"Error computing dissimilarity for label {label}: {e}")
+                if verbose
+                else None
+            )
+            return np.array([])
+
+        return dissimilarity, all_segments
+
     def define_segments_id(
         self,
         labels: str | list[str],
@@ -2071,9 +2183,6 @@ class DataSet:
                 "folder_globalmetadata_videos and folder_globalmetadata_segments must be set"
             )
 
-        if any(Path(self.folder_globalmetadata_segments).iterdir()):
-            raise ValueError(f"Files were found in {self.folder_globalmetadata_segments}. The folder should be empty before running this function.")
-
         # Find identical segments for each label and save metadata
         print_title("Finding identical segments ", verbose)
         all_used_ids = []
@@ -2082,87 +2191,15 @@ class DataSet:
 
             print(f">>> Label {lab}") if verbose else None
 
-            all_segments = []
-            folder = Path(self.folder_globalmetadata_videos)
-            json_files = list(folder.glob(f"{lab}*.json"))
-            print(f"- {len(json_files)} distinct videos found") if verbose else None
-
-            if len(json_files) == 0:
-                print(f"Warning: No videos found for label {lab}") if verbose else None
+            files_lab = list(Path(self.folder_globalmetadata_segments).glob(f"{lab}*.json"))
+            if files_lab:
+                print(f"Files were found in {self.folder_globalmetadata_segments} for label {lab}. The folder should not contain any files before running this function.")
+                print(f"The function will skip the label {lab} to avoid overwriting existing metadata. Please check the folder and remove any existing files if you want to process this label.")
                 continue
 
-            # load all segments
-            for file_videoID in json_files:
-                video_id = None
-                try:
-                    video_id = Path(file_videoID).stem.split("-")[1]
-                    video = self.load_video_by_id(video_id)
-
-                    if (
-                        not hasattr(video, "segments")
-                        or "frame_start" not in video.segments
-                    ):
-                        (
-                            print(f"Warning: Video {video_id} has no valid segments")
-                            if verbose
-                            else None
-                        )
-                        continue
-
-                    for seg_idx in range(len(video.segments["frame_start"])):
-                        try:
-                            segment = VideoSegment(video, seg_idx)
-                            segment.label_from_parentvideo()
-                            all_segments.append(segment)
-                        except Exception as e:
-                            (
-                                print(
-                                    f"Warning: Could not load segment {seg_idx} from video {video_id}: {e}"
-                                )
-                                if verbose
-                                else None
-                            )
-                            continue
-
-                except Exception as e:
-                    if video_id is None:
-                        print(f"Warning: Could not load video from {file_videoID}: {e}")
-                    else:
-                        print(f"Warning: Could not load video {video_id}: {e}")
-                    continue
-
-            (
-                print(f"- {len(all_segments)} segments were found and loaded")
-                if verbose
-                else None
-            )
-
-            if len(all_segments) == 0:
-                (
-                    print(f"Warning: No segments found for label {lab}")
-                    if verbose
-                    else None
-                )
-                continue
-
-            # compute dissimilarity
-            try:
-                (
-                    print("Computing dissimilarity between segments...")
-                    if verbose
-                    else None
-                )
-                dissimilarity = compute_dissimilarity_video_list(
-                    all_segments, dissimilarity_measure="mse", check_edges_first=False
-                )
-            except Exception as e:
-                (
-                    print(f"Error computing dissimilarity for label {lab}: {e}")
-                    if verbose
-                    else None
-                )
-                continue
-
+            # compute the dissimilarity between segments for this label
+            dissimilarity, all_segments = self.compute_dissimilarity_segments(lab, verbose=verbose)
+            
             # extract sets of identical segments
             mask = dissimilarity <= limit_dissimilarity
             list_identical = find_equal_sets_scipy(mask)

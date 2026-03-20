@@ -122,8 +122,8 @@ def pick_key_frames(
             isinstance(distance_between_key_frames, int) and frames_per_segment is None
         ):
             new_frames = np.arange(
-                start_frame + distance_between_key_frames,
-                end_frame,
+                start_frame + 2,
+                end_frame - 2,
                 distance_between_key_frames,
             )
         elif isinstance(frames_per_segment, int) and isinstance(

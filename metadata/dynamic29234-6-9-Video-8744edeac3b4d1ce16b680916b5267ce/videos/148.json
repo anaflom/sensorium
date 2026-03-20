@@ -16,11 +16,12 @@
         149,
         174,
         199,
+        224,
         249,
         274
     ],
-    "n_peaks": 10,
-    "segments_n_peaks": 11,
+    "n_peaks": 11,
+    "segments_n_peaks": 12,
     "segments_bad_n": 0,
     "segments_avg_duration": 25.0,
     "segments": {

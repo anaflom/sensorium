@@ -1,7 +1,7 @@
 {
     "recording": "dynamic29515-10-12-Video-9b4f6a1a067fe51e15306b9628efea20",
     "trial": "273",
-    "trial_type": "live_test_bonus",
+    "trial_type": "oracle",
     "first_label": "NaturalVideo",
     "label": "NaturalVideo",
     "ID": null,
