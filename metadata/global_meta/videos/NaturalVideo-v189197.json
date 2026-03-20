@@ -6,10 +6,10 @@
     "segments": {
         "frame_start": [
             0,
-            248
+            187
         ],
         "frame_end": [
-            248,
+            187,
             300
         ],
         "bad_properties": [
@@ -18,15 +18,15 @@
         ]
     },
     "duplicates": {
-        "dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce": {
+        "dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20": {
             "trials": [
-                "464"
+                "184"
             ],
             "n": 1
         },
-        "dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20": {
+        "dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce": {
             "trials": [
-                "501"
+                "164"
             ],
             "n": 1
         }

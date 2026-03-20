@@ -1,0 +1,26 @@
+{
+    "ID": "s994582",
+    "label": "Gabor",
+    "sampling_freq": 30,
+    "valid_frames": 25,
+    "duplicates": {
+        "v767351": {
+            "segment_index": [
+                5
+            ],
+            "n": 1
+        },
+        "v391018": {
+            "segment_index": [
+                7
+            ],
+            "n": 1
+        },
+        "v860457": {
+            "segment_index": [
+                5
+            ],
+            "n": 1
+        }
+    }
+}

@@ -1,0 +1,64 @@
+{
+    "label": "RandomDots",
+    "ID": "v524461",
+    "valid_frames": 240,
+    "sampling_freq": 30,
+    "segments": {
+        "frame_start": [
+            0,
+            60,
+            120,
+            180
+        ],
+        "frame_end": [
+            60,
+            120,
+            180,
+            240
+        ],
+        "bad_properties": [
+            false,
+            false,
+            false,
+            false
+        ],
+        "segment_ID": [
+            "s902093",
+            "s027487",
+            "s377137",
+            "s313417"
+        ]
+    },
+    "duplicates": {
+        "dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "29",
+                "624",
+                "524",
+                "271",
+                "124",
+                "25",
+                "500",
+                "543",
+                "631",
+                "187"
+            ],
+            "n": 10
+        },
+        "dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20": {
+            "trials": [
+                "29",
+                "624",
+                "524",
+                "271",
+                "124",
+                "25",
+                "500",
+                "543",
+                "631",
+                "187"
+            ],
+            "n": 10
+        }
+    }
+}

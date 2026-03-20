@@ -1,8 +1,8 @@
 {
     "recording": "dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20",
     "trial": "283",
-    "trial_type": "train",
-    "first_label": "RandomDots",
+    "trial_type": "final_test_bonus",
+    "first_label": "NaturalVideo",
     "label": "RandomDots",
     "ID": null,
     "sampling_freq": 30,

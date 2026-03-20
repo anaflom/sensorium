@@ -1,0 +1,48 @@
+{
+    "label": "NaturalVideo",
+    "ID": "v058064",
+    "valid_frames": 300,
+    "sampling_freq": 30,
+    "segments": {
+        "frame_start": [
+            0
+        ],
+        "frame_end": [
+            300
+        ],
+        "bad_properties": [
+            false
+        ]
+    },
+    "duplicates": {
+        "dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20": {
+            "trials": [
+                "350",
+                "79",
+                "641",
+                "218",
+                "7",
+                "314",
+                "277",
+                "186",
+                "255",
+                "52"
+            ],
+            "n": 10
+        },
+        "dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce": {
+            "trials": [
+                "208",
+                "77",
+                "7",
+                "262",
+                "176",
+                "636",
+                "297",
+                "242",
+                "331"
+            ],
+            "n": 9
+        }
+    }
+}

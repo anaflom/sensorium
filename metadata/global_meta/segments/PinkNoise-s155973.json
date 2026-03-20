@@ -1,0 +1,14 @@
+{
+    "ID": "s155973",
+    "label": "PinkNoise",
+    "sampling_freq": 30,
+    "valid_frames": 26,
+    "duplicates": {
+        "v002131": {
+            "segment_index": [
+                8
+            ],
+            "n": 1
+        }
+    }
+}

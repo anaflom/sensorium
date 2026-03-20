@@ -7,58 +7,76 @@
     "ID": null,
     "sampling_freq": 30,
     "valid_frames": 300,
-    "peaks": [],
-    "n_peaks": 0,
-    "segments_n_peaks": 1,
+    "peaks": [
+        113
+    ],
+    "n_peaks": 1,
+    "segments_n_peaks": 2,
     "segments_bad_n": 0,
-    "segments_avg_duration": 300.0,
+    "segments_avg_duration": 150.0,
     "segments": {
         "frame_start": [
-            0
+            0,
+            114
         ],
         "frame_end": [
+            114,
             300
         ],
         "duration": [
-            300
+            114,
+            186
         ],
         "transition_start": [
+            0,
             0
         ],
         "transition_end": [
+            0,
             0
         ],
         "max_change": [
-            5097.08333516941
+            5097.08333516941,
+            99.56067750533288
         ],
         "is_static": [
+            false,
             false
         ],
         "intensity_range": [
-            239.3727569580078
+            239.3727569580078,
+            223.3555450439453
         ],
         "margin_left": [
+            0,
             0
         ],
         "margin_right": [
+            0,
             0
         ],
         "margin_top": [
-            0
+            0,
+            8
         ],
         "margin_bottom": [
+            0,
             0
         ],
         "background_color": [
-            223.37255859375
+            230.39999389648438,
+            216.3450927734375
         ],
         "background_proportion": [
-            0.030424670867271145
+            0.05488725063595851,
+            0.03919813601694652
         ],
         "is_uniform": [
+            false,
             false
         ],
         "bad_properties": [
+            false,
             false
         ]
     }

@@ -97,7 +97,7 @@ def same_segments_edges(
 
 
 def compute_dissimilarity_mse(
-    data_i: np.ndarray, data_j: np.ndarray, key_frames: np.ndarray
+    data_i: np.ndarray, data_j: np.ndarray, key_frames_i: np.ndarray, key_frames_j: np.ndarray,
 ) -> float:
     """Compute mean MSE dissimilarity between two videos on key frames.
 
@@ -107,8 +107,10 @@ def compute_dissimilarity_mse(
         First video array with shape ``(height, width, n_frames)``.
     data_j : numpy.ndarray
         Second video array with shape ``(height, width, n_frames)``.
-    key_frames : array-like
-        Frame indices used for comparison.
+    key_frames_i : array-like
+        Frame indices used for comparison in the first video.
+    key_frames_j : array-like
+        Frame indices used for comparison in the second video.
 
     Returns
     -------
@@ -116,11 +118,14 @@ def compute_dissimilarity_mse(
         Average MSE across valid compared key frames.
     """
 
+    if len(key_frames_i)!=len(key_frames_j):
+        raise ValueError("The two videos should have the same number of key frames")
+    
     # mse per frame
-    dissimilarity = np.full(len(key_frames), np.nan)
-    for k, frame in enumerate(key_frames):
-        d_i = data_i[:, :, frame]
-        d_j = data_j[:, :, frame]
+    dissimilarity = np.full(len(key_frames_i), np.nan)
+    for k, (frame_i, frame_j) in enumerate(zip(key_frames_i, key_frames_j)):
+        d_i = data_i[:, :, frame_i]
+        d_j = data_j[:, :, frame_j]
         if (np.all(np.isnan(d_i.flatten()) == False)) & (
             np.all(np.isnan(d_j.flatten()) == False)
         ):
@@ -132,7 +137,8 @@ def compute_dissimilarity_mse(
 def compute_dissimilarity_ssim(
     data_i: np.ndarray,
     data_j: np.ndarray,
-    key_frames: np.ndarray,
+    key_frames_i: np.ndarray,
+    key_frames_j: np.ndarray,
     data_range: float | int = 255,
 ) -> float:
     """Compute mean SSIM-based dissimilarity between two videos.
@@ -143,8 +149,10 @@ def compute_dissimilarity_ssim(
         First video array with shape ``(height, width, n_frames)``.
     data_j : numpy.ndarray
         Second video array with shape ``(height, width, n_frames)``.
-    key_frames : array-like
-        Frame indices used for comparison.
+    key_frames_i : array-like
+        Frame indices used for comparison in the first video.
+    key_frames_j : array-like
+        Frame indices used for comparison in the second video.
     data_range : float or int, default=255
         Data range parameter passed to ``structural_similarity``.
 
@@ -154,11 +162,14 @@ def compute_dissimilarity_ssim(
         Average SSIM-based dissimilarity ``(1 - SSIM) / 2`` across frames.
     """
 
+    if len(key_frames_i)!=len(key_frames_j):
+        raise ValueError("The two videos should have the same number of key frames")
+    
     # ssim per frame
-    dissimilarity = np.full(len(key_frames), np.nan)
-    for k, frame in enumerate(key_frames):
-        d_i = data_i[:, :, frame]
-        d_j = data_j[:, :, frame]
+    dissimilarity = np.full(len(key_frames_i), np.nan)
+    for k, (frame_i, frame_j) in enumerate(zip(key_frames_i, key_frames_j)):
+        d_i = data_i[:, :, frame_i]
+        d_j = data_j[:, :, frame_j]
         if (np.all(np.isnan(d_i.flatten()) == False)) & (
             np.all(np.isnan(d_j.flatten()) == False)
         ):
@@ -169,7 +180,10 @@ def compute_dissimilarity_ssim(
 
 
 def compute_dissimilarity_videos(
-    video_i: Video, video_j: Video, dissimilarity_measure: str = "mse"
+    video_i: Video, video_j: Video, dissimilarity_measure: str = "mse",
+    join_key_frames: bool = True,
+    try_shifting: bool = False,
+    verbose: bool = False,
 ) -> float:
     """Compute dissimilarity between two ``Video`` objects.
 
@@ -181,6 +195,11 @@ def compute_dissimilarity_videos(
         Second video object.
     dissimilarity_measure : {'mse', 'ssim'}, default='mse'
         Frame-level dissimilarity function.
+    join_key_frames : bool, default=True
+        If ``True``, key frames from both videos are combined before comparison.
+    try_shifting : bool, default=False
+        If ``True``, attempts to shift key frames to find the best alignment.
+
 
     Returns
     -------
@@ -204,13 +223,41 @@ def compute_dissimilarity_videos(
     key_frames_i = video_i.pick_key_frames()
     key_frames_j = video_j.pick_key_frames()
 
-    # join the key frames
-    key_frames = np.unique(np.concatenate((key_frames_i, key_frames_j)))
-    max_frame = min(video_i.valid_frames, video_j.valid_frames)
-    key_frames = key_frames[key_frames <= max_frame]
-
     # compute the difference between videos
-    dissimilarity = dissimilarity_fun(video_i.data, video_j.data, key_frames)
+    if join_key_frames:
+        key_frames = np.unique(np.concatenate((key_frames_i, key_frames_j)))
+        max_frame = min(video_i.valid_frames, video_j.valid_frames)
+        key_frames = key_frames[key_frames < max_frame]
+        key_frames_i = key_frames
+        key_frames_j = key_frames
+
+    if len(key_frames_i) != len(key_frames_j):
+        print("The two videos have a different number of key frames, the dissimilarity will be computed on the minimum number of key frames and the rest will be ignored.") if verbose else None
+        min_key_frames = min(len(key_frames_i), len(key_frames_j))
+        key_frames_i = key_frames_i[:min_key_frames]
+        key_frames_j = key_frames_j[:min_key_frames]
+
+    if try_shifting:
+        # try all possible shifts of key frames and keep the one with the lowest dissimilarity
+        min_dissimilarity = np.inf
+        for shift in range(-2, 3):
+            shifted_key_frames_j = key_frames_j + shift
+            frames_to_keep = (shifted_key_frames_j >= 0) & (shifted_key_frames_j < video_j.valid_frames)
+            shifted_key_frames_j = shifted_key_frames_j[frames_to_keep]
+            key_frames_i_keep = key_frames_i[frames_to_keep]
+            if any(frames_to_keep):
+                if len(shifted_key_frames_j) != len(key_frames_i_keep):
+                    raise ValueError(f"Shift of {shift} frames resulted in a different number of key frames between the two videos, the dissimilarity will be computed on the minimum number of key frames and the rest will be ignored.")
+                    
+                dissimilarity_shifted = dissimilarity_fun(
+                    video_i.data, video_j.data, key_frames_i, shifted_key_frames_j
+                )
+                if dissimilarity_shifted < min_dissimilarity:
+                    min_dissimilarity = dissimilarity_shifted
+        dissimilarity = min_dissimilarity
+        
+    else:
+        dissimilarity = dissimilarity_fun(video_i.data, video_j.data, key_frames_i, key_frames_j)
 
     return dissimilarity
 
@@ -220,6 +267,9 @@ def compute_dissimilarity_video_list(
     dissimilarity_measure: str = "mse",
     check_edges_first: bool = True,
     frames_tolerance: int = 2,
+    join_key_frames: bool = True,
+    try_shifting: bool = False,
+    verbose: bool = True,
 ) -> np.ndarray:
     """Compute pairwise dissimilarity matrix for a list of videos.
 
@@ -233,6 +283,10 @@ def compute_dissimilarity_video_list(
         If ``True``, only compare videos with matching segment boundaries.
     frames_tolerance : int, default=2
         Segment-boundary tolerance used when ``check_edges_first`` is enabled.
+    join_key_frames : bool, default=True
+        If ``True``, key frames from both videos are combined before comparison.
+    try_shifting : bool, default=False
+        If ``True``, attempts to shift key frames to find the best alignment.
 
     Returns
     -------
@@ -263,7 +317,11 @@ def compute_dissimilarity_video_list(
             # if same segments, compare
             if do_comparison:
                 dissimilarity[i, j] = compute_dissimilarity_videos(
-                    video_i, video_j, dissimilarity_measure=dissimilarity_measure
+                    video_i, video_j, 
+                    dissimilarity_measure=dissimilarity_measure, 
+                    join_key_frames=join_key_frames, 
+                    try_shifting=try_shifting,
+                    verbose=verbose,
                 )
 
     # fill the lower triangle

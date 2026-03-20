@@ -123,8 +123,34 @@ def _is_valid_value(value: Any) -> bool:
         return False
     return True
 
-
 def load_trials_descriptor(
+    trials_descriptor_file: str | Path, verbose: bool = False
+) -> list:
+    """Load and clean trial descriptors from ``tiers.npy``.
+
+    Parameters
+    ----------
+    trials_descriptor_file : str or pathlib.Path
+        Path to descriptor ``.npy`` file.
+    verbose : bool, default=False
+        If ``True``, print summary of excluded values.
+
+    Returns
+    -------
+    list
+        Valid descriptor entries.
+    """
+
+    loaded_trials_descriptor = np.load(trials_descriptor_file)
+    loaded_trials_descriptor = loaded_trials_descriptor.tolist()
+    trials_descriptor = {str(i): v for i, v in enumerate(loaded_trials_descriptor) if _is_valid_value(v)}
+
+    if verbose and len(trials_descriptor.keys()) != len(loaded_trials_descriptor):
+        print(f"Total valid trials: {len(trials_descriptor)}")
+        
+    return trials_descriptor
+
+def load_trials_descriptor_old(
     trials_descriptor_file: str | Path, verbose: bool = False
 ) -> list:
     """Load and clean trial descriptors from ``tiers.npy``.
@@ -159,15 +185,17 @@ def load_trials_descriptor(
     return valid_trials_descriptor
 
 
-def get_file_with_pattern(file_pattern: str, folder: str | Path):
+def get_file_with_pattern(file_pattern: str, folder: str | Path, verbose: bool = True):
 
     files = list(Path(folder).glob(file_pattern))
     if len(files) == 0:
-        raise FileNotFoundError(f"No file matches {file_pattern} in {folder}")
+        print(f"No file matches {file_pattern} in {folder}") if verbose else None
+        return None
     if len(files) > 1:
-        raise ValueError(
+        print(
             f"Multiple files ({len(files)}) match {file_pattern} in {folder}"
-        )
+        ) if verbose else None
+        return None
     return files[0]
 
 
@@ -253,11 +281,12 @@ def load_metadata_from_id(id: str, folder: str | Path, verbose: bool = True) -> 
         Loaded metadata dictionary and matching file path.
     """
     try:
-        file = get_file_with_pattern(f"*-{id}.json", folder)
+        file = get_file_with_pattern(f"*-{id}.json", folder, verbose=verbose)
     except Exception as e:
         print(f"Warning: Could not get a a file name with error {e}") if verbose else None
         return {}, None
-
+    if file is None:
+        return {}, None
     with open(file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
     return metadata, file
@@ -512,8 +541,65 @@ def check_meta_neurons_integrity(
 
     return neurons_coord, neurons_ids
 
-
 def check_meta_trials_integrity(
+    path_to_meta_trials: str | Path, trials: list | None = None, verbose: bool = True
+) -> list | None:
+    """Check and load trial descriptor metadata.
+
+    Parameters
+    ----------
+    path_to_meta_trials : str or pathlib.Path
+        Path to trials metadata folder.
+    trials : list or None, optional
+        Expected trial list for consistency checks.
+    verbose : bool, default=True
+        If ``True``, print warnings.
+
+    Returns
+    -------
+    list or None
+        Trial descriptor list if valid, otherwise ``None``.
+    """
+
+    # check information in meta folder for the trials description
+
+    file_path = Path(path_to_meta_trials) / "tiers.npy"
+    if not file_path.exists():
+        (
+            print(
+                f"Warning: No trial description file was found in {file_path}, description will be set to None"
+            )
+            if verbose
+            else None
+        )
+        return None
+
+    try:
+        trial_type = load_trials_descriptor(file_path, verbose=False)
+        if trials:
+            if set(trials) != set(trial_type.keys()):
+                (
+                    print(
+                        f"Warning: Different trials detected, description will be set to None"
+                    )
+                    if verbose
+                    else None
+                )
+                trial_type = None
+
+    except Exception as e:
+        (
+            print(
+                f"Warning: Could not load trial description, error {e}, description will be set to None"
+            )
+            if verbose
+            else None
+        )
+        return None
+
+    return trial_type
+
+def check_meta_trials_integrity_old(
     path_to_meta_trials: str | Path, n_trials: int | None = None, verbose: bool = True
 ) -> list | None:
     """Check and load trial descriptor metadata.
