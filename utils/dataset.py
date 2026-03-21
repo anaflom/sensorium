@@ -2041,13 +2041,15 @@ class DataSet:
                 print(f"Error processing recording {rec}: {e}")
                 continue
 
-    def compute_dissimilarity_segments(self, label: str, verbose: bool = True) -> np.ndarray:
+    def compute_dissimilarity_segments(self, label: str, dissimilarity_measure: str= 'mse', verbose: bool = True) -> np.ndarray:
         """Compute pairwise segment dissimilarity for one label.
 
         Parameters
         ----------
         label : str
             Segment label to process.
+        dissimilarity_measure : str, default='mse'
+            Dissimilarity measure to use ('mse', 'ssim', etc.).
         verbose : bool, default=True
             If ``True``, print progress messages.
 
@@ -2138,7 +2140,7 @@ class DataSet:
                 else None
             )
             dissimilarity = compute_dissimilarity_video_list(
-                all_segments, dissimilarity_measure="mse", 
+                all_segments, dissimilarity_measure=dissimilarity_measure, 
                 check_edges_first=False,
                 join_key_frames=join_key_frames,
                 try_shifting = try_shifting,
@@ -2156,6 +2158,7 @@ class DataSet:
     def define_segments_id(
         self,
         labels: str | list[str],
+        dissimilarity_measure: str= 'mse', 
         limit_dissimilarity: float | int = 20,
         verbose: bool = True,
     ) -> None:
@@ -2165,6 +2168,8 @@ class DataSet:
         ----------
         labels : str or list[str]
             Segment labels to process.
+        dissimilarity_measure : str, default='mse'
+            Dissimilarity measure to use ('mse', 'ssim', etc.).
         limit_dissimilarity : float or int, default=20
             Maximum dissimilarity to treat segments as duplicates.
         verbose : bool, default=True
@@ -2198,7 +2203,7 @@ class DataSet:
                 continue
 
             # compute the dissimilarity between segments for this label
-            dissimilarity, all_segments = self.compute_dissimilarity_segments(lab, verbose=verbose)
+            dissimilarity, all_segments = self.compute_dissimilarity_segments(lab, dissimilarity_measure=dissimilarity_measure, verbose=verbose)
             
             # extract sets of identical segments
             mask = dissimilarity <= limit_dissimilarity
