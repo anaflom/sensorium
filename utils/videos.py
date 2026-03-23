@@ -25,7 +25,9 @@ from utils.data_handling import (
 
 
 def display_video_clip(
-    video_tensor: np.ndarray, interval_ms: int = 33, vmin: int = 0, vmax: int = 255
+    video_tensor: np.ndarray, interval_ms: int = 33, vmin: int = 0, vmax: int = 255,
+    save_path: str | Path | None = None,
+    display: bool = True,
 ) -> HTML:
     """Render a video tensor as an inline HTML animation.
 
@@ -39,6 +41,11 @@ def display_video_clip(
         Minimum pixel value for display.
     vmax : int, default=255
         Maximum pixel value for display.
+    save_path : str or Path or None, optional
+        Path to save the animation as an HTML file. If None, the animation is not saved.
+    display : bool, default=True
+        If True, display the animation in the notebook. If False, only return the HTML object
+
 
     Returns
     -------
@@ -64,9 +71,18 @@ def display_video_clip(
         interval=interval_ms,
         blit=True,
     )
-    plt.close(fig)  # prevent duplicate static plot output
-    return HTML(anim.to_jshtml())
+    if save_path is not None:
+        save_path = Path(save_path)
+        writer = 'ffmpeg' if save_path.suffix == '.mp4' else 'pillow'
+        anim.save(save_path, writer=writer)
 
+    plt.close(fig)  # prevent duplicate static plot output
+
+    if display:
+        return HTML(anim.to_jshtml())
+    else:
+        return None
+    
 
 def pick_key_frames(
     segments_frame_start: np.ndarray | list[int],
@@ -1563,8 +1579,15 @@ class Video:
         plt.tight_layout()
         return fig, ax
 
-    def display_video_clip(self) -> HTML:
+    def display_video_clip(self, save_path: None | str | Path = None, display: bool = True) -> HTML:
         """Render the video as an inline animation.
+
+        Parameters
+        ----------
+        save_path : str or pathlib.Path or None, optional
+            If provided, path to save the video file (e.g., MP4 or GIF).
+        display : bool, default=True
+            Whether to display the video inline (if supported by the environment).
 
         Returns
         -------
@@ -1574,6 +1597,8 @@ class Video:
         return display_video_clip(
             self.data[:, :, : self.valid_frames],
             interval_ms=1 / self.sampling_freq * 1000,
+            save_path=save_path,
+            display=display,
         )
 
     def convert_to_dict(
@@ -2440,8 +2465,15 @@ class VideoSegment:
         plt.tight_layout()
         return fig, ax
 
-    def display_video_clip(self) -> HTML:
+    def display_video_clip(self, save_path: None | str | Path = None, display: bool = True) -> HTML:
         """Render the segment as an inline animation.
+
+        Parameters
+        ----------
+        save_path : None, str, or pathlib.Path, optional
+            Path to save the video clip. If None, the video is not saved.
+        display : bool, default=True
+            Whether to display the video clip inline.
 
         Returns
         -------
@@ -2451,6 +2483,8 @@ class VideoSegment:
         return display_video_clip(
             self.data[:, :, : self.valid_frames],
             interval_ms=1 / self.sampling_freq * 1000,
+            save_path=save_path,
+            display=display,
         )
 
 
