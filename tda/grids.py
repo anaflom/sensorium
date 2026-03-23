@@ -371,7 +371,7 @@ class Grid3D:
     
 
     def animate_neurons_activity(self, axis, plane_idx, positions, activities,
-                                interval_ms: int = 33, save_path=None):
+                                interval_ms: int = 33, save_path: None | str | Path =None, display: bool = True):
         """
         Animate plot_bar_neurons_activity across all frames.
         """
@@ -406,15 +406,21 @@ class Grid3D:
         anim = animation.FuncAnimation(fig, update, frames=Nframes,
                                     interval=interval_ms, blit=True)
 
-        # --- save or display ---
         if save_path is not None:
-            writer = 'ffmpeg' if save_path.endswith('.mp4') else 'pillow'
+            save_path = Path(save_path)
+            writer = 'ffmpeg' if save_path.suffix == '.mp4' else 'pillow'
             anim.save(save_path, writer=writer)
-        plt.close(fig)  # prevent duplicate static plot output
-        return HTML(anim.to_jshtml())
-        
 
-    def animate_grid_activity(self, axis, plane_idx, grid_activity, interval_ms: int = 33, save_path=None):
+        plt.close(fig)  # prevent duplicate static plot output
+
+        if display:
+            return HTML(anim.to_jshtml())
+        else:
+            return None
+
+
+    def animate_grid_activity(self, axis, plane_idx, grid_activity, interval_ms: int = 33, 
+                              save_path: None | str | Path =None, display: bool = True):
         """
         Animate plot_colormesh_grid_activity across all frames.
 
@@ -430,6 +436,9 @@ class Grid3D:
             Delay between frames in milliseconds (default 33).
         save_path : str, optional
             If provided, save the animation to this path (e.g. 'anim.mp4' or 'anim.gif').
+        display : bool, default=True
+            If True, display the animation inline (e.g. in a Jupyter notebook).
+
 
         Returns
         -------
@@ -490,12 +499,19 @@ class Grid3D:
 
         anim = animation.FuncAnimation(fig, update, frames=Nframes,
                                     interval=interval_ms, blit=True)
-        # --- save or display ---
+        
         if save_path is not None:
-            writer = 'ffmpeg' if save_path.endswith('.mp4') else 'pillow'
+            save_path = Path(save_path)
+            writer = 'ffmpeg' if save_path.suffix == '.mp4' else 'pillow'
             anim.save(save_path, writer=writer)
+
         plt.close(fig)  # prevent duplicate static plot output
-        return HTML(anim.to_jshtml())
+
+        if display:
+            return HTML(anim.to_jshtml())
+        else:
+            return None
+        
         
 
 class GridActivity:
