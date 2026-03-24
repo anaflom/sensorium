@@ -18,9 +18,31 @@ from IPython.display import HTML
 
 
 from utils.data_handling import get_file_with_pattern
+from utils.dataset import print_title
 from utils.responses import Responses
 from tda.dataset_derivatives import DataSetDerivatives
 
+
+def load_stats_activity(path_to_stats: str | Path, verbose: bool = True) -> None:
+    """Load stats activity for current response.
+
+    Parameters
+    ----------
+    path_to_stats : str or Path
+        Path to a JSON file with the stats activity.
+    """
+
+    files = list(Path(path_to_stats).glob(f"*.npy"))
+    if len(files) == 0:
+        if verbose:
+            print(f"Warning. load_stats_activity: No .npy file found in {path_to_stats}")
+        return None
+    else:
+        stats_activity = {}
+        for f in files:
+            stat_name = f.stem
+            stats_activity[stat_name] = np.load(f)
+        return stats_activity
 
 
 def get_ranges_from_positions(positions):
@@ -516,7 +538,14 @@ class Grid3D:
 
 class GridActivity:
 
-    def __init__(self, recording_folder: str | Path, trial: str) -> None:
+    def __init__(self, 
+                 recording_folder: str | Path, 
+                 trial: str,
+                 sampling_freq: float | int = 30,
+                 valid_frames: int | None = None,
+                 label: str | None = None,
+                 ID: str | None = None,
+                 ) -> None:
         """Load responses for one recording/trial.
 
         Parameters
@@ -531,6 +560,7 @@ class GridActivity:
 
         self.recording = os.path.basename(recording_folder)
         self.trial = trial
+
         file_pattern = f"*rec-{self.recording}_trial-{self.trial}.npy"
         files = list(Path(recording_folder, "trials").glob(file_pattern))
         if len(files) == 0:
@@ -539,12 +569,16 @@ class GridActivity:
             raise ValueError(f"Multiple files found for pattern {file_pattern} in {recording_folder}: {[str(f) for f in files]}")
         self.data = np.load(files[0])
 
-        self.sampling_freq = 30
-        self.valid_frames = np.shape(self.data)[-1]
+        self.sampling_freq = sampling_freq
+        if valid_frames is None:
+            self.valid_frames = np.shape(self.data)[-1]
+        else:
+            self.valid_frames = valid_frames
 
-        self.label = None
-        self.ID = None
+        self.label = label
+        self.ID = ID
         self.grid = None
+        self.stats_activity = None
 
     def __copy__(self) -> Self:
         """Return a shallow copy of responses object.
@@ -603,6 +637,19 @@ class GridActivity:
             Ranges for each dimension.
         """
         self.grid = Grid3D(xyz_ranges, num_grid)
+
+    def load_stats_activity(self, path_to_stats: str | Path, verbose: bool = True) -> None:
+        """Load stats activity for current response.
+
+        Parameters
+        ----------
+        path_to_stats : str or Path
+            Path to a JSON file with the stats activity.
+        """
+
+        self.stats_activity = load_stats_activity(path_to_stats, verbose=verbose)
+        
+        
         
     def load_metadata(self, file_metadata: str | Path, verbose=True) -> None:
         """Load metadata for current response.
@@ -653,42 +700,68 @@ class GridActivity:
         """
         if normalization is None:
             data = self.data.copy()
+        elif normalization == "by_std":
+            if self.stats_activity is None or "std_activation" not in self.stats_activity:
+                raise ValueError("Stats activity with 'std_activation' must be loaded to use 'by_std' normalization.")
+            std = self.stats_activity["std_activation"][:,:,:,None]
+            data = np.divide(self.data.copy(), std)
+        elif normalization == "by_minmax":
+            if self.stats_activity is None or "min_activation" not in self.stats_activity or "max_activation" not in self.stats_activity:
+                raise ValueError("Stats activity with 'min_activation' and 'max_activation' must be loaded to use 'by_minmax' normalization.")
+            min_act = self.stats_activity["min_activation"][:,:,:,None]
+            max_act = self.stats_activity["max_activation"][:,:,:,None]
+            data = np.divide(self.data.copy() - min_act, max_act - min_act)
+        elif normalization == "by_mean":
+            if self.stats_activity is None or "mean_activation" not in self.stats_activity:
+                raise ValueError("Stats activity with 'mean_activation' must be loaded to use 'by_mean' normalization.")
+            mean = self.stats_activity["mean_activation"][:,:,:,None]
+            data = np.divide(self.data.copy() - mean, mean)
         else:
             raise ValueError("Normalization can have values: None, by_std, by_mean, or by_minmax")
 
         return data
             
-    def plot_bar(self, axis, plane_idx, frame, ax=None):
+    def plot_bar(self, axis, plane_idx, frame, normalization: str | None = None, ax=None):
         if self.grid is None:
             raise ValueError("Grid metadata not set. Call set_grid() first.")
-        self.grid.plot_bar_grid_activity(axis, plane_idx, frame, self.get_data(), ax = ax)
+        return self.grid.plot_bar_grid_activity(axis, plane_idx, frame, self.get_data(normalization=normalization), ax = ax)
 
-    def plot_colormesh(self, axis, plane_idx, frame, ax=None):
+    def plot_colormesh(self, axis, plane_idx, frame, normalization: str | None = None, ax=None):
         if self.grid is None:
             raise ValueError("Grid metadata not set. Call set_grid() first.")
-        self.grid.plot_colormesh_grid_activity(axis, plane_idx, frame, self.get_data(), ax = ax)
+        return self.grid.plot_colormesh_grid_activity(axis, plane_idx, frame, self.get_data(normalization=normalization), ax = ax)
 
-    def plot_activity_in_cell(self, cell_idx, positions=None, activities=None, normalization=None):
+    def plot_activity_in_cell(self, cell_idx, positions=None, activities=None, normalization: str | None = None):
         if self.grid is None:
             raise ValueError("Grid metadata not set. Call set_grid() first.")
         fig, ax = self.grid.plot_activity_in_cell(cell_idx, positions=positions, activities=activities, grid_activity=self.get_data(normalization=normalization))
+        return fig, ax
 
-    def animate_grid_activity(self, axis, plane_idx, interval_ms: int = 33, save_path=None):
+    def animate_grid_activity(self, axis, plane_idx, interval_ms: int = 33, normalization: str | None = None, save_path=None, display: bool = True):
         if self.grid is None:
             raise ValueError("Grid metadata not set. Call set_grid() first.")
-        return self.grid.animate_grid_activity(axis, plane_idx, self.get_data(), interval_ms=interval_ms, save_path=save_path)
+        return self.grid.animate_grid_activity(axis, plane_idx, self.get_data(normalization=normalization), interval_ms=interval_ms, save_path=save_path, display=display)
 
     
 class GridActivityData(GridActivity):
-    def __init__(self, data, recording: str, trial: str) -> None:
+    def __init__(self, data, 
+                 recording: str, 
+                 trial: str,
+                 sampling_freq: float | int = 30,
+                 valid_frames: int | None = None,
+                 label: str | None = None,
+                 ID: str | None = None,
+                 ) -> None:
         self.recording = recording
         self.trial = trial
         self.data = data
-        self.sampling_freq = 30
-        self.valid_frames = np.shape(self.data)[-1]
-        self.label = None
-        self.ID = None
+        self.sampling_freq = sampling_freq
+        self.valid_frames = valid_frames if valid_frames is not None else np.shape(self.data)[-1]
+        self.label = label
+        self.ID = ID
         self.grid = None
+        self.stats_activity = None
+
 
 class DataSetGrid(DataSetDerivatives):
 
@@ -713,8 +786,13 @@ class DataSetGrid(DataSetDerivatives):
         
         # load the grids for each recording
         self.load_grids()
-        
+
+        # load the stats activity for each recording
+        self.load_stats_activity()
+
     def load_grids(self, recording: str | list[str] | None = None, verbose: bool = True):
+
+        print_title("Loading grids ", verbose)
 
         if recording is None:
             recording = self.recording
@@ -726,10 +804,42 @@ class DataSetGrid(DataSetDerivatives):
 
         for rec in self.recording:
             folder_output_rec = self.folder_derivatives / rec / 'grid'
+            (
+                print(f" > Loading grids for recording {rec} from {folder_output_rec}")
+                if verbose
+                else None
+            )
             num_grid = np.load(folder_output_rec / 'num_grid.npy')
             xyz_ranges = np.load(folder_output_rec / 'xyz_ranges.npy')
             self.info[rec]["grid"] = Grid3D(xyz_ranges, num_grid)
 
+
+    def load_stats_activity(self, recording: str | list[str] | None = None, verbose: bool = True):
+
+        print_title("Loading grid activity stats ", verbose)
+
+        if recording is None:
+            recording = self.recording
+        elif isinstance(recording, str):
+            recording = [recording]
+
+        if self.folder_derivatives is None:
+            raise ValueError("folder_derivatives must be set to load the stats activity.")
+
+        for rec in self.recording:
+            folder_output_rec = self.folder_derivatives / rec / 'gridactivity_stats'
+            if not folder_output_rec.exists():
+                if verbose:
+                    print(f" > Stats activity folder {folder_output_rec} does not exist. Skipping loading stats activity for recording {rec}.")
+                continue
+
+            (
+                print(f" > Loading grid activity stats for recording {rec} from {folder_output_rec}")
+                if verbose
+                else None
+            )
+            stats_activity = load_stats_activity(folder_output_rec, verbose=verbose)
+            self.info[rec]["stats_activity"] = stats_activity
 
     def load_gridactivity_by_trial(
         self,
@@ -764,6 +874,10 @@ class DataSetGrid(DataSetDerivatives):
 
         # get the grid
         gridactivity.grid = self.info[recording]["grid"]
+
+        # get the stats activity        
+        if "stats_activity" in self.info[recording].keys():
+            gridactivity.stats_activity = self.info[recording]["stats_activity"]
 
         # try loading metadata from global metadata folder (if configured)
         if self.folder_globalmetadata_videos is not None and try_loading_globalmetadata:
