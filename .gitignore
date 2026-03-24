@@ -33,7 +33,7 @@ figures/
 *.npy
 
 # .sh files
-script*.sh
+*script*.sh
 
 # Logs
 logs/
