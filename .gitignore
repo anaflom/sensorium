@@ -30,9 +30,11 @@ figures/
 # Local arrays
 *.npy
 
+# compiled files
+*.so
+
 # .sh files
-tda/script.sh
-script.sh
+*script*.sh
 
 # Logs
 tda/logs/
