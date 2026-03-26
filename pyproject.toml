@@ -42,6 +42,9 @@ dev = [
   "flake8",
   "mypy"
 ]
+all = [
+  "sensorium[notebooks,dev]"
+]
 
 [project.scripts]
 sensorium-generate-basic-metadata = "scripts_to_generate_metadata.generate_basic_metadata:cli"
@@ -51,8 +54,10 @@ sensorium-define-videos-ids = "scripts_to_generate_metadata.define_videos_ids:cl
 sensorium-define-segments-ids = "scripts_to_generate_metadata.define_segments_ids:cli"
 sensorium-determine-valid-frames = "scripts_to_generate_metadata.determine_valid_frames:cli"
 
-[tool.setuptools]
-packages = ["ssdatam", "scripts_to_generate_metadata"]
+[tool.setuptools.packages.find]
+where = ["."]       
+include = ["ssdatam*", "scripts_to_generate_metadata*"] 
+exclude = ["tests*"] 
 
 [tool.black]
 line-length = 88
