@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68", "wheel", "numpy>=1.23"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -53,6 +53,9 @@ sensorium-determine-valid-frames = "scripts_to_generate_metadata.determine_valid
 
 [tool.setuptools]
 packages = ["ssdatam", "scripts_to_generate_metadata"]
+
+[tool.setuptools.package-data]
+ssdatam = ["*.so", "*.pyd"]   # include compiled extensions
 
 [tool.black]
 line-length = 88

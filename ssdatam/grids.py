@@ -3,7 +3,6 @@ import os
 from typing import Self, Any
 from tqdm import tqdm
 
-import assign_grid as ag
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -16,6 +15,7 @@ from matplotlib.ticker import LinearLocator
 import matplotlib.animation as animation
 from IPython.display import HTML
 
+from ssdatam import assign_grid as ag
 
 from ssdatam.data_handling import get_file_with_pattern
 from ssdatam.dataset import print_title
