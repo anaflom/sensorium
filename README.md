@@ -15,7 +15,7 @@ It allows to load and inspect the data (videos, neural responses, gaze, pupil, l
 
 ## Requirements
 - Python 3.8+ (3.9 or 3.10 recommended)
-- Install dependencies from `requirements.txt`. See that file for exact package versions.
+- Project dependencies are defined in `pyproject.toml`.
 
 ## Installation
 1. Clone the repository:
@@ -30,8 +30,22 @@ cd sensorium
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev,notebooks]"
 ```
+
+### Dependencies
+- numpy>=1.23
+- pandas>=1.5
+- matplotlib>=3.5
+- scipy>=1.8
+- scikit-image>=0.19
+- tqdm>=4.60
+
+#### Otional 
+- ipython>=8.0
+- jupyter>=1.0
+- seaborn>=0.12
+
 
 (Optionally: `pip install jupyterlab` to run the example notebooks.)
 
@@ -99,14 +113,18 @@ rm -rf metadata/
 From the repository root:
 
 ```bash
-python scripts_to_generate_metadata/generate_basic_metadata.py
-python scripts_to_generate_metadata/generate_neurons_metadata.py
-python scripts_to_generate_metadata/classify_videos.py
-python scripts_to_generate_metadata/define_videos_ids.py
-python scripts_to_generate_metadata/define_segments_ids.py
-python scripts_to_generate_metadata/determine_valid_frames.py
-
+sensorium-generate-basic-metadata
+sensorium-generate-neurons-metadata
+sensorium-classify-videos
+sensorium-define-videos-ids
+sensorium-define-segments-ids 
+sensorium-determine-valid-frames
 ```
+Note: the scripts accept as inputs 
+`--folder-data path_to_data_folder"`
+`--folder-metadata path_to_metadata+folder`
+`--recordings recording1 recording2 etc...`
+
 
 ## Metadata (expected layout)
 The generated metadata will be placed under `./metadata/`. Expected layout (example):
@@ -159,11 +177,10 @@ Programmatic example (copy-pasteable):
 ```py
 import sys
 from pathlib import Path
-repo_root = Path.cwd().parent
-if str(repo_root) not in sys.path:
-    sys.path.insert(0, str(repo_root))
 
-from utils.dataset import DataSet
+repo_root = Path.cwd().parent
+
+from ssdatam.dataset import DataSet
 
 data_root = repo_root / "data"
 

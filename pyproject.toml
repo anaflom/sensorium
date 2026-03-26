@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensorium"
+version = "0.1.0"
+description = "Utilities to create FAIR metadata and handle Sensorium dataset data"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSES/BSD-3-Clause.txt" }
+authors = [
+  { name = "Ana Flo", email = "anaflom@gmail.com" }
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering"
+]
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=1.5",
+  "matplotlib>=3.5",
+  "scipy>=1.8",
+  "scikit-image>=0.19",
+  "tqdm>=4.60"
+]
+
+[project.optional-dependencies]
+notebooks = [
+  "ipython>=8.0",
+  "jupyter>=1.0",
+  "seaborn>=0.12"
+]
+dev = [
+  "black",
+  "flake8",
+  "mypy"
+]
+
+[project.scripts]
+sensorium-generate-basic-metadata = "scripts_to_generate_metadata.generate_basic_metadata:cli"
+sensorium-generate-neurons-metadata = "scripts_to_generate_metadata.generate_neurons_metadata:cli"
+sensorium-classify-videos = "scripts_to_generate_metadata.classify_videos:cli"
+sensorium-define-videos-ids = "scripts_to_generate_metadata.define_videos_ids:cli"
+sensorium-define-segments-ids = "scripts_to_generate_metadata.define_segments_ids:cli"
+sensorium-determine-valid-frames = "scripts_to_generate_metadata.determine_valid_frames:cli"
+
+[tool.setuptools]
+packages = ["ssdatam", "scripts_to_generate_metadata"]
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+
+[tool.mypy]
+python_version = "3.8"
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/anaflom/sensorium"
+Repository = "https://github.com/anaflom/sensorium"

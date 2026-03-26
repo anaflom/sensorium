@@ -17,7 +17,7 @@ from matplotlib import animation
 from typing import Any, Self
 
 
-from utils.data_handling import (
+from ssdatam.data_handling import (
     load_metadata_from_id,
     to_json_safe,
     load_metadata_json_to_obj,

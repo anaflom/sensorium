@@ -11,12 +11,6 @@ def parse_args():
         description="Obtain neurons metadata for selected recordings."
     )
     parser.add_argument(
-        "--repo-root",
-        type=Path,
-        default=Path(__file__).resolve().parent.parent,
-        help="Repository root path containing the code.",
-    )
-    parser.add_argument(
         "--folder-data",
         type=Path,
         default=Path(__file__).resolve().parent.parent / "data",
@@ -38,12 +32,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(repo_root, folder_data, folder_metadata, recording=None):
+def main(folder_data, folder_metadata, recording=None):
 
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-    from utils.dataset import DataSet
+    from ssdatam.dataset import DataSet
 
     # initialize a datset object to handle the data and metadata
     dataset = DataSet(folder_data, 
@@ -57,12 +48,15 @@ def main(repo_root, folder_data, folder_metadata, recording=None):
     dataset.classify_videos()
 
 
-if __name__ == "__main__":
-
+def cli():
     args = parse_args()
     recordings = None if str(args.recordings).lower() == "none" else args.recordings
     try:
-        main(args.repo_root, args.folder_data, args.folder_metadata, recording=recordings)
+        main(args.folder_data, args.folder_metadata, recording=recordings)
         print("\nVideo classification completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
+
+
+if __name__ == "__main__":
+    cli()

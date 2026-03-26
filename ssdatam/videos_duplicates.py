@@ -17,7 +17,7 @@ from skimage.metrics import mean_squared_error
 import scipy.sparse as sp
 from scipy.sparse.csgraph import connected_components
 
-from utils.videos import Video, VideoID
+from ssdatam.videos import Video, VideoID
 
 
 def generate_new_id(existing_ids: set[str] | list[str], prefix: str = "v") -> str:

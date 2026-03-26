@@ -12,11 +12,11 @@ import json
 import operator
 
 
-from utils.videos import Video, VideoID, VideoSegment, VideoSegmentID
-from utils.responses import Responses
-from utils.neurons import Neurons, NeuronsData
-from utils.behavioral import Gaze, Pupil, Locomotion
-from utils.data_handling import (
+from ssdatam.videos import Video, VideoID, VideoSegment, VideoSegmentID
+from ssdatam.responses import Responses
+from ssdatam.neurons import Neurons, NeuronsData
+from ssdatam.behavioral import Gaze, Pupil, Locomotion
+from ssdatam.data_handling import (
     load_all_data,
     load_metadata_from_id,
     get_file_with_pattern,
@@ -25,13 +25,13 @@ from utils.data_handling import (
     check_meta_neurons_integrity,
     check_meta_trials_integrity,
 )
-from utils.metadata import (
+from ssdatam.metadata import (
     parse_info_from_recording_name,
     _json_to_dataframe,
     _validate_metadata_video_dict,
     check_metadata_integrity,
 )
-from utils.videos_duplicates import (
+from ssdatam.videos_duplicates import (
     compute_dissimilarity_video_list,
     compare_with_idvideos,
     find_equal_sets_scipy,

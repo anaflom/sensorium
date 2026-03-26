@@ -38,3 +38,12 @@ figures/
 # Logs
 logs/
 *_logs/
+
+# Package installation / build artifacts
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+pip-wheel-metadata/
+MANIFEST
