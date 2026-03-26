@@ -11,12 +11,6 @@ def parse_args():
         description="Obtain neurons metadata for selected recordings."
     )
     parser.add_argument(
-        "--repo-root",
-        type=Path,
-        default=Path(__file__).resolve().parent.parent,
-        help="Repository root path containing the code.",
-    )
-    parser.add_argument(
         "--folder-data",
         type=Path,
         default=Path(__file__).resolve().parent.parent / "data",
@@ -44,12 +38,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["Gabor", "NaturalImages", "GaussianDot", "PinkNoise", "RandomDots"]):
+def main(folder_data, folder_meta, limit_dissimilarity=20, labels=["Gabor", "NaturalImages", "GaussianDot", "PinkNoise", "RandomDots"]):
 
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-    from utils.dataset import DataSet
+    from ssdatam.dataset import DataSet
 
     # initialize a datset object to handle the data and metadata
     dataset = DataSet(folder_data, 
@@ -66,11 +57,19 @@ def main(repo_root, folder_data, folder_meta, limit_dissimilarity=20, labels=["G
     dataset.add_segments_id_to_video_metadata()
 
 
-if __name__ == "__main__":
-
+def cli():
     args = parse_args()
     try:
-        main(args.repo_root, args.folder_data, args.folder_metadata, limit_dissimilarity=args.limit_dissimilarity, labels=args.labels)
+        main(
+            args.folder_data,
+            args.folder_metadata,
+            limit_dissimilarity=args.limit_dissimilarity,
+            labels=args.labels,
+        )
         print("\nSegment ID definition completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
+
+
+if __name__ == "__main__":
+    cli()

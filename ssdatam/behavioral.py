@@ -14,7 +14,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from utils.data_handling import load_metadata_json_to_obj
+from ssdatam.data_handling import load_metadata_json_to_obj
 
 
 def compute_power_spectrum(

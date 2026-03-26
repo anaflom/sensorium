@@ -12,8 +12,8 @@ from typing import Any, Self
 from pathlib import Path
 
 
-from utils.data_handling import load_metadata_json_to_obj
-from utils.neurons import Neurons
+from ssdatam.data_handling import load_metadata_json_to_obj
+from ssdatam.neurons import Neurons
 
 
 class Responses:
