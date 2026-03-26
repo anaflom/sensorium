@@ -711,13 +711,19 @@ class GridActivity:
             min_act = self.stats_activity["min_activation"][:,:,:,None]
             max_act = self.stats_activity["max_activation"][:,:,:,None]
             data = np.divide(self.data.copy() - min_act, max_act - min_act)
+        elif normalization == "by_minmax_across_cells":
+            if self.stats_activity is None or "min_activation" not in self.stats_activity or "max_activation" not in self.stats_activity:
+                raise ValueError("Stats activity with 'min_activation' and 'max_activation' must be loaded to use 'by_minmax' normalization.")
+            min_act = self.stats_activity["min_activation"].min()
+            max_act = self.stats_activity["max_activation"].max()
+            data = np.divide(self.data.copy() - min_act, max_act - min_act)
         elif normalization == "by_mean":
             if self.stats_activity is None or "mean_activation" not in self.stats_activity:
                 raise ValueError("Stats activity with 'mean_activation' must be loaded to use 'by_mean' normalization.")
             mean = self.stats_activity["mean_activation"][:,:,:,None]
             data = np.divide(self.data.copy() - mean, mean)
         else:
-            raise ValueError("Normalization can have values: None, by_std, by_mean, or by_minmax")
+            raise ValueError("Normalization can have values: None, by_std, by_mean, by_minmax, or by_minmax_across_cells")
 
         return data
             
