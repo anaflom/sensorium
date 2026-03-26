@@ -32,6 +32,9 @@ figures/
 # Local arrays
 *.npy
 
+# complile files
+*.so
+
 # .sh files
 *script*.sh
 
