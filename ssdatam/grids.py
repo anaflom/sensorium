@@ -17,10 +17,10 @@ import matplotlib.animation as animation
 from IPython.display import HTML
 
 
-from utils.data_handling import get_file_with_pattern
-from utils.dataset import print_title
-from utils.responses import Responses
-from tda.dataset_derivatives import DataSetDerivatives
+from ssdatam.data_handling import get_file_with_pattern
+from ssdatam.dataset import print_title
+from ssdatam.responses import Responses
+from ssdatam.dataset_derivatives import DataSetDerivatives
 
 
 def load_stats_activity(path_to_stats: str | Path, verbose: bool = True) -> None:

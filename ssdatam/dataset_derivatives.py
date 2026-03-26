@@ -7,9 +7,9 @@ import pandas as pd
 from pathlib import Path
 import copy
 
-from utils.data_handling import get_file_with_pattern
-from utils.dataset import (DataSet, print_title, filter_dataframe)
-from utils.responses import Responses
+from ssdatam.data_handling import get_file_with_pattern
+from ssdatam.dataset import (DataSet, print_title, filter_dataframe)
+from ssdatam.responses import Responses
 
 
 class DataSetDerivatives(DataSet):
