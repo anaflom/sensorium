@@ -30,10 +30,10 @@ cd sensorium
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[all]"
+pip install -e ".[dev,notebooks]"
 ```
 
-### Dependencies
+#### Required Dependencies
 - numpy>=1.23
 - pandas>=1.5
 - matplotlib>=3.5
@@ -41,13 +41,11 @@ pip install -e ".[all]"
 - scikit-image>=0.19
 - tqdm>=4.60
 
-#### Otional 
+#### Otional Dependencies
 - ipython>=8.0
 - jupyter>=1.0
 - seaborn>=0.12
 
-
-(Optionally: `pip install jupyterlab` to run the example notebooks.)
 
 ## Data (expected layout)
 Download the Sensorium dataset and place it under `./data/`. 
