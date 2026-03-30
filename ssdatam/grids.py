@@ -945,7 +945,9 @@ class DataSetGrid(DataSetDerivatives):
             raise ValueError("folder_derivatives must be set to compute grid stats.")
 
         if trials_for_stats is None:
-            trials_for_stats = self.info[recording]["trials"]
+            trials_df_filtered = self.filter_trials(recording=recording, valid_response=True, valid_trial=True)
+            trials_for_stats = trials_df_filtered["trial"].tolist()
+
         print(f"Computing grid stats for recording {recording}")
         stats = {}
         val_sum = np.zeros(self.info[recording]["grid"].num_grid)
