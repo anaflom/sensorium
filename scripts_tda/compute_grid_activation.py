@@ -116,7 +116,7 @@ def main(folder_data, folder_metadata, folder_derivatives, normalization=None, n
         grid = Grid3D(xyz_ranges, num_grid)
         
         # Get a DataFrame with all the trials of that recording
-        trials_df = ds.filter_trials(recording=rec)
+        trials_df = ds.filter_trials(recording=rec, valid_response=True, valid_trial=True)
 
         # save the grid parameters for that recording
         grid.save(folder_output_rec_grid)
