@@ -2313,7 +2313,49 @@ class DataSet:
                 idx = (self.trials_df["recording"] == rec) & (self.trials_df["trial"] == trial)
                 self.trials_df.loc[idx, "trial_type"] = trial_type
 
-    def define_valid_frames(self, recording: str | list[str] | None = None) -> None:
+    def define_valid_responses(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
+        """Define per-trial valid responses (non zero) from neural response data.
+        
+        Parameters
+        ----------
+        recording : str or list[str] or None, optional
+            Recordings to process. If ``None``, process ``self.recording``.
+        verbose : bool, default=True
+            If ``True``, print warnings and progress messages.
+
+        """
+
+        if recording is None:
+            recording = self.recording
+
+        if isinstance(recording, str):
+            recording = [recording]
+
+        if "valid_response" not in self.trials_df.columns:
+            self.trials_df["valid_response"] = pd.NA
+
+        print_title("Defining valid responses (non-zero) ", verbose)
+
+        for rec in recording:
+            trials_df_rec = self.filter_trials(recording=rec)
+            iterator = tqdm(
+                trials_df_rec.iterrows(),
+                total=len(trials_df_rec),
+                desc=f"Recording {rec}",
+                unit="trial",
+                disable=False,
+            )
+            for _, row in iterator:
+                trial = row["trial"]
+                rec_row = row["recording"]
+                resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                data = resp.get_data()
+                valid_response = data.sum()!= 0
+                idx = (self.trials_df["recording"] == rec_row) & (self.trials_df["trial"] == trial)
+                self.trials_df.loc[idx, "valid_response"] = valid_response
+
+
+    def define_valid_frames(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
         """Define per-trial valid frames from video/response metadata.
 
         The value is the minimum between ``video.valid_frames`` and
@@ -2324,6 +2366,9 @@ class DataSet:
         ----------
         recording : str or list[str] or None, optional
             Recordings to process. If ``None``, process ``self.recording``.
+        verbose : bool, default=True
+            If ``True``, print warnings and progress messages.
+
         """
 
         if recording is None:

@@ -719,6 +719,7 @@ def validate_metadata_recording(
                         "valid_frames",
                         "valid_frames_video",
                         "valid_frames_response",
+                        "valid_response",
                         "n_peaks",
                         "segments_n_peaks",
                         "segments_bad_n",

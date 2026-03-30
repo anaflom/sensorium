@@ -50,7 +50,10 @@ def main(folder_data, folder_meta, recording=None):
     # define valid frames for the videos and responses
     dataset.define_valid_frames()
 
-    # save the updated metadata with valid frames
+    # define valid responses (non-zero)
+    dataset.define_valid_responses()
+
+    # save the updated metadata with valid frames and responses
     dataset.save_trials_metadata()
 
 
@@ -59,7 +62,7 @@ def cli():
     recordings = None if str(args.recordings).lower() == "none" else args.recordings
     try:
         main(args.folder_data, args.folder_metadata, recording=recordings)
-        print("\nDetermiination of valid frames completed successfully!")
+        print("\nDetermination of valid frames and responses completed successfully!")
     except Exception as e:
         print(f"Fatal error: {e}")
 

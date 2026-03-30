@@ -52,7 +52,7 @@ sensorium-generate-neurons-metadata = "scripts_to_generate_metadata.generate_neu
 sensorium-classify-videos = "scripts_to_generate_metadata.classify_videos:cli"
 sensorium-define-videos-ids = "scripts_to_generate_metadata.define_videos_ids:cli"
 sensorium-define-segments-ids = "scripts_to_generate_metadata.define_segments_ids:cli"
-sensorium-determine-valid-frames = "scripts_to_generate_metadata.determine_valid_frames:cli"
+sensorium-determine-valid-data = "scripts_to_generate_metadata.determine_valid_data:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]       
