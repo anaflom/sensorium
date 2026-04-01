@@ -722,8 +722,11 @@ class GridActivity:
                 raise ValueError("Stats activity with 'mean_activation' must be loaded to use 'by_mean' normalization.")
             mean = self.stats_activity["mean_activation"][:,:,:,None]
             data = np.divide(self.data.copy() - mean, mean)
+        elif normalization == "by_mean_per_trial":
+            mu = self.data.copy().mean(axis=-1, keepdims=True)
+            data = np.divide(self.data.copy() - mu, mu)
         else:
-            raise ValueError("Normalization can have values: None, by_std, by_mean, by_minmax, or by_minmax_across_cells")
+            raise ValueError("Normalization can have values: None, by_std, by_mean, by_minmax, by_minmax_across_cells, or by_mean_per_trial")
 
         return data
             

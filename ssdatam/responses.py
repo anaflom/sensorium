@@ -208,8 +208,11 @@ class Responses:
                 raise ValueError(
                     "'max_activation' was not found in neurons.stats_activity"
                 )
+        elif normalization == "by_mean_per_trial":
+            mu = self.data.copy().mean(axis=-1, keepdims=True)
+            data = np.divide(self.data.copy() - mu, mu)
         else:
-            raise ValueError("Normalization can have values: None, by_std, by_mean, or by_minmax")
+            raise ValueError("Normalization can have values: None, by_std, by_mean, by_minmax, by_max, or by_mean_per_trial")
 
         return data
 
