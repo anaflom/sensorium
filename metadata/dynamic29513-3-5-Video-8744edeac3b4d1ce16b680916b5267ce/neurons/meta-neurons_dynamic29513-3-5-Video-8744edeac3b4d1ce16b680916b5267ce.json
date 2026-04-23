@@ -1,0 +1,10 @@
+{
+    "ID": "Unique neuron identifier",
+    "coord_x": "X coordinate of the neuron",
+    "coord_y": "Y coordinate of the neuron",
+    "coord_z": "Z coordinate of the neuron",
+    "mean_activation": "Descriptive statistics for the neuron activity computed over all trials, mean_activation",
+    "min_activation": "Descriptive statistics for the neuron activity computed over all trials, min_activation",
+    "max_activation": "Descriptive statistics for the neuron activity computed over all trials, max_activation",
+    "std_activation": "Descriptive statistics for the neuron activity computed over all trials, std_activation"
+}

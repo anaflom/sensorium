@@ -1,0 +1,48 @@
+{
+    "recording": {
+        "description": "Recording identifier"
+    },
+    "label": {
+        "description": "Label indicating the stimulus type presented in the trial",
+        "values": {
+            "NaturalVideo": "Video sampled from films or the Sport-1M dataset",
+            "NaturalImages": "ODD stimuli. Sequence of natural images from ImageNet presented 15 frames interleave with 12-18 frames of gray screen.",
+            "Gabor": "ODD stimuli. Sequence of spatiotemporal drifting Gabor patches (8 possible directions, 3 spacial frequencies, 3 temporal frequencies), lasting 25 frames each",
+            "PinkNoise": "ODD stimuli. Sequence of directional pink noise with spatial orientation perpendicular to the motion direction, lasting 27 frames each",
+            "RandomDots": "ODD stimuli. Sequence of random dots kinematogram (8 possible trajectories with 2 possible coherences and 2 velocities), lasting 60 frames each",
+            "GaussianDot": "ODD stimuli. Sequence of a single Gaussian blob (105 locations, 2 color intensities), lasting 9 frames each"
+        }
+    },
+    "ID": {
+        "description": "Unique video identifier assigned by similarity grouping"
+    },
+    "trial": {
+        "description": "Trial identifier within the recording. Interger number. They do not match the trials presentation order."
+    },
+    "trial_type": {
+        "description": "Phase of the recording in which the trial occurs",
+        "values": {
+            "train": "First phase. Trials for trainng. Only NaturalVideo. No video repetition.",
+            "oracle": "Second phase. Trials for training. Only NaturalVideo. Videos repeated 10 times.",
+            "live_test_main": "Third phase. Trials for testing. Only NaturalVideo. Videos repeated 10 times.",
+            "live_test_bonus": "Fourth phase. Trials for testing. Trials from one ODD label. Videos repeated 10 times.",
+            "final_test_main": "Fifth phase. Trials for testing. Only NaturalVideo. Videos repeated 10 times.",
+            "final_test_bonus": "Sixth phase. Trials for testing. Trials from two ODD labels. Videos repeated 10 times."
+        }
+    },
+    "valid_frames": {
+        "description": "Number of valid frames in the trial (minimum between video and response valid frames)"
+    },
+    "valid_trial": {
+        "description": "Boolean indicating whether the trial is valid (e.g. no bad segments)"
+    },
+    "valid_frames_video": {
+        "description": "Number of valid frames in the video for this trial (not NaN)"
+    },
+    "valid_frames_response": {
+        "description": "Number of valid frames in the neural response data for this trial (not NaN)"
+    },
+    "valid_response": {
+        "description": "Boolean indicating whether the neural response is valid (e.g., not all zero or NaN)"
+    }
+}

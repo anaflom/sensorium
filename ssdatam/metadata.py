@@ -47,6 +47,71 @@ def parse_info_from_recording_name(recording: str, verbose: bool = True) -> dict
 
     return info
 
+def _create_metadata_dict_from_trials_df(df_meta_trials: pd.DataFrame) -> dict[str, Any]:
+    """Create a metadata dictionary from a trials DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame containing trial-level metadata.
+
+    Returns
+    -------
+    dict
+        Metadata dictionary with keys for each column in the DataFrame and values as lists of column values.
+    """
+    # generate a dictionry with the description of the columns names in the df_meta_trials
+    meta_trials_dict = {}
+    for col in df_meta_trials.columns:
+        if col == "recording":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Recording identifier"
+        elif col == "trial":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Trial identifier within the recording. Interger number. They do not match the trials presentation order."
+        elif col == "label":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Label indicating the stimulus type presented in the trial"
+            meta_trials_dict[col]["values"] = {}
+            meta_trials_dict[col]["values"]["NaturalVideo"] = "Video sampled from films or the Sport-1M dataset"
+            meta_trials_dict[col]["values"]["NaturalImages"] = "ODD stimuli. Sequence of natural images from ImageNet presented 15 frames interleave with 12-18 frames of gray screen."
+            meta_trials_dict[col]["values"]["Gabor"] = "ODD stimuli. Sequence of spatiotemporal drifting Gabor patches (8 possible directions, 3 spacial frequencies, 3 temporal frequencies), lasting 25 frames each"
+            meta_trials_dict[col]["values"]["PinkNoise"] = "ODD stimuli. Sequence of directional pink noise with spatial orientation perpendicular to the motion direction, lasting 27 frames each"
+            meta_trials_dict[col]["values"]["RandomDots"] = "ODD stimuli. Sequence of random dots kinematogram (8 possible trajectories with 2 possible coherences and 2 velocities), lasting 60 frames each"
+            meta_trials_dict[col]["values"]["GaussianDot"] = "ODD stimuli. Sequence of a single Gaussian blob (105 locations, 2 color intensities), lasting 9 frames each"
+        elif col == "trial_type":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Phase of the recording in which the trial occurs"
+            meta_trials_dict[col]["values"] = {}
+            meta_trials_dict[col]["values"]["train"] = "First phase. Trials for trainng. Only NaturalVideo. No video repetition."
+            meta_trials_dict[col]["values"]["oracle"] = "Second phase. Trials for training. Only NaturalVideo. Videos repeated 10 times."
+            meta_trials_dict[col]["values"]["live_test_main"] = "Third phase. Trials for testing. Only NaturalVideo. Videos repeated 10 times."
+            meta_trials_dict[col]["values"]["live_test_bonus"] = "Fourth phase. Trials for testing. Trials from one ODD label. Videos repeated 10 times."
+            meta_trials_dict[col]["values"]["final_test_main"] = "Fifth phase. Trials for testing. Only NaturalVideo. Videos repeated 10 times."
+            meta_trials_dict[col]["values"]["final_test_bonus"] = "Sixth phase. Trials for testing. Trials from two ODD labels. Videos repeated 10 times."
+        elif col == "ID":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Unique video identifier assigned by similarity grouping"
+        elif col == "valid_frames":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the trial (minimum between video and response valid frames)"
+        elif col == "valid_frames_video":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the video for this trial (not NaN)"
+        elif col == "valid_frames_response":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the neural response data for this trial (not NaN)"
+        elif col == "valid_trial":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the trial is valid (e.g. no bad segments)"
+        elif col == "valid_response":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the neural response is valid (e.g., not all zero or NaN)"
+        else:
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = f"Description for {col}"  # Replace with actual descriptions if available
+
+    return meta_trials_dict
 
 def _validate_dataframe(
     df: pd.DataFrame,

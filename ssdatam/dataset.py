@@ -29,6 +29,7 @@ from ssdatam.metadata import (
     parse_info_from_recording_name,
     _json_to_dataframe,
     _validate_metadata_video_dict,
+    _create_metadata_dict_from_trials_df,
     check_metadata_integrity,
 )
 from ssdatam.videos_duplicates import (
@@ -1788,12 +1789,24 @@ class DataSet:
                 # generate a dataframe with all neurons info
                 meta_neurons = pd.concat([df_id, df_coord, stats], axis=1)
 
+                # create a dictionry with the description of the columns names in the meta_neurons
+                meta_neurons_dict = {
+                    "ID": "Unique neuron identifier",
+                    "coord_x": "X coordinate of the neuron",
+                    "coord_y": "Y coordinate of the neuron",
+                    "coord_z": "Z coordinate of the neuron",
+                }
+                for col in stats.columns:
+                    meta_neurons_dict[col] = f"Descriptive statistics for the neuron activity computed over all trials, {col}"  # Replace with actual descriptions if available
+
                 # save
                 folder_recording_meta_neurons = Path(self.folder_metadata) / rec / "neurons"
                 folder_recording_meta_neurons.mkdir(parents=True, exist_ok=True)
-                out_path = folder_recording_meta_neurons / f"meta-neurons_{rec}.csv"
-                meta_neurons.to_csv(out_path, index=False)
-                print(f"Saved neurons metadata: {out_path}") if verbose else None
+                out_path_csv = folder_recording_meta_neurons / f"meta-neurons_{rec}.csv"
+                meta_neurons.to_csv(out_path_csv, index=False)
+                out_path_json = folder_recording_meta_neurons / f"meta-neurons_{rec}.json"
+                save_json(meta_neurons_dict, out_path_json)
+                print(f"Saved neurons metadata: {out_path_csv} and {out_path_json}") if verbose else None
 
             except Exception as e:
                 print(f"Error processing recording {rec}: {e}")
@@ -2031,11 +2044,17 @@ class DataSet:
                     ]
                 ]
 
+                # generate a dictionry with the description of the columns names in the df_meta_trials_rec
+                meta_trials_dict = _create_metadata_dict_from_trials_df(df_meta_trials_rec)
+            
+                # save
                 folder_recording_meta = Path(self.folder_metadata) / rec / output_subfolder
                 folder_recording_meta.mkdir(parents=True, exist_ok=True)
-                filename = folder_recording_meta / f"meta-trials_{rec}.csv"
-                df_meta_trials_rec.to_csv(filename, index=False)
-                print(f"Saved: {filename}")
+                filename_csv = folder_recording_meta / f"meta-trials_{rec}.csv"
+                df_meta_trials_rec.to_csv(filename_csv, index=False)
+                filename_json = folder_recording_meta / f"meta-trials_{rec}.json"
+                save_json(meta_trials_dict, filename_json)
+                print(f"Saved: {filename_csv} and {filename_json}")
 
             except Exception as e:
                 print(f"Error processing recording {rec}: {e}")
@@ -2314,7 +2333,7 @@ class DataSet:
                 self.trials_df.loc[idx, "trial_type"] = trial_type
 
     def define_valid_responses(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
-        """Define per-trial valid responses (non zero) from neural response data.
+        """Define per-trial valid responses (non zero and non-NaN) from neural response data.
         
         Parameters
         ----------
@@ -2334,7 +2353,7 @@ class DataSet:
         if "valid_response" not in self.trials_df.columns:
             self.trials_df["valid_response"] = pd.NA
 
-        print_title("Defining valid responses (non-zero) ", verbose)
+        print_title("Defining valid responses (non-zero and non-NaN) ", verbose)
 
         for rec in recording:
             trials_df_rec = self.filter_trials(recording=rec)
@@ -2350,7 +2369,7 @@ class DataSet:
                 rec_row = row["recording"]
                 resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
                 data = resp.get_data()
-                valid_response = data.sum()!= 0
+                valid_response = data.sum()!= 0 and not np.isnan(data).all()
                 idx = (self.trials_df["recording"] == rec_row) & (self.trials_df["trial"] == trial)
                 self.trials_df.loc[idx, "valid_response"] = valid_response
 
@@ -2426,10 +2445,18 @@ class DataSet:
             output_subfolder = self._trials_metadata_subfolder
 
         for rec in recording:
+            # get the metadata for this recording
             df_meta_trials_rec = self.trials_df[self.trials_df["recording"] == rec].copy()
+            
+            # generate a dictionry with the description of the columns names in the df_meta_trials_rec
+            meta_trials_dict = _create_metadata_dict_from_trials_df(df_meta_trials_rec)
+            
+            # save the metadata for this recording
             folder_recording_meta = Path(self.folder_metadata) / rec / output_subfolder
             folder_recording_meta.mkdir(parents=True, exist_ok=True)
-            filename = folder_recording_meta / f"meta-trials_{rec}.csv"
-            df_meta_trials_rec.to_csv(filename, index=False)
-            print(f"Saved: {filename}") if verbose else None
+            filename_csv = folder_recording_meta / f"meta-trials_{rec}.csv"
+            df_meta_trials_rec.to_csv(filename_csv, index=False)
+            filename_json = folder_recording_meta / f"meta-trials_{rec}.json"
+            save_json(meta_trials_dict, filename_json)
+            print(f"Saved: {filename_csv} and {filename_json}") if verbose else None
 
