@@ -144,9 +144,11 @@ metadata/
 ├── dynamic29513-3-5-.../
 │   ├── meta-basic_dynamic29513-3-5-...json 
 │   ├── neurons/
-│   │   └── meta-neurons_dynamic29513-3-5-...csv
+│   │   ├── meta-neurons_dynamic29513-3-5-...csv
+│   │   └── meta-neurons_dynamic29513-3-5-...json
 │   ├── trials/
-│   │   └── meta-trials_dynamic29513-3-5-...csv
+│   │   ├── meta-trials_dynamic29513-3-5-...csv
+│   │   └── meta-trials_dynamic29513-3-5-...json
 │   └── videos/
 │       ├── 0.json
 │       ├── 1.json
@@ -154,9 +156,11 @@ metadata/
 ├── dynamic29514-2-9-.../
 │   ├── meta-basic_dynamic29514-2-9-...json 
 │   ├── neurons/
-│   │   └── meta-neurons_dynamic29514-2-9-...csv
+│   │   ├── meta-neurons_dynamic29514-2-9-...csv
+│   │   └── meta-neurons_dynamic29514-2-9-...json
 │   ├── trials/
-│   │   └── meta-trials_dynamic29514-2-9-...csv
+│   │   ├── meta-trials_dynamic29514-2-9-...csv
+│   │   └── meta-trials_dynamic29514-2-9-...json
 │   └── videos/
 │       ├── 0.json
 │       ├── 1.json
