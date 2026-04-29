@@ -181,11 +181,14 @@ class Behavior:
 
 class Gaze(Behavior):
 
-    def __init__(self, recording_folder: str | Path, trial: str):
+    def __init__(self, recording_folder: str | Path, 
+                 trial: str, ID: str | None = None, 
+                 label: str | None = None, 
+                 valid_frames: int | None = None, 
+                 sampling_freq: float | int = 30):
         """Initialize gaze traces for one trial."""
-        super().__init__(
-            recording_folder, trial, behavior_type="pupil_center", indexes=[0, 1]
-        )
+        super().__init__(recording_folder, trial, behavior_type="pupil_center", indexes=[0, 1],
+                         ID=ID, sampling_freq=sampling_freq, valid_frames=valid_frames, label=label)
 
     def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot 2D gaze trajectory.
@@ -204,9 +207,14 @@ class Gaze(Behavior):
 
 class Pupil(Behavior):
 
-    def __init__(self, recording_folder: str | Path, trial: str):
+    def __init__(self, recording_folder: str | Path, trial: str, 
+                 ID: str | None = None, 
+                 label: str | None = None, 
+                 valid_frames: int | None = None, 
+                 sampling_freq: float | int = 30):
         """Initialize pupil-size trace for one trial."""
-        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[0])
+        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[0],
+                         ID=ID, sampling_freq=sampling_freq, valid_frames=valid_frames, label=label)
 
     def detrend(self, type: str = "linear", bp: int | list[int] = 0) -> "Pupil":
         """Detrend pupil signal in place.
@@ -279,9 +287,14 @@ class Pupil(Behavior):
 
 class Locomotion(Behavior):
 
-    def __init__(self, recording_folder: str | Path, trial: str):
+    def __init__(self, recording_folder: str | Path, 
+                 trial: str, ID: str | None = None, 
+                 label: str | None = None, 
+                 valid_frames: int | None = None, 
+                 sampling_freq: float | int = 30):
         """Initialize locomotion trace for one trial."""
-        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[1])
+        super().__init__(recording_folder, trial, behavior_type="behavior", indexes=[1],
+                         ID=ID, sampling_freq=sampling_freq, valid_frames=valid_frames, label=label)
 
     def plot(self) -> tuple[plt.Figure, plt.Axes]:
         """Plot locomotion speed over time.

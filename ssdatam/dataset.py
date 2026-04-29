@@ -1043,7 +1043,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     video.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
@@ -1114,7 +1114,7 @@ class DataSet:
                 )
                 if file is not None:
                     response.load_metadata(file,
-                                        attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
+                                        attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
                                         attributes_to_add = ["segments","duplicates"],
                                         raise_on_mismatch = raise_on_mismatch,
                                         verbose = verbose)
@@ -1130,7 +1130,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     response.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
@@ -1214,7 +1214,7 @@ class DataSet:
                 )
                 if file is not None:
                     behavior.load_metadata(file,
-                                        attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
+                                        attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
                                         attributes_to_add = ["segments","duplicates"],
                                         raise_on_mismatch = raise_on_mismatch,
                                         verbose = verbose)
@@ -1230,7 +1230,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     behavior.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
