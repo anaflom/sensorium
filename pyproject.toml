@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 2026 Ana Flo <anaflom@gmail.com>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"

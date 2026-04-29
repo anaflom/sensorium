@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 2026 Ana Flo <anaflom@gmail.com>
+
+SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # Sensorium — metadata creation and data handling
 
 A small collection of utilities to create FAIR metadata for the [Sensorium](https://sensorium-competition.net/) dataset.
@@ -229,6 +235,6 @@ Notes:
 ## License
 The sofware of this project is licensed under the BSD 3-Clause "New" or "Revised" License. 
 
-The generated metadata is license under CC-BY-NC-ND-4.0
+The generated metadata is license under CC0-1.0
 
 See `LICENSE/` for details.
