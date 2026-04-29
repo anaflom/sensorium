@@ -92,21 +92,42 @@ def _create_metadata_dict_from_trials_df(df_meta_trials: pd.DataFrame) -> dict[s
         elif col == "video_ID":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Unique video identifier assigned by similarity grouping"
-        elif col == "valid_frames":
-            meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the trial (minimum between video and response valid frames)"
         elif col == "valid_frames_video":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Number of valid frames in the video for this trial (not NaN)"
         elif col == "valid_frames_response":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Number of valid frames in the neural response data for this trial (not NaN)"
-        elif col == "valid_trial":
+        elif col == "valid_frames_pupil":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Boolean indicating whether the trial is valid (e.g. no bad segments)"
+            meta_trials_dict[col]["description"] = "Number of valid frames in the pupil data for this trial (not NaN)"
+        elif col == "valid_frames_gaze":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the gaze data for this trial (not NaN)"
+        elif col == "valid_frames_locomotion":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the locomotion data for this trial (not NaN)"
+        elif col == "valid_frames":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Number of valid frames in the trial (minimum between video and response valid frames)"
         elif col == "valid_response":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Boolean indicating whether the neural response is valid (e.g., not all zero or NaN)"
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the neural response is valid (i.e., not all zero or NaN)"
+        elif col == "valid_video":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the video is valid (i.e., not all zero or NaN and valid segments)"
+        elif col == "valid_pupil":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the pupil data is valid (i.e., not all zero or NaN)"
+        elif col == "valid_gaze":   
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the gaze data is valid (i.e., not all zero or NaN)"
+        elif col == "valid_locomotion":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the locomotion data is valid (i.e., not all zero or NaN)"
+        elif col == "valid_trial":
+            meta_trials_dict[col] = {}
+            meta_trials_dict[col]["description"] = "Boolean indicating whether the trial is valid (i.e., has valid video)"
         else:
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = f"Description for {col}"  # Replace with actual descriptions if available
@@ -777,14 +798,22 @@ def validate_metadata_recording(
 
     # check the trials metadata
     folder_meta_trials = folder_metadata_rec / trials_metadata_subfolder
-    mandatory_columns = {"trial", "video_ID", "label", "trial_type", "valid_trial"}
+    mandatory_columns = {"trial", "video_ID", "label", "trial_type"}
     optional_columns = {"recording",
                         "first_label",
                         "sampling_freq",
                         "valid_frames",
                         "valid_frames_video",
                         "valid_frames_response",
+                        "valid_frames_pupil",
+                        "valid_frames_gaze",
+                        "valid_frames_locomotion",
                         "valid_response",
+                        "valid_video",
+                        "valid_pupil",
+                        "valid_gaze",
+                        "valid_trial",
+                        "valid_locomotion",
                         "n_peaks",
                         "segments_n_peaks",
                         "segments_bad_n",

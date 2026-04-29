@@ -13,9 +13,6 @@
             "GaussianDot": "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of a single Gaussian blob (105 locations, 2 color intensities), lasting 9 frames each"
         }
     },
-    "video_ID": {
-        "description": "Unique video identifier assigned by similarity grouping"
-    },
     "trial": {
         "description": "Trial identifier within the recording. Interger number. They do not match the trials presentation order."
     },
@@ -30,11 +27,14 @@
             "final_test_bonus": "Sixth phase. Trials for testing. Trials from two ODD labels. Videos repeated 10 times."
         }
     },
+    "video_ID": {
+        "description": "Unique video identifier assigned by similarity grouping"
+    },
     "valid_frames": {
         "description": "Number of valid frames in the trial (minimum between video and response valid frames)"
     },
     "valid_trial": {
-        "description": "Boolean indicating whether the trial is valid (e.g. no bad segments)"
+        "description": "Boolean indicating whether the trial is valid (i.e., has valid video)"
     },
     "valid_frames_video": {
         "description": "Number of valid frames in the video for this trial (not NaN)"
@@ -42,7 +42,28 @@
     "valid_frames_response": {
         "description": "Number of valid frames in the neural response data for this trial (not NaN)"
     },
+    "valid_frames_pupil": {
+        "description": "Number of valid frames in the pupil data for this trial (not NaN)"
+    },
+    "valid_frames_gaze": {
+        "description": "Number of valid frames in the gaze data for this trial (not NaN)"
+    },
+    "valid_frames_locomotion": {
+        "description": "Number of valid frames in the locomotion data for this trial (not NaN)"
+    },
+    "valid_video": {
+        "description": "Boolean indicating whether the video is valid (i.e., not all zero or NaN and valid segments)"
+    },
     "valid_response": {
-        "description": "Boolean indicating whether the neural response is valid (e.g., not all zero or NaN)"
+        "description": "Boolean indicating whether the neural response is valid (i.e., not all zero or NaN)"
+    },
+    "valid_pupil": {
+        "description": "Boolean indicating whether the pupil data is valid (i.e., not all zero or NaN)"
+    },
+    "valid_gaze": {
+        "description": "Boolean indicating whether the gaze data is valid (i.e., not all zero or NaN)"
+    },
+    "valid_locomotion": {
+        "description": "Boolean indicating whether the locomotion data is valid (i.e., not all zero or NaN)"
     }
 }

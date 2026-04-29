@@ -628,6 +628,16 @@ class Video:
         """
         return copy.deepcopy(self) if deep else copy.copy(self)
 
+    def get_data(self) -> np.ndarray:
+        """Return the video data array.
+
+        Returns
+        -------
+        numpy.ndarray
+            Video data with shape ``(height, width, valid_frames)``.
+        """
+        return self.data[:, :, : self.valid_frames]
+    
     def compute_time_change(self) -> np.ndarray:
         """Compute frame-to-frame changes for the video.
 

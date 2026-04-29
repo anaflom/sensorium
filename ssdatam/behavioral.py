@@ -151,6 +151,16 @@ class Behavior:
         """
         return copy.deepcopy(self) if deep else copy.copy(self)
 
+    def get_data(self) -> np.ndarray:
+        """Return the behavior data array.
+
+        Returns
+        -------
+        numpy.ndarray
+            Behavior data with shape ``(n_channels, valid_frames)`` or ``(valid_frames,)`` if one channel.
+        """
+        return self.data[:, : self.valid_frames] if self.data.ndim > 1 else self.data[: self.valid_frames]
+    
     def load_metadata(self, 
                       path_to_metadata_file: str | Path,
                       attributes_to_check_match: list[str] = ["label", "ID", "valid_frames","sampling_freq"],

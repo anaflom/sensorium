@@ -41,7 +41,7 @@ def main(folder_data, folder_meta, recording=None):
                       recording=recording,
                       trials_metadata_file_type = "csv",
                       trials_metadata_subfolder = "trials",
-                      check=False,
+                      check=True,
                       )
     
     # load a dataframe with all trials metadata
@@ -50,8 +50,15 @@ def main(folder_data, folder_meta, recording=None):
     # define valid frames for the videos and responses
     dataset.define_valid_frames()
 
-    # define valid responses (non-zero)
-    dataset.define_valid_responses()
+    # define valid data for all types (non-zero)
+    dataset.define_valid_data("response")
+    dataset.define_valid_data("pupil")
+    dataset.define_valid_data("gaze")
+    dataset.define_valid_data("locomotion")
+    dataset.define_valid_data("video")
+
+    # define valid trials based on the valid video and response data
+    dataset.define_valid_trials()
 
     # save the updated metadata with valid frames and responses
     dataset.save_trials_metadata()

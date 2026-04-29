@@ -1598,9 +1598,18 @@ class DataSet:
             Columns include mean, std, median, min, and max activation.
         """
 
-        # get the number of neurons
+        # define the trials to include in the statistics
         if trials_for_stats is None:
-            trials_for_stats = self.info[recording]["trials"]
+            # If the trials_df has a column 'valid_responses' with boolean values, only use the trials with valid responses, otherwise use all trials.
+            if hasattr(self, "trials_df") and "valid_responses" in self.trials_df.columns:
+                trials_for_stats = self.trials_df[
+                    (self.trials_df["recording"] == recording)
+                    & (self.trials_df["valid_responses"] == True)
+                ]["trial"].tolist()
+            else:
+                trials_for_stats = self.info[recording]["trials"]
+        
+        # get the number of neurons
         n_neurons = self.info[recording]["n_neurons"]
 
         # initialize
@@ -2066,7 +2075,7 @@ class DataSet:
 
                 # save the trials metadata
                 df_meta_trials_rec = videos_df[videos_df["recording"] == rec].copy()
-                df_meta_trials_rec["valid_trial"] = (
+                df_meta_trials_rec["valid_video"] = (
                     df_meta_trials_rec["segments_bad_n"] == 0
                 )
                 df_meta_trials_rec = df_meta_trials_rec[
@@ -2076,7 +2085,7 @@ class DataSet:
                         "trial",
                         "trial_type",
                         "valid_frames",
-                        "valid_trial",
+                        "valid_video",
                     ]
                 ]
 
@@ -2368,9 +2377,70 @@ class DataSet:
                 idx = (self.trials_df["recording"] == rec) & (self.trials_df["trial"] == trial)
                 self.trials_df.loc[idx, "trial_type"] = trial_type
 
-    def define_valid_responses(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
+    def define_valid_data(self, data_type, recording: str | list[str] | None = None, verbose: bool = True) -> None:
         """Define per-trial valid responses (non zero and non-NaN) from neural response data.
         
+        Parameters
+        ----------
+        data_type : str
+            Type of data to process (e.g., "response", "video", "pupil", "gaze", "locomotion").
+        recording : str or list[str] or None, optional
+            Recordings to process. If ``None``, process ``self.recording``.
+        verbose : bool, default=True
+            If ``True``, print warnings and progress messages.
+
+        """
+        if data_type not in ["response", "video", "pupil", "gaze", "locomotion"]:
+            print(f"Warning: data_type {data_type} not recognized. Valid options are 'response', 'video', 'pupil', 'gaze', 'locomotion'.")
+            return
+        
+        if recording is None:
+            recording = self.recording
+
+        if isinstance(recording, str):
+            recording = [recording]
+
+        valid_column = f"valid_{data_type}"
+        if valid_column not in self.trials_df.columns:
+            self.trials_df[valid_column] = True
+
+        print_title(f"Defining valid data for {data_type} (non-zero and non-NaN) ", verbose)
+
+        for rec in recording:
+            trials_df_rec = self.filter_trials(recording=rec)
+            iterator = tqdm(
+                trials_df_rec.iterrows(),
+                total=len(trials_df_rec),
+                desc=f"Recording {rec}",
+                unit="trial",
+                disable=False,
+            )
+            for _, row in iterator:
+                trial = row["trial"]
+                rec_row = row["recording"]
+                if data_type == "response":
+                    data_obj = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                elif data_type == "video":
+                    data_obj = self.load_video_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                elif data_type == "pupil":
+                    data_obj = self.load_behavior_by_trial(rec_row, trial, behavior_type="pupil", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                elif data_type == "gaze":
+                    data_obj = self.load_behavior_by_trial(rec_row, trial, behavior_type="gaze", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                elif data_type == "locomotion":
+                    data_obj = self.load_behavior_by_trial(rec_row, trial, behavior_type="locomotion", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                
+                data = data_obj.get_data()
+                valid_response = data.sum()!= 0 and not np.isnan(data).all()
+                idx = (self.trials_df["recording"] == rec_row) & (self.trials_df["trial"] == trial)
+                self.trials_df.loc[idx, valid_column] = valid_response and self.trials_df.loc[idx, valid_column].values[0]
+
+
+    def define_valid_trials(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
+        """Define per-trial valid trials based on the validity of videos.
+
+        A trial is considered valid if both the response and video are valid. Results
+        are stored in ``self.trials_df`` under the ``valid_trial`` column.
+
         Parameters
         ----------
         recording : str or list[str] or None, optional
@@ -2386,28 +2456,17 @@ class DataSet:
         if isinstance(recording, str):
             recording = [recording]
 
-        if "valid_response" not in self.trials_df.columns:
-            self.trials_df["valid_response"] = pd.NA
+        if "valid_trial" not in self.trials_df.columns:
+            self.trials_df["valid_trial"] = pd.NA
 
-        print_title("Defining valid responses (non-zero and non-NaN) ", verbose)
+        print_title("Defining valid trials based on responses and videos ", verbose)
 
         for rec in recording:
             trials_df_rec = self.filter_trials(recording=rec)
-            iterator = tqdm(
-                trials_df_rec.iterrows(),
-                total=len(trials_df_rec),
-                desc=f"Recording {rec}",
-                unit="trial",
-                disable=False,
-            )
-            for _, row in iterator:
-                trial = row["trial"]
-                rec_row = row["recording"]
-                resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
-                data = resp.get_data()
-                valid_response = data.sum()!= 0 and not np.isnan(data).all()
-                idx = (self.trials_df["recording"] == rec_row) & (self.trials_df["trial"] == trial)
-                self.trials_df.loc[idx, "valid_response"] = valid_response
+            valid_video = trials_df_rec["valid_video"]            
+            valid_trial = valid_video 
+            idx = self.trials_df["recording"] == rec
+            self.trials_df.loc[idx, "valid_trial"] = valid_trial.values
 
 
     def define_valid_frames(self, recording: str | list[str] | None = None, verbose: bool = True) -> None:
@@ -2432,14 +2491,16 @@ class DataSet:
         if isinstance(recording, str):
             recording = [recording]
 
+        data_type = ["video", "response","pupil","gaze","locomotion"]
+        
         if "valid_frames" not in self.trials_df.columns:
             self.trials_df["valid_frames"] = pd.NA
-        if "valid_frames_video" not in self.trials_df.columns:
-            self.trials_df["valid_frames_video"] = pd.NA
-        if "valid_frames_response" not in self.trials_df.columns:
-            self.trials_df["valid_frames_response"] = pd.NA
-
-        print_title("Defining valid frames for the videos and responses ", verbose)
+        for dt in data_type:
+            col_name = f"valid_frames_{dt}"
+            if col_name not in self.trials_df.columns:
+                self.trials_df[col_name] = pd.NA
+        
+        print_title("Defining valid frames for the data ", verbose)
         
         for rec in recording:
             trials_df_rec = self.filter_trials(recording=rec)
@@ -2455,8 +2516,14 @@ class DataSet:
                 rec_row = row["recording"]
                 video = self.load_video_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
                 resp = self.load_response_by_trial(rec_row, trial, load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                pupil = self.load_behavior_by_trial(rec_row, trial, behavior_type="pupil", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                gaze = self.load_behavior_by_trial(rec_row, trial, behavior_type="gaze", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
+                locomotion = self.load_behavior_by_trial(rec_row, trial, behavior_type="locomotion", load_metadata_from_global_video=False, load_metadata_from_dataframe=False)
                 video_valid = getattr(video, "valid_frames", None)
                 resp_valid = getattr(resp, "valid_frames", None)
+                pupil_valid = getattr(pupil, "valid_frames", None)
+                gaze_valid = getattr(gaze, "valid_frames", None)
+                locomotion_valid = getattr(locomotion, "valid_frames", None)
                 if video_valid is None or resp_valid is None:
                     valid_frames = pd.NA
                 else:
@@ -2465,6 +2532,10 @@ class DataSet:
                 self.trials_df.loc[idx, "valid_frames"] = valid_frames
                 self.trials_df.loc[idx, "valid_frames_video"] = video_valid
                 self.trials_df.loc[idx, "valid_frames_response"] = resp_valid
+                self.trials_df.loc[idx, "valid_frames_pupil"] = pupil_valid
+                self.trials_df.loc[idx, "valid_frames_gaze"] = gaze_valid
+                self.trials_df.loc[idx, "valid_frames_locomotion"] = locomotion_valid
+
 
     def save_trials_metadata(self, 
                              recording: str | list[str] | None = None, 
@@ -2483,7 +2554,20 @@ class DataSet:
         for rec in recording:
             # get the metadata for this recording
             df_meta_trials_rec = self.trials_df[self.trials_df["recording"] == rec].copy()
+             #reorder columns: recording, label, trial, trial_type, video_ID, valid_frames, valid_trial, valid_frames_*, valid_*, all the rest
+            cols = df_meta_trials_rec.columns.tolist()
+            cols_first_ = ["recording", "label", "trial", "trial_type", "video_ID", "valid_frames", "valid_trial"] 
+            cols_val_frames_ = ["valid_frames_{}".format(dt) for dt in ["video", "response","pupil","gaze","locomotion"]]
+            cols_val_data_ = ["valid_{}".format(dt) for dt in ["video", "response","pupil","gaze","locomotion"]]
             
+            cols_first = [col for col in cols_first_ if col in cols]
+            cols_val_frames = [col for col in cols if col in cols_val_frames_]
+            cols_val_data = [col for col in cols if col in cols_val_data_]
+            cols_remaining = [col for col in cols if col not in cols_first + cols_val_frames + cols_val_data]   
+            
+            cols_reordered = cols_first + cols_val_frames + cols_val_data + cols_remaining
+            df_meta_trials_rec = df_meta_trials_rec[cols_reordered]
+
             # generate a dictionry with the description of the columns names in the df_meta_trials_rec
             meta_trials_dict = _create_metadata_dict_from_trials_df(df_meta_trials_rec)
             
