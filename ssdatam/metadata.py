@@ -74,11 +74,11 @@ def _create_metadata_dict_from_trials_df(df_meta_trials: pd.DataFrame) -> dict[s
             meta_trials_dict[col]["description"] = "Label indicating the stimulus type presented in the trial"
             meta_trials_dict[col]["values"] = {}
             meta_trials_dict[col]["values"]["NaturalVideo"] = "Video sampled from films or the Sport-1M dataset"
-            meta_trials_dict[col]["values"]["NaturalImages"] = "ODD stimuli. Sequence of natural images from ImageNet presented 15 frames interleave with 12-18 frames of gray screen."
-            meta_trials_dict[col]["values"]["Gabor"] = "ODD stimuli. Sequence of spatiotemporal drifting Gabor patches (8 possible directions, 3 spacial frequencies, 3 temporal frequencies), lasting 25 frames each"
-            meta_trials_dict[col]["values"]["PinkNoise"] = "ODD stimuli. Sequence of directional pink noise with spatial orientation perpendicular to the motion direction, lasting 27 frames each"
-            meta_trials_dict[col]["values"]["RandomDots"] = "ODD stimuli. Sequence of random dots kinematogram (8 possible trajectories with 2 possible coherences and 2 velocities), lasting 60 frames each"
-            meta_trials_dict[col]["values"]["GaussianDot"] = "ODD stimuli. Sequence of a single Gaussian blob (105 locations, 2 color intensities), lasting 9 frames each"
+            meta_trials_dict[col]["values"]["NaturalImages"] = "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of natural images from ImageNet presented 15 frames interleave with 12-18 frames of gray screen."
+            meta_trials_dict[col]["values"]["Gabor"] = "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of spatiotemporal drifting Gabor patches (8 possible directions, 3 spacial frequencies, 3 temporal frequencies), lasting 25 frames each"
+            meta_trials_dict[col]["values"]["PinkNoise"] = "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of directional pink noise with spatial orientation perpendicular to the motion direction, lasting 27 frames each"
+            meta_trials_dict[col]["values"]["RandomDots"] = "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of random dots kinematogram (8 possible trajectories with 2 possible coherences and 2 velocities), lasting 60 frames each"
+            meta_trials_dict[col]["values"]["GaussianDot"] = "Parametric videos, Out-Of-Domain (ODD) stimuli. Sequence of a single Gaussian blob (105 locations, 2 color intensities), lasting 9 frames each"
         elif col == "trial_type":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Phase of the recording in which the trial occurs"
@@ -89,7 +89,7 @@ def _create_metadata_dict_from_trials_df(df_meta_trials: pd.DataFrame) -> dict[s
             meta_trials_dict[col]["values"]["live_test_bonus"] = "Fourth phase. Trials for testing. Trials from one ODD label. Videos repeated 10 times."
             meta_trials_dict[col]["values"]["final_test_main"] = "Fifth phase. Trials for testing. Only NaturalVideo. Videos repeated 10 times."
             meta_trials_dict[col]["values"]["final_test_bonus"] = "Sixth phase. Trials for testing. Trials from two ODD labels. Videos repeated 10 times."
-        elif col == "ID":
+        elif col == "video_ID":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Unique video identifier assigned by similarity grouping"
         elif col == "valid_frames":
@@ -777,7 +777,7 @@ def validate_metadata_recording(
 
     # check the trials metadata
     folder_meta_trials = folder_metadata_rec / trials_metadata_subfolder
-    mandatory_columns = {"trial", "ID", "label", "trial_type", "valid_trial"}
+    mandatory_columns = {"trial", "video_ID", "label", "trial_type", "valid_trial"}
     optional_columns = {"recording",
                         "first_label",
                         "sampling_freq",
@@ -809,6 +809,9 @@ def validate_metadata_recording(
                                                        file_pattern="*.json", 
                                                        include_file_as_column=False, 
                                                        verbose=verbose)
+            # if the ID column exists renamed it video_ID to be consistent with the csv format
+            if trials_df is not None and "ID" in trials_df.columns:
+                trials_df = trials_df.rename(columns={"ID": "video_ID"})
             if all_loaded:
                 good_trials = _validate_dataframe(trials_df, 
                                                   mandatory_columns=mandatory_columns, 
@@ -829,8 +832,8 @@ def validate_metadata_recording(
         # check that the IDs in the metadata file exist in the IDs in the global metadata videos folder (if configured)
         if trials_df is not None:
             if Path(folder_globalmetadata_videos).exists():
-                if "ID" in trials_df.columns:
-                    the_ids = set(trials_df["ID"].values)
+                if "video_ID" in trials_df.columns:
+                    the_ids = set(trials_df["video_ID"].values)
                     for id in the_ids:
                         files = list(Path(folder_globalmetadata_videos).glob(f"*{id}.json"))
                         if len(files) == 0:
@@ -875,7 +878,7 @@ def validate_metadata_recording(
 
     # check the basic metadata file
     file = os.path.join(folder_metadata_rec, f"meta-basic_{rec}.json")
-    mandatory_fields = {"animal_id", "session", "scan_idx", "sampling_freq","n_neurons", "n_trials","samples_per_trial"}
+    mandatory_fields = {"animal_id", "session", "scan_idx", "sampling_freq","n_neurons", "n_trials","samples_per_trial","dataset_url", "data_url"}
     basic_meta, good_basic = _validate_json(file, mandatory_fields=mandatory_fields, verbose=verbose)
         
     # print if all fine for the recording

@@ -1,4 +1,4 @@
-recording,label,ID,trial,trial_type,valid_frames,valid_trial,valid_frames_video,valid_frames_response,valid_response
+recording,label,video_ID,trial,trial_type,valid_frames,valid_trial,valid_frames_video,valid_frames_response,valid_response
 dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20,Gabor,v506840,203,final_test_bonus,300,True,300,414,False
 dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20,NaturalVideo,v663630,193,oracle,300,True,300,300,True
 dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20,NaturalVideo,v630528,459,train,300,True,300,300,True

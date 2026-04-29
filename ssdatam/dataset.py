@@ -880,7 +880,7 @@ class DataSet:
             Group counts.
         """
 
-        all_conditions = {"recording", "label", "trial_type", "ID"}
+        all_conditions = {"recording", "label", "trial_type", "video_ID"}
         if not (set(subset) <= all_conditions):
             raise ValueError(f"The subset must be included in {all_conditions}")
 
@@ -1001,8 +1001,8 @@ class DataSet:
             trials_meta = self.filter_trials(recording=recording, trial=trial)
             if len(trials_meta) != 1:
                 raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-            if "ID" in trials_meta.columns:
-                ID = trials_meta["ID"].iloc[0]
+            if "video_ID" in trials_meta.columns:
+                ID = trials_meta["video_ID"].iloc[0]
             else:
                 ID = None
             if "label" in trials_meta.columns:
@@ -1043,7 +1043,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     video.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
@@ -1081,8 +1081,8 @@ class DataSet:
             trials_meta = self.filter_trials(recording=recording, trial=trial)
             if len(trials_meta) != 1:
                 raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-            if "ID" in trials_meta.columns:
-                ID = trials_meta["ID"].iloc[0]
+            if "video_ID" in trials_meta.columns:
+                ID = trials_meta["video_ID"].iloc[0]
             else:
                 ID = None
             if "label" in trials_meta.columns:
@@ -1114,7 +1114,7 @@ class DataSet:
                 )
                 if file is not None:
                     response.load_metadata(file,
-                                        attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                        attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
                                         attributes_to_add = ["segments","duplicates"],
                                         raise_on_mismatch = raise_on_mismatch,
                                         verbose = verbose)
@@ -1130,7 +1130,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     response.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
@@ -1174,8 +1174,8 @@ class DataSet:
             trials_meta = self.filter_trials(recording=recording, trial=trial)
             if len(trials_meta) != 1:
                 raise Exception(f"{len(trials_meta)} trials found, instead of only 1 ")
-            if "ID" in trials_meta.columns:
-                ID = trials_meta["ID"].iloc[0]
+            if "video_ID" in trials_meta.columns:
+                ID = trials_meta["video_ID"].iloc[0]
             else:
                 ID = None
             if "label" in trials_meta.columns:
@@ -1214,7 +1214,7 @@ class DataSet:
                 )
                 if file is not None:
                     behavior.load_metadata(file,
-                                        attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                        attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
                                         attributes_to_add = ["segments","duplicates"],
                                         raise_on_mismatch = raise_on_mismatch,
                                         verbose = verbose)
@@ -1230,7 +1230,7 @@ class DataSet:
             if path_to_metadata_file.exists():
                 try:
                     behavior.load_metadata(path_to_metadata_file,
-                                           attributes_to_check_match = ["label", "ID", "valid_frames","sampling_freq"],
+                                           attributes_to_check_match = ["label", "video_ID", "valid_frames","sampling_freq"],
                                            attributes_to_add = None,
                                            raise_on_mismatch = raise_on_mismatch,
                                            verbose = verbose)
@@ -1819,10 +1819,46 @@ class DataSet:
         if isinstance(recording, str):
             recording = [recording]
 
+        data_url = {}
+        dataset_url = {}
+
+        dataset_url['dynamic29515-10-12-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset"
+        data_url['dynamic29515-10-12-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset/src/master/dynamic29515-10-12-Video-9b4f6a1a067fe51e15306b9628efea20.zip"
+        
+        dataset_url['dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset"
+        data_url['dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset/src/master/dynamic29623-4-9-Video-9b4f6a1a067fe51e15306b9628efea20.zip"
+        
+        dataset_url['ddynamic29647-19-8-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset"
+        data_url['dynamic29647-19-8-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset/src/master/dynamic29647-19-8-Video-9b4f6a1a067fe51e15306b9628efea20.zip"
+        
+        dataset_url['dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset"
+        data_url['dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset/src/master/dynamic29712-5-9-Video-9b4f6a1a067fe51e15306b9628efea20.zip"
+        
+        dataset_url['dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset"
+        data_url['dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20'] = "https://gin.g-node.org/pollytur/sensorium_2023_dataset/src/master/dynamic29755-2-8-Video-9b4f6a1a067fe51e15306b9628efea20.zip"
+        
+        dataset_url['dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730"
+        data_url['dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730/dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce.zip"
+        
+        dataset_url['dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730"
+        data_url['dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730/dynamic29228-2-10-Video-8744edeac3b4d1ce16b680916b5267ce.zip"
+        
+        dataset_url['dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730"
+        data_url['dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730/dynamic29234-6-9-Video-8744edeac3b4d1ce16b680916b5267ce.zip"
+        
+        dataset_url['dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730"
+        data_url['dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730/dynamic29513-3-5-Video-8744edeac3b4d1ce16b680916b5267ce.zip"
+        
+        dataset_url['dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730"
+        data_url['dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce'] = "https://gin.g-node.org/pollytur/sensorium_2023_data/src/798ba8ad041d8f0f0ce879af396d52c7238c2730/dynamic29514-2-9-Video-8744edeac3b4d1ce16b680916b5267ce.zip"
+        
+        
         for rec in recording:
             keys = ['animal_id', 'session', 'scan_idx', 'n_trials', 'samples_per_trial', 'n_neurons']
             info_save = {k: self.info[rec][k] for k in keys if k in self.info[rec]}
             info_save['sampling_freq'] = sampling_freq
+            info_save['dataset_url'] = dataset_url.get(rec, None)
+            info_save['data_url'] = data_url.get(rec, None)
             file_out = self.folder_metadata / rec / f"meta-basic_{rec}.json"
             save_json(info_save, file_out)
 
@@ -1958,8 +1994,8 @@ class DataSet:
 
         # Load the classification tables for all recordings
         videos_df = self.get_trials_metadata()
-        if "ID" not in videos_df.columns:
-            videos_df["ID"] = None
+        if "video_ID" not in videos_df.columns:
+            videos_df["video_ID"] = None
 
         print_title("Defining videos IDs ", verbose)
         for rec in recording:
@@ -2022,7 +2058,7 @@ class DataSet:
                                 raise ValueError(
                                     f"Label {thelabel}: Expected {len(duplicate_trials)} trials, found {np.sum(mask)}"
                                 )
-                            videos_df.loc[mask, "ID"] = new_ids[i]
+                            videos_df.loc[mask, "video_ID"] = new_ids[i]
 
                     except Exception as e:
                         print(f"Error processing label {thelabel} in {rec}: {e}")
@@ -2036,7 +2072,7 @@ class DataSet:
                 df_meta_trials_rec = df_meta_trials_rec[
                     [
                         "label",
-                        "ID",
+                        "video_ID",
                         "trial",
                         "trial_type",
                         "valid_frames",

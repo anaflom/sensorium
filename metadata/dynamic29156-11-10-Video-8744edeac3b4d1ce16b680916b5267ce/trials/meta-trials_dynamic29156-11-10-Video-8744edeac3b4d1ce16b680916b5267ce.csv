@@ -1,4 +1,4 @@
-recording,label,ID,trial,trial_type,valid_frames,valid_trial,valid_frames_video,valid_frames_response,valid_response
+recording,label,video_ID,trial,trial_type,valid_frames,valid_trial,valid_frames_video,valid_frames_response,valid_response
 dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce,NaturalVideo,v657206,203,train,300,True,300,300,True
 dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce,NaturalVideo,v275212,193,oracle,300,True,300,300,True
 dynamic29156-11-10-Video-8744edeac3b4d1ce16b680916b5267ce,GaussianDot,v508706,459,final_test_bonus,315,True,315,315,True
