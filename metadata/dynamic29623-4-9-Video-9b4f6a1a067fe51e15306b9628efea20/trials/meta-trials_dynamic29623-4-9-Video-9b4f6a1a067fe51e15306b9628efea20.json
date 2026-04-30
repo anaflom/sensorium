@@ -31,25 +31,25 @@
         "description": "Unique video identifier assigned by similarity grouping"
     },
     "valid_frames": {
-        "description": "Number of valid frames in the trial (minimum between video and response valid frames)"
+        "description": "Number of valid frames, from the beginning of the trial (minimum between video and response valid frames)"
     },
     "valid_trial": {
         "description": "Boolean indicating whether the trial is valid (i.e., has valid video)"
     },
     "valid_frames_video": {
-        "description": "Number of valid frames in the video for this trial (not NaN)"
+        "description": "Number of valid frames, from the beginning of the trial in the video (not NaN)"
     },
     "valid_frames_response": {
-        "description": "Number of valid frames in the neural response data for this trial (not NaN)"
+        "description": "Number of valid frames, from the beginning of the trial in the neural response data (not NaN)"
     },
     "valid_frames_pupil": {
-        "description": "Number of valid frames in the pupil data for this trial (not NaN)"
+        "description": "Number of valid frames, from the beginning of the trial in the pupil data (not NaN)"
     },
     "valid_frames_gaze": {
-        "description": "Number of valid frames in the gaze data for this trial (not NaN)"
+        "description": "Number of valid frames, from the beginning of the trial in the gaze data (not NaN)"
     },
     "valid_frames_locomotion": {
-        "description": "Number of valid frames in the locomotion data for this trial (not NaN)"
+        "description": "Number of valid frames, from the beginning of the trial in the locomotion data (not NaN)"
     },
     "valid_video": {
         "description": "Boolean indicating whether the video is valid (i.e., not all zero or NaN and valid segments)"

@@ -94,22 +94,22 @@ def _create_metadata_dict_from_trials_df(df_meta_trials: pd.DataFrame) -> dict[s
             meta_trials_dict[col]["description"] = "Unique video identifier assigned by similarity grouping"
         elif col == "valid_frames_video":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the video for this trial (not NaN)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial in the video (not NaN)"
         elif col == "valid_frames_response":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the neural response data for this trial (not NaN)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial in the neural response data (not NaN)"
         elif col == "valid_frames_pupil":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the pupil data for this trial (not NaN)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial in the pupil data (not NaN)"
         elif col == "valid_frames_gaze":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the gaze data for this trial (not NaN)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial in the gaze data (not NaN)"
         elif col == "valid_frames_locomotion":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the locomotion data for this trial (not NaN)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial in the locomotion data (not NaN)"
         elif col == "valid_frames":
             meta_trials_dict[col] = {}
-            meta_trials_dict[col]["description"] = "Number of valid frames in the trial (minimum between video and response valid frames)"
+            meta_trials_dict[col]["description"] = "Number of valid frames, from the beginning of the trial (minimum between video and response valid frames)"
         elif col == "valid_response":
             meta_trials_dict[col] = {}
             meta_trials_dict[col]["description"] = "Boolean indicating whether the neural response is valid (i.e., not all zero or NaN)"
